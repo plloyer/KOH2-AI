@@ -11,6 +11,7 @@ namespace AIOverhaul
     {
         public static AIOverhaulPlugin Instance;
         public static HashSet<int> EnhancedKingdomIds = new HashSet<int>();
+        public static HashSet<int> BaselineKingdomIds = new HashSet<int>();
         private static Logic.Game current_game;
 
         private void Awake()
@@ -32,6 +33,12 @@ namespace AIOverhaul
             return EnhancedKingdomIds.Contains(k.id);
         }
 
+        public static bool IsBaselineAI(Logic.Kingdom k)
+        {
+            if (k == null) return false;
+            return BaselineKingdomIds.Contains(k.id);
+        }
+
         public static void InitializeEnhancedKingdoms(Logic.Game game)
         {
             if (game == null || game.kingdoms == null) return;
@@ -39,21 +46,32 @@ namespace AIOverhaul
             current_game = game;
 
             EnhancedKingdomIds.Clear();
+            BaselineKingdomIds.Clear();
+
             List<Logic.Kingdom> aiKingdoms = game.kingdoms.Where(k => k != null && !k.is_player && !k.IsDefeated()).ToList();
 
             int targetCount = Mathf.Max(1, Mathf.RoundToInt(aiKingdoms.Count * 0.10f));
 
             // Randomize selection
             System.Random rand = new System.Random();
-            var selected = aiKingdoms.OrderBy(x => rand.Next()).Take(targetCount).ToList();
+            var shuffled = aiKingdoms.OrderBy(x => rand.Next()).ToList();
 
-            foreach (var k in selected)
+            var enhanced = shuffled.Take(targetCount).ToList();
+            var baseline = shuffled.Skip(targetCount).Take(targetCount).ToList();
+
+            foreach (var k in enhanced)
             {
                 EnhancedKingdomIds.Add(k.id);
             }
 
-            Instance.Log($"[AI-Mod] New game session detected. Selected {EnhancedKingdomIds.Count} enhanced kingdoms out of {aiKingdoms.Count} total AI kingdoms.");
-            Instance.Log($"[AI-Mod] Enhanced Kingdoms: {string.Join(", ", selected.Select(k => k.Name))}");
+            foreach (var k in baseline)
+            {
+                BaselineKingdomIds.Add(k.id);
+            }
+
+            Instance.Log($"[AI-Mod] New game session detected. Selected {EnhancedKingdomIds.Count} enhanced and {BaselineKingdomIds.Count} baseline kingdoms out of {aiKingdoms.Count} total AI kingdoms.");
+            Instance.Log($"[AI-Mod] Enhanced: {string.Join(", ", enhanced.Select(k => k.Name))}");
+            Instance.Log($"[AI-Mod] Baseline: {string.Join(", ", baseline.Select(k => k.Name))}");
         }
     }
 
@@ -63,6 +81,7 @@ namespace AIOverhaul
         static void Postfix()
         {
             AIOverhaulPlugin.EnhancedKingdomIds.Clear();
+            AIOverhaulPlugin.BaselineKingdomIds.Clear();
         }
     }
 
@@ -74,6 +93,7 @@ namespace AIOverhaul
             if (__instance == null) return;
             AILogger.LogDefeat(__instance);
             AIOverhaulPlugin.EnhancedKingdomIds.Remove(__instance.id);
+            AIOverhaulPlugin.BaselineKingdomIds.Remove(__instance.id);
         }
     }
 }
