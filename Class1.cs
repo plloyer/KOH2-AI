@@ -184,19 +184,6 @@ namespace AIOverhaul
         }
     }
 
-            // Normal Idle Logic
-            if (status == "idle" && armyTraverse.Field<Castle>("castle").Value == null)
-            {
-                Castle nearest = (Castle)Traverse.Create(__instance).Method("FindNearestOwnCastle", new object[] { army, true }).GetValue();
-                if (nearest != null)
-                {
-                    AIOverhaulPlugin.Instance.Log($"[AI-Mod] Idle Knight - Returning to garrison at {nearest.name}");
-                    Traverse.Create(__instance).Method("Send", new object[] { army, nearest, "go_inside", null }).GetValue();
-                }
-            }
-        }
-    }
-
     // --- MERCHANT & HIRING LOGIC ---
     [HarmonyPatch(typeof(KingdomAI), "ConsiderHireMerchant")]
     public class MerchantHiringPatch
