@@ -1,10 +1,8 @@
 using BepInEx;
 using HarmonyLib;
-using Logic;
 using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace AIOverhaul
 {
@@ -37,6 +35,7 @@ namespace AIOverhaul
                 string line = $"{timestamp},{k.Name},{isEnhanced},{k.realms.Count},{k.resources[Logic.ResourceType.Gold]:F0},{k.resources[Logic.ResourceType.Gold]:F0},{k.armies.Count},{totalStr:F0},{avgWarScore:F2},{wars},False";
                 lines.Add(line);
             }
+
             File.AppendAllLines(LogPath, lines);
         }
 

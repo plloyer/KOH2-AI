@@ -1,9 +1,7 @@
-using BepInEx;
 using HarmonyLib;
 using Logic;
 using UnityEngine;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 
 namespace AIOverhaul
@@ -17,7 +15,9 @@ namespace AIOverhaul
             if (__instance.kingdom.resources[Logic.ResourceType.Gold] > 500 && __instance.kingdom.court.Count < 9)
             {
                 int merchants = 0;
-                foreach (var k in __instance.kingdom.court) if (k.class_def?.id == "Merchant") merchants++;
+                foreach (var k in __instance.kingdom.court)
+                    if (k.class_def?.id == "Merchant")
+                        merchants++;
                 if (merchants < 2)
                 {
                     AIOverhaulPlugin.Instance.Log($"[AI-Mod] High priority Merchant hire for {__instance.kingdom.Name} (Gold: {__instance.kingdom.resources[Logic.ResourceType.Gold]})");
@@ -26,6 +26,7 @@ namespace AIOverhaul
                     return false;
                 }
             }
+
             return true;
         }
     }
@@ -66,10 +67,10 @@ namespace AIOverhaul
         {
             if (__instance.governor == null || __instance.castle == null) return;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.castle.GetKingdom())) return;
-            
+
             if (__instance.governor.class_def?.id == "Merchant")
             {
-                 if (__instance.castle.buildings.Any(b => b.def.id.Contains("Market")))
+                if (__instance.castle.buildings.Any(b => b.def.id.Contains("Market")))
                 {
                     __result += 20f;
                 }
@@ -95,20 +96,21 @@ namespace AIOverhaul
                     if (__instance.kingdom.resources.CanAfford(writingTradition.GetAdoptCost(__instance.kingdom)))
                     {
                         // Use Traverse to call private ConsiderExpense
-                        Traverse.Create(__instance).Method("ConsiderExpense", 
-                            Logic.KingdomAI.Expense.Type.AdoptTradition, 
-                            (Logic.BaseObject)writingTradition, 
-                            (UnityEngine.Object)null, 
-                            Logic.KingdomAI.Expense.Category.Economy, 
+                        Traverse.Create(__instance).Method("ConsiderExpense",
+                            Logic.KingdomAI.Expense.Type.AdoptTradition,
+                            (Logic.BaseObject)writingTradition,
+                            (UnityEngine.Object)null,
+                            Logic.KingdomAI.Expense.Category.Economy,
                             Logic.KingdomAI.Expense.Priority.High,
                             null // args
                         ).GetValue();
-                        
+
                         __result = true;
                         return false; // Skip original
                     }
                 }
             }
+
             return true;
         }
     }
@@ -128,6 +130,7 @@ namespace AIOverhaul
                     return false;
                 }
             }
+
             return true;
         }
     }
@@ -152,20 +155,22 @@ namespace AIOverhaul
                             if (kingdom != null)
                             {
                                 var upgradeCost = writingSkill.def.GetUpgardeCost(__instance);
-                                if (!kingdom.resources.CanAfford(upgradeCost, 1f)) return false; 
-                                
+                                if (!kingdom.resources.CanAfford(upgradeCost, 1f)) return false;
+
                                 var expenseCategory = (Logic.KingdomAI.Expense.Category)Traverse.Create(__instance).Method("GetExpenseCategory").GetValue();
                                 Logic.Kingdom.in_AI_spend = true;
                                 kingdom.SubResources(expenseCategory, upgradeCost);
                                 Logic.Kingdom.in_AI_spend = false;
                             }
                         }
+
                         __instance.AddSkillRank(writingSkill);
                         __result = true;
                         return false;
                     }
                 }
             }
+
             return true;
         }
     }

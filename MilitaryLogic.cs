@@ -1,10 +1,6 @@
-using BepInEx;
 using HarmonyLib;
-using Logic;
 using UnityEngine;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 namespace AIOverhaul
 {
@@ -41,7 +37,7 @@ namespace AIOverhaul
         static bool Prefix(Logic.KingdomAI __instance, Logic.Army army, ref bool __result)
         {
             if (army == null || !AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
-            
+
             Logic.Realm realmIn = army.realm_in;
             if (realmIn == null) return true;
 
@@ -113,6 +109,7 @@ namespace AIOverhaul
                     return false;
                 }
             }
+
             return true;
         }
     }

@@ -1,11 +1,8 @@
-using BepInEx;
 using HarmonyLib;
 using Logic;
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 namespace AIOverhaul
 {
@@ -28,12 +25,14 @@ namespace AIOverhaul
                             total += army.EvalStrength();
                         }
                     }
+
                     if (realm.castle != null && k.ai != null)
                     {
                         total += Logic.KingdomAI.Threat.EvalCastleStrength(realm.castle);
                     }
                 }
             }
+
             return total;
         }
 
@@ -45,21 +44,23 @@ namespace AIOverhaul
             {
                 if (n is Logic.Kingdom k && k == b) return true;
             }
+
             return false;
         }
 
         public static bool HasCommonEnemyWithAlly(Logic.Kingdom a, Logic.Kingdom b)
         {
-             if (a == null || b == null || a.wars == null || b.wars == null) return false;
-             foreach (var warA in a.wars)
-             {
-                 Logic.Kingdom enemyA = warA.GetEnemyLeader(a);
-                 foreach (var warB in b.wars)
-                 {
-                     if (warB.GetEnemyLeader(b) == enemyA) return true;
-                 }
-             }
-             return false;
+            if (a == null || b == null || a.wars == null || b.wars == null) return false;
+            foreach (var warA in a.wars)
+            {
+                Logic.Kingdom enemyA = warA.GetEnemyLeader(a);
+                foreach (var warB in b.wars)
+                {
+                    if (warB.GetEnemyLeader(b) == enemyA) return true;
+                }
+            }
+
+            return false;
         }
     }
 
@@ -84,7 +85,7 @@ namespace AIOverhaul
 
             float ownPower = WarLogicHelper.GetTotalPower(__instance.kingdom);
             float targetPower = WarLogicHelper.GetTotalPower(k);
-            
+
             bool targetAtWar = k.wars != null && k.wars.Count > 0;
             bool commonEnemy = WarLogicHelper.HasCommonEnemyWithAlly(__instance.kingdom, k);
 
@@ -96,6 +97,7 @@ namespace AIOverhaul
                     __result = false;
                     return false;
                 }
+
                 AIOverhaulPlugin.Instance.Log($"[AI-Mod] Proceeding with war on stronger target {k.Name} due to opportunity (AtWar: {targetAtWar}, CommonEnemy: {commonEnemy})");
             }
 
@@ -118,6 +120,7 @@ namespace AIOverhaul
             if (score < -15f || actor.wars.Count >= 2)
             {
                 Logic.Kingdom target = null;
+
                 // Priority 1: Strongest enemy for peace
                 if (score < -20f)
                 {
@@ -126,9 +129,14 @@ namespace AIOverhaul
                     {
                         int side = Traverse.Create(war).Method("GetSide", new object[] { actor }).GetValue<int>();
                         float s = Traverse.Create(war).Method("GetWarScore", new object[] { side }).GetValue<float>();
-                        if (s < worst) { worst = s; target = war.GetEnemyLeader(actor); }
+                        if (s < worst)
+                        {
+                            worst = s;
+                            target = war.GetEnemyLeader(actor);
+                        }
                     }
                 }
+
                 // Priority 2: Potential ally
                 if (target == null && actor.allies.Count < 2)
                 {
@@ -138,8 +146,13 @@ namespace AIOverhaul
                         if (WarLogicHelper.IsStrategicNeighbor(actor, k))
                         {
                             foreach (var war in actor.wars)
-                                if (k.IsEnemy(war.GetEnemyLeader(actor))) { target = k; break; }
+                                if (k.IsEnemy(war.GetEnemyLeader(actor)))
+                                {
+                                    target = k;
+                                    break;
+                                }
                         }
+
                         if (target != null) break;
                     }
                 }
@@ -151,12 +164,13 @@ namespace AIOverhaul
                     return false;
                 }
             }
+
             return true;
         }
 
         static IEnumerator RunDiplomacyWithTarget(Logic.KingdomAI ai, Logic.Kingdom target)
         {
-             yield return (object) CoopThread.Call("ThinkProposeOffer", (IEnumerator)Traverse.Create(ai).Method("ThinkProposeOfferThread", new object[] { target, "neutral" }).GetValue());
+            yield return (object)CoopThread.Call("ThinkProposeOffer", (IEnumerator)Traverse.Create(ai).Method("ThinkProposeOfferThread", new object[] { target, "neutral" }).GetValue());
         }
     }
 
@@ -182,8 +196,14 @@ namespace AIOverhaul
                     {
                         AIOverhaulPlugin.Instance.Log($"[AI-Mod] {actor.Name} claiming independence from {k.Name}");
                         indep.Send();
-                        if (k.is_player) { __instance.SetLastOfferTimeToKingdom(k, indep); k.t_last_ai_offer_time = __instance.game.time; }
-                        __result = true; return false;
+                        if (k.is_player)
+                        {
+                            __instance.SetLastOfferTimeToKingdom(k, indep);
+                            k.t_last_ai_offer_time = __instance.game.time;
+                        }
+
+                        __result = true;
+                        return false;
                     }
                 }
             }
@@ -204,12 +224,19 @@ namespace AIOverhaul
                         {
                             AIOverhaulPlugin.Instance.Log($"[AI-Mod] {actor.Name} SURRENDERING to {k.Name} as vassal!");
                             peace.Send();
-                            if (k.is_player) { __instance.SetLastOfferTimeToKingdom(k, peace); k.t_last_ai_offer_time = __instance.game.time; }
-                            __result = true; return false;
+                            if (k.is_player)
+                            {
+                                __instance.SetLastOfferTimeToKingdom(k, peace);
+                                k.t_last_ai_offer_time = __instance.game.time;
+                            }
+
+                            __result = true;
+                            return false;
                         }
                     }
                 }
             }
+
             return true;
         }
     }

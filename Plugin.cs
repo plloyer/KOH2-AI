@@ -1,10 +1,7 @@
 using BepInEx;
 using HarmonyLib;
-using Logic;
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 
 namespace AIOverhaul
@@ -40,16 +37,16 @@ namespace AIOverhaul
             if (game == null || game.kingdoms == null) return;
             if (game == current_game) return;
             current_game = game;
-            
+
             EnhancedKingdomIds.Clear();
             List<Logic.Kingdom> aiKingdoms = game.kingdoms.Where(k => k != null && !k.is_player && !k.IsDefeated()).ToList();
-            
+
             int targetCount = Mathf.Max(1, Mathf.RoundToInt(aiKingdoms.Count * 0.10f));
-            
+
             // Randomize selection
             System.Random rand = new System.Random();
             var selected = aiKingdoms.OrderBy(x => rand.Next()).Take(targetCount).ToList();
-            
+
             foreach (var k in selected)
             {
                 EnhancedKingdomIds.Add(k.id);
