@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace AIOverhaul
 {
-    [BepInPlugin("com.poyer.koh2.aioverhaul", "AI Overhaul", "1.6.0")]
+    [BepInPlugin("com.poyer.koh2.aioverhaul", "AI Overhaul", "1.6.1")]
     public class AIOverhaulPlugin : BaseUnityPlugin
     {
         public static AIOverhaulPlugin Instance;
@@ -17,7 +17,7 @@ namespace AIOverhaul
             Instance = this;
             var harmony = new Harmony("com.poyer.koh2.aioverhaul");
             harmony.PatchAll();
-            Logger.LogInfo("AI Overhaul 1.6.0 (Performance Logging) Loaded!");
+            Logger.LogInfo("AI Overhaul 1.6.1 (Stability Fix) Loaded!");
         }
 
         public void Log(string message)
@@ -312,14 +312,20 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Castle), "ChooseBuildOption")]
     public class SelectionPatch
     {
-        static bool Prefix(Castle __instance, ref Castle.BuildOption __result, List<Castle.BuildOption> options)
+        // ChooseBuildOption is STATIC: static BuildOption ChooseBuildOption(Game game, List<BuildOption> options, float sum)
+        static bool Prefix(ref Castle.BuildOption __result, List<Castle.BuildOption> options)
         {
-            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return true;
             if (options == null || options.Count == 0) return true;
-            Castle.BuildOption bestOption = options[0];
-            float maxEval = -1f;
-            foreach (var opt in options) { if (opt.eval > maxEval) { maxEval = opt.eval; bestOption = opt; } }
-            __result = bestOption;
+            
+            // Get kingdom from first option's castle
+            var firstCastle = options[0].castle;
+            if (firstCastle == null) return true;
+            var kingdom = firstCastle.GetKingdom();
+            if (kingdom == null) return true;
+
+            if (!AIOverhaulPlugin.IsEnhancedAI(kingdom)) return true;
+
+            __result = options[0]; // High priority building
             return false;
         }
     }
@@ -329,24 +335,39 @@ namespace AIOverhaul
     {
         public static float GetTotalPower(Logic.Kingdom k)
         {
-            if (k == null) return 0;
-            float power = 0;
-            var armies = Traverse.Create(k).Field<List<Army>>("armies").Value;
-            if (armies != null)
+            if (k == null) return 0f;
+            float total = 0f;
+
+            // Iterate through all realms to find armies
+            if (k.realms != null)
             {
-                foreach (var army in armies)
+                foreach (var realm in k.realms)
                 {
-                    power += Traverse.Create(army).Method("EvalStrength").GetValue<int>();
+                    if (realm.armies != null)
+                    {
+                        foreach (var army in realm.armies)
+                        {
+                            if (army == null) continue;
+                            float armyPower = Traverse.Create(army).Method("EvalStrength").GetValue<float>();
+                            total += armyPower;
+                        }
+                    }
                 }
             }
-            foreach (var realm in k.realms)
+
+            // Kingdoms also have garrisons in their castles
+            if (k.realms != null)
             {
-                if (realm.castle != null)
+                foreach (var realm in k.realms)
                 {
-                    power += KingdomAI.Threat.EvalCastleStrength(realm.castle);
+                    if (realm.castle != null)
+                    {
+                        float castlePower = Traverse.Create(k.ai).Method("EvalCastleStrength", realm.castle).GetValue<float>();
+                        total += castlePower;
+                    }
                 }
             }
-            return power;
+            return total;
         }
 
         public static bool IsStrategicNeighbor(Logic.Kingdom a, Logic.Kingdom b)
@@ -488,23 +509,24 @@ namespace AIOverhaul
                     float levies = k.resources.Get(ResourceType.Levy);
                     float incomeLevies = k.income.Get(ResourceType.Levy);
 
-                    // Army count
-                    var armies = Traverse.Create(k).Field<List<Army>>("armies").Value;
-                    int armyCount = armies != null ? armies.Count : 0;
-
-                    // Realm count
+                    // Army & Realm count
+                    int armyCount = 0;
+                    int buildingCount = 0;
                     int realmCount = k.realms != null ? k.realms.Count : 0;
 
-                    // Building count (total across all castles)
-                    int buildingCount = 0;
                     if (k.realms != null)
                     {
                         foreach (var realm in k.realms)
                         {
+                            if (realm.armies != null) armyCount += realm.armies.Count;
                             if (realm.castle != null)
                             {
-                                var buildings = Traverse.Create(realm.castle).Field<List<Building>>("buildings").Value;
-                                if (buildings != null) buildingCount += buildings.Count;
+                                // Safe access to buildings - using AddBuildOptions as a hint that building data exists
+                                var buildings = Traverse.Create(realm.castle).Field("buildings").GetValue();
+                                if (buildings is System.Collections.IEnumerable enumerable)
+                                {
+                                    foreach (var b in enumerable) buildingCount++;
+                                }
                             }
                         }
                     }
