@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace AIOverhaul
 {
-    [BepInPlugin("com.poyer.koh2.aioverhaul", "AI Overhaul", "1.6.1")]
+    [BepInPlugin("com.poyer.koh2.aioverhaul", "AI Overhaul", "1.6.2")]
     public class AIOverhaulPlugin : BaseUnityPlugin
     {
         public static AIOverhaulPlugin Instance;
@@ -17,7 +17,7 @@ namespace AIOverhaul
             Instance = this;
             var harmony = new Harmony("com.poyer.koh2.aioverhaul");
             harmony.PatchAll();
-            Logger.LogInfo("AI Overhaul 1.6.1 (Stability Fix) Loaded!");
+            Logger.LogInfo("AI Overhaul 1.6.2 (Final Type Fix) Loaded!");
         }
 
         public void Log(string message)
@@ -348,7 +348,7 @@ namespace AIOverhaul
                         foreach (var army in realm.armies)
                         {
                             if (army == null) continue;
-                            float armyPower = Traverse.Create(army).Method("EvalStrength").GetValue<float>();
+                            float armyPower = (float)Traverse.Create(army).Method("EvalStrength").GetValue<int>();
                             total += armyPower;
                         }
                     }
@@ -362,7 +362,7 @@ namespace AIOverhaul
                 {
                     if (realm.castle != null)
                     {
-                        float castlePower = Traverse.Create(k.ai).Method("EvalCastleStrength", realm.castle).GetValue<float>();
+                        float castlePower = (float)Traverse.Create(k.ai).Method("EvalCastleStrength", realm.castle).GetValue<int>();
                         total += castlePower;
                     }
                 }
@@ -457,7 +457,8 @@ namespace AIOverhaul
                 AIOverhaulPlugin.Instance.Log($"[AI-Mod] Proceeding with war on stronger target {k.Name} due to opportunity (AtWar: {targetAtWar}, CommonEnemy: {commonEnemy})");
             }
 
-            AIOverhaulPlugin.Instance.Log($"[AI-Mod] AI {__instance.kingdom.Name} declaring war on {k.Name}. Power Ratio: {ownPower/targetPower:F2}");
+            float powerRatio = targetPower > 0 ? ownPower / targetPower : (ownPower > 0 ? 10f : 1f);
+            AIOverhaulPlugin.Instance.Log($"[AI-Mod] AI {__instance.kingdom.Name} declaring war on {k.Name}. Power Ratio: {powerRatio:F2}");
             return true;
         }
     }
