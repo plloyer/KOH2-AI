@@ -113,7 +113,7 @@ namespace AIOverhaul
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
             Logic.Kingdom actor = __instance.kingdom;
-            float score = Traverse.Create(actor).Method("GetAverageWarScore").GetValue<float>();
+            float score = Traverse.Create(actor.ai).Method("GetAverageWarScore").GetValue<float>();
 
             if (score < -15f || actor.wars.Count >= 2)
             {
@@ -174,7 +174,7 @@ namespace AIOverhaul
             {
                 float myStr = WarLogicHelper.GetTotalPower(actor);
                 float theirStr = WarLogicHelper.GetTotalPower(k);
-                float kScore = Traverse.Create(k).Method("GetAverageWarScore").GetValue<float>();
+                float kScore = Traverse.Create(k.ai).Method("GetAverageWarScore").GetValue<float>();
                 if (myStr > theirStr * 1.3f || k.wars.Count > 2 || kScore < -30f)
                 {
                     Logic.Offer indep = Logic.Offer.GetCachedOffer("ClaimIndependence", (Logic.Object)actor, (Logic.Object)k);
@@ -191,7 +191,7 @@ namespace AIOverhaul
             // Desperate Surrender
             if (actor.IsEnemy(k))
             {
-                float score = Traverse.Create(actor).Method("GetAverageWarScore").GetValue<float>();
+                float score = Traverse.Create(actor.ai).Method("GetAverageWarScore").GetValue<float>();
                 if (score < -40f || (score < -10f && SurvivalLogic.IsDesperate(actor)))
                 {
                     Logic.Offer peace = Logic.Offer.GetCachedOffer("PeaceOfferTribute", (Logic.Object)actor, (Logic.Object)k);

@@ -10,7 +10,7 @@ namespace AIOverhaul
 {
     public static class AILogger
     {
-        private static string LogPath = Path.Combine(Paths.ConfigPath, "AI_Performance_Log.csv");
+        private static string LogPath = System.IO.Path.Combine(Paths.ConfigPath, "AI_Performance_Log.csv");
 
         static AILogger()
         {
@@ -31,10 +31,10 @@ namespace AIOverhaul
                 if (k == null || k.IsDefeated()) continue;
                 bool isEnhanced = AIOverhaulPlugin.IsEnhancedAI(k);
                 float totalStr = WarLogicHelper.GetTotalPower(k);
-                float avgWarScore = Traverse.Create(k).Method("GetAverageWarScore").GetValue<float>();
+                float avgWarScore = Traverse.Create(k.ai).Method("GetAverageWarScore").GetValue<float>();
                 int wars = k.wars?.Count ?? 0;
 
-                string line = $"{timestamp},{k.Name},{isEnhanced},{k.realms.Count},{k.gold:F0},{k.treasury:F0},{k.armies.Count},{totalStr:F0},{avgWarScore:F2},{wars},False";
+                string line = $"{timestamp},{k.Name},{isEnhanced},{k.realms.Count},{k.resources[Logic.ResourceType.Gold]:F0},{k.resources[Logic.ResourceType.Gold]:F0},{k.armies.Count},{totalStr:F0},{avgWarScore:F2},{wars},False";
                 lines.Add(line);
             }
             File.AppendAllLines(LogPath, lines);
