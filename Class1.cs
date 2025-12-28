@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace AIOverhaul
 {
-    [BepInPlugin("com.poyer.koh2.aioverhaul", "AI Overhaul", "1.4.0")]
+    [BepInPlugin("com.poyer.koh2.aioverhaul", "AI Overhaul", "1.5.0")]
     public class AIOverhaulPlugin : BaseUnityPlugin
     {
         public static AIOverhaulPlugin Instance;
@@ -15,7 +15,7 @@ namespace AIOverhaul
             Instance = this;
             var harmony = new Harmony("com.poyer.koh2.aioverhaul");
             harmony.PatchAll();
-            Logger.LogInfo("AI Overhaul 1.4.0 (Buddy System & Coordinated Combat) Loaded!");
+            Logger.LogInfo("AI Overhaul 1.5.0 (Strategic War Declaration) Loaded!");
         }
 
         public void Log(string message)
@@ -303,6 +303,123 @@ namespace AIOverhaul
             foreach (var opt in options) { if (opt.eval > maxEval) { maxEval = opt.eval; bestOption = opt; } }
             __result = bestOption;
             return false;
+        }
+    }
+
+    // --- WAR DECLARATION LOGIC ---
+    public static class WarLogicHelper
+    {
+        public static float GetTotalPower(Logic.Kingdom k)
+        {
+            if (k == null) return 0;
+            float power = 0;
+            var armies = Traverse.Create(k).Field<List<Army>>("armies").Value;
+            if (armies != null)
+            {
+                foreach (var army in armies)
+                {
+                    power += Traverse.Create(army).Method("EvalStrength").GetValue<int>();
+                }
+            }
+            foreach (var realm in k.realms)
+            {
+                if (realm.castle != null)
+                {
+                    power += KingdomAI.Threat.EvalCastleStrength(realm.castle);
+                }
+            }
+            return power;
+        }
+
+        public static bool IsStrategicNeighbor(Logic.Kingdom a, Logic.Kingdom b)
+        {
+            if (a == null || b == null) return false;
+            if (a.id == b.id) return false;
+            foreach (var realm in a.realms)
+            {
+                if (realm == null) continue;
+                if (realm.logicNeighborsAll != null)
+                {
+                    foreach (var n in realm.logicNeighborsAll)
+                    {
+                        if (n != null && n.kingdom_id == b.id) return true;
+                    }
+                }
+                if (realm.neighbors != null)
+                {
+                    foreach (var n in realm.neighbors)
+                    {
+                        if (n != null && n.IsSeaRealm())
+                        {
+                            foreach (var sn in n.neighbors)
+                            {
+                                if (sn != null && sn.kingdom_id == b.id) return true;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        public static bool HasCommonEnemyWithAlly(Logic.Kingdom actor, Logic.Kingdom target)
+        {
+            var kingdoms = actor.game.kingdoms;
+            foreach (var k in kingdoms)
+            {
+                if (k == null || k == actor || k == target) continue;
+                if (actor.IsAlly(k))
+                {
+                    if (k.IsEnemy(target)) return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(KingdomAI), "ThinkDeclareWar")]
+    public class WarDeclarationPatch
+    {
+        static bool Prefix(KingdomAI __instance, Logic.Kingdom k, ref bool __result)
+        {
+            if (k == null || __instance.kingdom == null) return true;
+
+            // 1. Maintain Alliances
+            if (__instance.kingdom.IsAlly(k))
+            {
+                AIOverhaulPlugin.Instance.Log($"[AI-Mod] Blocking war declaration on ally: {k.Name}");
+                __result = false;
+                return false;
+            }
+
+            // 2. Proximity: Only neighbors (land or sea)
+            if (!WarLogicHelper.IsStrategicNeighbor(__instance.kingdom, k))
+            {
+                AIOverhaulPlugin.Instance.Log($"[AI-Mod] Blocking war declaration on non-neighbor: {k.Name}");
+                __result = false;
+                return false;
+            }
+
+            // 3. Strength & Opportunity
+            float ownPower = WarLogicHelper.GetTotalPower(__instance.kingdom);
+            float targetPower = WarLogicHelper.GetTotalPower(k);
+            
+            bool targetAtWar = k.wars != null && k.wars.Count > 0;
+            bool commonEnemy = WarLogicHelper.HasCommonEnemyWithAlly(__instance.kingdom, k);
+
+            if (targetPower > ownPower * 1.5f)
+            {
+                if (!targetAtWar && !commonEnemy)
+                {
+                    AIOverhaulPlugin.Instance.Log($"[AI-Mod] Blocking war on {k.Name} - Target too strong ({targetPower:F0} vs {ownPower:F0}) and not distracted.");
+                    __result = false;
+                    return false;
+                }
+                AIOverhaulPlugin.Instance.Log($"[AI-Mod] Proceeding with war on stronger target {k.Name} due to opportunity (AtWar: {targetAtWar}, CommonEnemy: {commonEnemy})");
+            }
+
+            AIOverhaulPlugin.Instance.Log($"[AI-Mod] AI {__instance.kingdom.Name} declaring war on {k.Name}. Power Ratio: {ownPower/targetPower:F2}");
+            return true;
         }
     }
 }
