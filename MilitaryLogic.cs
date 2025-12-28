@@ -151,4 +151,16 @@ namespace AIOverhaul
             }
         }
     }
+
+    [HarmonyPatch(typeof(Logic.Castle), "EvalHireUnits")]
+    public class PeasantRecruitmentBlockPatch
+    {
+        static void Prefix(Logic.Castle __instance, ref bool allow_militia)
+        {
+            if (AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom()))
+            {
+                allow_militia = false;
+            }
+        }
+    }
 }
