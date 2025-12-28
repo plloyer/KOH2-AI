@@ -3,10 +3,12 @@ using HarmonyLib;
 using Logic;
 using UnityEngine;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace AIOverhaul
 {
-    [BepInPlugin("com.poyer.koh2.aioverhaul", "AI Overhaul", "1.5.0")]
+    [BepInPlugin("com.poyer.koh2.aioverhaul", "AI Overhaul", "1.6.0")]
     public class AIOverhaulPlugin : BaseUnityPlugin
     {
         public static AIOverhaulPlugin Instance;
@@ -15,7 +17,7 @@ namespace AIOverhaul
             Instance = this;
             var harmony = new Harmony("com.poyer.koh2.aioverhaul");
             harmony.PatchAll();
-            Logger.LogInfo("AI Overhaul 1.5.0 (Strategic War Declaration) Loaded!");
+            Logger.LogInfo("AI Overhaul 1.6.0 (Performance Logging) Loaded!");
         }
 
         public void Log(string message)
@@ -436,6 +438,102 @@ namespace AIOverhaul
 
             AIOverhaulPlugin.Instance.Log($"[AI-Mod] AI {__instance.kingdom.Name} declaring war on {k.Name}. Power Ratio: {ownPower/targetPower:F2}");
             return true;
+        }
+    }
+
+    // --- PERFORMANCE LOGGING ---
+    public static class AILogger
+    {
+        private static string LogPath = System.IO.Path.Combine(Paths.BepInExRootPath, "AI_Performance_Log.csv");
+        private static float lastLogTime = -100f;
+        private static string[] TrackedKingdoms = {
+            "Castille", "Castile", "Britany", "Brittany", "Lorraine", "Scottland", "Scotland", "Flanders", // Enhanced
+            "England", "France", "Navarra", "Toulouse", "Leon" // Vanilla
+        };
+
+        public static void LogState(Game game)
+        {
+            if (game == null) return;
+            float currentTime = (float)game.time.seconds;
+
+            // Log every 60 seconds of game time (approx 1 minute)
+            if (currentTime < lastLogTime + 60f) return;
+            lastLogTime = currentTime;
+
+            bool fileExists = System.IO.File.Exists(LogPath);
+            using (StreamWriter sw = new StreamWriter(LogPath, true))
+            {
+                if (!fileExists)
+                {
+                    sw.WriteLine("Time,Kingdom,IsEnhanced,Gold,Income_Gold,Books,Income_Books,Piety,Income_Piety,Trade,Income_Trade,Levies,Income_Levies,Armies,Realms,Buildings");
+                }
+
+                foreach (var k in game.kingdoms)
+                {
+                    if (k == null || k.IsDefeated()) continue;
+                    string name = k.Name;
+                    if (!TrackedKingdoms.Any(t => name.IndexOf(t, System.StringComparison.OrdinalIgnoreCase) >= 0)) continue;
+
+                    bool isEnhanced = AIOverhaulPlugin.IsEnhancedAI(k);
+                    
+                    // Resources & Incomes
+                    float gold = k.resources.Get(ResourceType.Gold);
+                    float incomeGold = k.income.Get(ResourceType.Gold);
+                    float books = k.resources.Get(ResourceType.Books);
+                    float incomeBooks = k.income.Get(ResourceType.Books);
+                    float piety = k.resources.Get(ResourceType.Piety);
+                    float incomePiety = k.income.Get(ResourceType.Piety);
+                    float trade = k.resources.Get(ResourceType.Trade);
+                    float incomeTrade = k.income.Get(ResourceType.Trade);
+                    float levies = k.resources.Get(ResourceType.Levy);
+                    float incomeLevies = k.income.Get(ResourceType.Levy);
+
+                    // Army count
+                    var armies = Traverse.Create(k).Field<List<Army>>("armies").Value;
+                    int armyCount = armies != null ? armies.Count : 0;
+
+                    // Realm count
+                    int realmCount = k.realms != null ? k.realms.Count : 0;
+
+                    // Building count (total across all castles)
+                    int buildingCount = 0;
+                    if (k.realms != null)
+                    {
+                        foreach (var realm in k.realms)
+                        {
+                            if (realm.castle != null)
+                            {
+                                var buildings = Traverse.Create(realm.castle).Field<List<Building>>("buildings").Value;
+                                if (buildings != null) buildingCount += buildings.Count;
+                            }
+                        }
+                    }
+
+                    sw.WriteLine($"{currentTime:F0},{name},{isEnhanced},{gold:F0},{incomeGold:F1},{books:F0},{incomeBooks:F1},{piety:F0},{incomePiety:F1},{trade:F0},{incomeTrade:F1},{levies:F0},{incomeLevies:F1},{armyCount},{realmCount},{buildingCount}");
+                }
+            }
+            AIOverhaulPlugin.Instance.Log($"[AI-Mod] Performance state logged at game time: {currentTime:F0}");
+        }
+    }
+
+    [HarmonyPatch(typeof(KingdomAI), "ThinkGeneral")]
+    public class LoggingPatch
+    {
+        static void Prefix(KingdomAI __instance)
+        {
+            // Only have one instance handle the logging for the whole game
+            if (__instance.kingdom.id == 1) 
+            {
+                AILogger.LogState(__instance.game);
+            }
+            // Fallback: if kingdom 1 is defeated or doesn't exist, we'd need another way.
+            // But usually kingdom 1 (often Bulgaria or similar in some maps) is there.
+            // Better: use the first non-defeated kingdom.
+            else if (__instance.game.kingdoms.Count > 0 && __instance.game.kingdoms[0] == __instance.kingdom)
+            {
+                 // This ensures the first valid AI runs it.
+                 AILogger.LogState(__instance.game);
+            }
         }
     }
 }
