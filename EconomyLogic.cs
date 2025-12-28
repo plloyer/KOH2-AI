@@ -3,6 +3,7 @@ using Logic;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using AIOverhaul;
 
 namespace AIOverhaul
 {
@@ -16,12 +17,12 @@ namespace AIOverhaul
             {
                 int merchants = 0;
                 foreach (var k in __instance.kingdom.court)
-                    if (k.class_def?.id == "Merchant")
+                    if (k.class_def?.id == CharacterClassNames.Merchant)
                         merchants++;
                 if (merchants < 2)
                 {
                     AIOverhaulPlugin.Instance.Log($"[AI-Mod] High priority Merchant hire for {__instance.kingdom.Name} (Gold: {__instance.kingdom.resources[Logic.ResourceType.Gold]})");
-                    Traverse.Create(__instance).Method("HireKnight", new object[] { "Merchant" }).GetValue();
+                    Traverse.Create(__instance).Method("HireKnight", new object[] { CharacterClassNames.Merchant }).GetValue();
                     __result = true;
                     return false;
                 }
@@ -53,7 +54,7 @@ namespace AIOverhaul
         static void Postfix(Logic.Castle __instance, Logic.Building.Def def, Logic.Resource production_weights, ref float __result)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
-            if (def.id.Contains("Market") || def.id.Contains("Farm") || def.id.Contains("Merchant"))
+            if (def.id.Contains(BuildingNames.MarketSquare) || def.id.Contains("Farm") || def.id.Contains(CharacterClassNames.Merchant))
             {
                 __result *= 1.3f;
             }
@@ -68,9 +69,9 @@ namespace AIOverhaul
             if (__instance.governor == null || __instance.castle == null) return;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.castle.GetKingdom())) return;
 
-            if (__instance.governor.class_def?.id == "Merchant")
+            if (__instance.governor.class_def?.id == CharacterClassNames.Merchant)
             {
-                if (__instance.castle.buildings.Any(b => b.def.id.Contains("Market")))
+                if (__instance.castle.buildings.Any(b => b.def.id.Contains(BuildingNames.MarketSquare)))
                 {
                     __result += 20f;
                 }
@@ -90,7 +91,7 @@ namespace AIOverhaul
                 if (traditionOptions == null || traditionOptions.Count == 0) return true;
 
                 // Look for Writing tradition
-                var writingTradition = traditionOptions.Find(t => t.name == "Writing");
+                var writingTradition = traditionOptions.Find(t => t.id == TraditionNames.WritingTradition);
                 if (writingTradition != null)
                 {
                     if (__instance.kingdom.resources.CanAfford(writingTradition.GetAdoptCost(__instance.kingdom)))
@@ -123,7 +124,7 @@ namespace AIOverhaul
         {
             if (__instance.IsKing() && AIOverhaulPlugin.EnhancedKingdomIds.Contains(__instance.GetKingdom().id))
             {
-                var writingSkill = skills.Find(s => s.id == "WritingSkill");
+                var writingSkill = skills.Find(s => s.id == SkillNames.Writing + "Skill");
                 if (writingSkill != null)
                 {
                     __result = writingSkill;
@@ -146,7 +147,7 @@ namespace AIOverhaul
                 var skillsRef = Traverse.Create(__instance).Field("skills").GetValue<List<Logic.Skill>>();
                 if (skillsRef != null)
                 {
-                    var writingSkill = skillsRef.Find(s => s.def.id == "WritingSkill");
+                    var writingSkill = skillsRef.Find(s => s.def.id == SkillNames.Writing + "Skill");
                     if (writingSkill != null && __instance.CanAddSkillRank(writingSkill))
                     {
                         if (!for_free)
