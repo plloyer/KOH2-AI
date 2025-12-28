@@ -22,6 +22,19 @@ namespace AIOverhaul
         {
             Logger.LogInfo(message);
         }
+
+        public static bool IsEnhancedAI(Logic.Kingdom k)
+        {
+            if (k == null) return false;
+            string name = k.Name.ToLower();
+            // User requested: Castille, Britany, Lorraine, Scottland, Flanders
+            // We use a simple contains check on the lowercase name to be safe
+            return name.Contains("castille") || name.Contains("castile") || 
+                   name.Contains("britany") || name.Contains("brittany") || 
+                   name.Contains("lorraine") || 
+                   name.Contains("scottland") || name.Contains("scotland") || 
+                   name.Contains("flanders");
+        }
     }
 
     public static class BuddySystem
@@ -54,7 +67,7 @@ namespace AIOverhaul
     {
         static bool Prefix(KingdomAI __instance, Army army, ref bool __result)
         {
-            if (army == null) return true;
+            if (army == null || !AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
             
             var armyTraverse = Traverse.Create(army);
             var realmIn = armyTraverse.Field<Realm>("realm_in").Value;
@@ -147,7 +160,7 @@ namespace AIOverhaul
     {
         static void Postfix(KingdomAI __instance, Army army)
         {
-            if (army == null) return;
+            if (army == null || !AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return;
             var armyTraverse = Traverse.Create(army);
             
             if (armyTraverse.Method("IsHiredMercenary").GetValue<bool>() || armyTraverse.Field<object>("battle").Value != null) return;
@@ -190,6 +203,7 @@ namespace AIOverhaul
     {
         static bool Prefix(KingdomAI __instance)
         {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
             int currentMerchants = Traverse.Create(__instance)
                 .Method("CountCourtSlots", new object[] { __instance.game.ai.merchant_def })
                 .GetValue<int>();
@@ -214,8 +228,9 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(KingdomAI), "ConsiderExpense", new[] { typeof(KingdomAI.Expense.Type), typeof(BaseObject), typeof(Logic.Object), typeof(KingdomAI.Expense.Category), typeof(KingdomAI.Expense.Priority), typeof(List<Value>) })]
     public class TradeActionPriorityPatch
     {
-        static void Prefix(KingdomAI.Expense.Type type, BaseObject defParam, ref KingdomAI.Expense.Priority priority)
+        static void Prefix(KingdomAI __instance, KingdomAI.Expense.Type type, BaseObject defParam, ref KingdomAI.Expense.Priority priority)
         {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return;
             if (type == KingdomAI.Expense.Type.ExecuteAction)
             {
                 if (defParam is Action action && action.def.id == "TradeWithKingdomAction")
@@ -232,7 +247,7 @@ namespace AIOverhaul
     {
         static void Postfix(ref float __result, Castle __instance, Building.Def def)
         {
-            if (def == null) return;
+            if (def == null || !AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
             
             var kingdom = __instance.GetKingdom();
             var realm = __instance.GetRealm();
@@ -279,7 +294,7 @@ namespace AIOverhaul
     {
         static void Postfix(ref float __result, KingdomAI.GovernOption __instance)
         {
-            if (__instance.governor == null || __instance.castle == null) return;
+            if (__instance.governor == null || __instance.castle == null || !AIOverhaulPlugin.IsEnhancedAI(__instance.castle.GetKingdom())) return;
             var realm = __instance.castle.GetRealm();
             if (realm == null) return;
             bool isMatch = false;
@@ -295,8 +310,9 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Castle), "ChooseBuildOption")]
     public class SelectionPatch
     {
-        static bool Prefix(ref Castle.BuildOption __result, List<Castle.BuildOption> options)
+        static bool Prefix(Castle __instance, ref Castle.BuildOption __result, List<Castle.BuildOption> options)
         {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return true;
             if (options == null || options.Count == 0) return true;
             Castle.BuildOption bestOption = options[0];
             float maxEval = -1f;
