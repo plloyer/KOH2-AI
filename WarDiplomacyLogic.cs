@@ -146,13 +146,35 @@ namespace AIOverhaul
 
         /// <summary>
         /// Select the best neighbor to designate as expansion target
-        /// Strategy: Keep ONE enemy neighbor for expansion, sign NAPs with all others
+        /// Strategy: MORTAL ENEMY first (never forgive), then current wars, then best target
         /// </summary>
         public static Logic.Kingdom SelectExpansionTarget(Logic.Kingdom k)
         {
             if (k == null || k.neighbors == null) return null;
 
-            // If already at war with a neighbor, that's our expansion target
+            // PRIORITY 1: Mortal Enemy - the FIRST kingdom that declared war on us
+            // This is a permanent grudge that overrides all other considerations
+            Logic.Kingdom mortalEnemy = AIOverhaulPlugin.GetMortalEnemy(k, k.game);
+            if (mortalEnemy != null)
+            {
+                // Only if they're still a neighbor (could have lost border provinces)
+                bool isStillNeighbor = false;
+                foreach (var neighbor in k.neighbors)
+                {
+                    if (neighbor is Logic.Kingdom nk && nk == mortalEnemy)
+                    {
+                        isStillNeighbor = true;
+                        break;
+                    }
+                }
+
+                if (isStillNeighbor)
+                {
+                    return mortalEnemy; // Revenge is priority #1
+                }
+            }
+
+            // PRIORITY 2: If already at war with a neighbor, that's our expansion target
             foreach (var neighbor in k.neighbors)
             {
                 if (neighbor is Logic.Kingdom nk && k.IsEnemy(nk) && !nk.IsDefeated())
@@ -418,7 +440,26 @@ namespace AIOverhaul
             if (napTarget != null)
             {
                 float relationship = actor.GetRelationship(napTarget);
-                string targetInfo = expansionTarget != null ? $" (Expansion target: {expansionTarget.Name})" : " (No expansion target)";
+
+                // Check if expansion target is mortal enemy for logging
+                Logic.Kingdom mortalEnemy = AIOverhaulPlugin.GetMortalEnemy(actor, actor.game);
+                string targetInfo = "";
+                if (expansionTarget != null)
+                {
+                    if (mortalEnemy != null && expansionTarget == mortalEnemy)
+                    {
+                        targetInfo = $" (MORTAL ENEMY: {expansionTarget.Name})";
+                    }
+                    else
+                    {
+                        targetInfo = $" (Expansion target: {expansionTarget.Name})";
+                    }
+                }
+                else
+                {
+                    targetInfo = " (No expansion target)";
+                }
+
                 AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} {actor.Name} offering NAP to {napTarget.Name} (Rel: {relationship:F0}){targetInfo}");
 
                 __result = RunNonAggressionProposal(__instance, napTarget);

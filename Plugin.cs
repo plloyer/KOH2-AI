@@ -12,6 +12,11 @@ namespace AIOverhaul
         public static AIOverhaulPlugin Instance;
         public static HashSet<int> EnhancedKingdomIds = new HashSet<int>();
         public static HashSet<int> BaselineKingdomIds = new HashSet<int>();
+
+        // Mortal Enemy System: Tracks the FIRST kingdom that declared war on each Enhanced AI kingdom
+        // Key = defender kingdom ID, Value = attacker kingdom ID (mortal enemy)
+        public static Dictionary<int, int> MortalEnemies = new Dictionary<int, int>();
+
         private static Logic.Game current_game;
 
         private void Awake()
@@ -64,6 +69,7 @@ namespace AIOverhaul
 
             EnhancedKingdomIds.Clear();
             BaselineKingdomIds.Clear();
+            MortalEnemies.Clear(); // Reset mortal enemies for new game
             EnhancedPerformanceLogger.ClearData(); // Moved here from failed GameClearPatch
 
             List<Logic.Kingdom> aiKingdoms = game.kingdoms.Where(k => k != null && !k.is_player && !k.IsDefeated()).ToList();
@@ -102,6 +108,28 @@ namespace AIOverhaul
             else
                 Instance.Log($"{LogPrefix} Baseline (0): None");
         }
+
+        /// <summary>
+        /// Get the mortal enemy of a kingdom (if any exists)
+        /// Returns null if no mortal enemy has been set
+        /// </summary>
+        public static Logic.Kingdom GetMortalEnemy(Logic.Kingdom k, Logic.Game game)
+        {
+            if (k == null || game == null) return null;
+            if (!MortalEnemies.ContainsKey(k.id)) return null;
+
+            int enemyId = MortalEnemies[k.id];
+            Logic.Kingdom enemy = game.GetKingdom(enemyId);
+
+            // Clear mortal enemy if they're defeated
+            if (enemy == null || enemy.IsDefeated())
+            {
+                MortalEnemies.Remove(k.id);
+                return null;
+            }
+
+            return enemy;
+        }
     }
 
     // Removed GameClearPatch and GameLoadPatch as target methods do not exist
@@ -123,6 +151,52 @@ namespace AIOverhaul
 
             AIOverhaulPlugin.EnhancedKingdomIds.Remove(__instance.id);
             AIOverhaulPlugin.BaselineKingdomIds.Remove(__instance.id);
+            AIOverhaulPlugin.MortalEnemies.Remove(__instance.id); // Clear if kingdom defeated
+        }
+    }
+
+    // Mortal Enemy System: Detect when someone declares war on an Enhanced AI kingdom
+    [HarmonyPatch(typeof(Logic.War), MethodType.Constructor, new System.Type[] {
+        typeof(Logic.Kingdom),
+        typeof(Logic.Kingdom),
+        typeof(Logic.War.InvolvementReason),
+        typeof(bool),
+        typeof(Logic.War.Def)
+    })]
+    public class WarDeclarationDetectionPatch
+    {
+        static void Postfix(Logic.Kingdom k1, Logic.Kingdom k2)
+        {
+            // k1 = attacker (declares war)
+            // k2 = defender (receives declaration)
+
+            if (k1 == null || k2 == null) return;
+
+            // Only track for Enhanced AI kingdoms
+            if (!AIOverhaulPlugin.IsEnhancedAI(k2)) return;
+
+            // Only if defender doesn't already have a mortal enemy
+            if (AIOverhaulPlugin.MortalEnemies.ContainsKey(k2.id)) return;
+
+            // Only if attacker is a DIRECT neighbor
+            bool isNeighbor = false;
+            if (k2.neighbors != null)
+            {
+                foreach (var neighbor in k2.neighbors)
+                {
+                    if (neighbor is Logic.Kingdom nk && nk == k1)
+                    {
+                        isNeighbor = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!isNeighbor) return;
+
+            // Record as mortal enemy - the FIRST kingdom to declare war becomes the permanent grudge
+            AIOverhaulPlugin.MortalEnemies[k2.id] = k1.id;
+            AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} MORTAL ENEMY: {k2.Name} will never forgive {k1.Name} for attacking first!");
         }
     }
 
