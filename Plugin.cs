@@ -40,10 +40,12 @@ namespace AIOverhaul
         {
             if (Input.GetKeyDown(KeyCode.F9))
             {
+                Log($"{LogPrefix} F9 key detected!");
                 SpectatorMode = !SpectatorMode;
                 string status = SpectatorMode ? "ENABLED" : "DISABLED";
-                Log($"{LogPrefix} Spectator Mode {status}");
-                
+                Log($"{LogPrefix} Spectator Mode toggled to: {status}");
+                Log($"{LogPrefix} SpectatorMode variable is now: {SpectatorMode}");
+
                 // Visual feedback (Toast or just log)
                 // Logic.UI.Toast.Show($"Spectator Mode: {status}"); // If accessible
             }
@@ -135,25 +137,9 @@ namespace AIOverhaul
     // Removed GameClearPatch and GameLoadPatch as target methods do not exist
     // Initialization is now triggered by EnhancedLoggingPatch in EnhancedPerformanceLogger.cs
 
-    [HarmonyPatch(typeof(Logic.Kingdom), "Destroy")]
-    public class KingdomDestroyPatch
-    {
-        static void Prefix(Logic.Kingdom __instance)
-        {
-            if (__instance == null) return;
-
-            // Enhanced logger with survival time tracking
-            if (__instance.game != null)
-            {
-                float currentYear = KingdomBaseline.GetGameYear(__instance.game);
-                EnhancedPerformanceLogger.LogDefeat(__instance, currentYear);
-            }
-
-            AIOverhaulPlugin.EnhancedKingdomIds.Remove(__instance.id);
-            AIOverhaulPlugin.BaselineKingdomIds.Remove(__instance.id);
-            AIOverhaulPlugin.MortalEnemies.Remove(__instance.id); // Clear if kingdom defeated
-        }
-    }
+    // Removed KingdomDestroyPatch as target method 'Destroy' does not exist.
+    // Defeat logging is handled by EnhancedPerformanceLogger.LogState.
+    // EnhancedKingdomIds cleanup is handled on new game initialization.
 
     // Mortal Enemy System: Detect when someone declares war on an Enhanced AI kingdom
     [HarmonyPatch(typeof(Logic.War), MethodType.Constructor, new System.Type[] {
@@ -207,21 +193,47 @@ namespace AIOverhaul
     {
         static bool Prefix(Logic.KingdomAI __instance, ref bool __result, Logic.KingdomAI.EnableFlags flag)
         {
+            // Debug logging to trace spectator mode
+            if (__instance?.kingdom != null)
+            {
+                bool isPlayer = __instance.kingdom.is_player;
+                string kingdomName = __instance.kingdom.Name ?? "Unknown";
+
+                // Log every call for player kingdom
+                if (isPlayer)
+                {
+                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} [Spectator Debug] Enabled() called for PLAYER kingdom '{kingdomName}' with flag: {flag}");
+                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} [Spectator Debug] SpectatorMode = {AIOverhaulPlugin.SpectatorMode}");
+                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} [Spectator Debug] is_player = {isPlayer}");
+                }
+            }
+
             // Only interfere if Spectator Mode is ON and this is the PLAYER kingdom
             if (AIOverhaulPlugin.SpectatorMode && __instance.kingdom.is_player)
             {
+                AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} [Spectator Debug] Spectator mode active for player kingdom!");
+
                 // Respect global AI switch (e.g. if game is paused/disabled)
                 if (__instance.game != null && !__instance.game.ai.enabled)
                 {
+                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} [Spectator Debug] Global AI disabled, returning false");
                     __result = false;
                     return false;
                 }
 
                 // BYPASS the internal 'enabled' bitmask check
                 // Force return true to say "Yes, this AI feature is enabled"
+                AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} [Spectator Debug] Forcing AI enabled for flag {flag}, returning TRUE");
                 __result = true;
                 return false; // Skip original method
             }
+
+            // Log when not interfering
+            if (__instance?.kingdom != null && __instance.kingdom.is_player)
+            {
+                AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} [Spectator Debug] Not interfering - running original method");
+            }
+
             return true; // Run original method
         }
     }
