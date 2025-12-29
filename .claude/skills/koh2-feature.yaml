@@ -1,0 +1,335 @@
+name: koh2-feature
+description: Implement features for Knights of Honor II AI Overhaul with rigorous API validation
+version: 1.0.0
+
+prompt: |
+  You are implementing a feature for the Knights of Honor II AI Overhaul mod with STRICT requirements.
+
+  # CRITICAL RULES - NEVER VIOLATE THESE
+
+  1. **NEVER HALLUCINATE APIs** - Always verify against Sources/Logic/*.cs before using any API
+  2. **ALWAYS COMPILE** - Build must succeed with 0 errors before committing
+  3. **VERIFY THEN CODE** - Read relevant source files first, then implement
+  4. **REVISE BEFORE COMMIT** - Review for issues and improvements after implementation
+  5. **COMMIT WHEN DONE** - Git commit with descriptive message when complete
+
+  # WORKFLOW - FOLLOW EXACTLY
+
+  ## Phase 1: API Discovery (MANDATORY)
+
+  Before writing ANY code:
+
+  1. **Identify what game objects you need to interact with**
+     - Kingdom? Army? Castle? Realm? Character?
+
+  2. **Read the decompiled source for those types**
+     ```
+     Use Read tool on: Sources/Logic/Kingdom.cs, Sources/Logic/Army.cs, etc.
+     ```
+
+  3. **Document the EXACT properties and methods available**
+     - Property names (e.g., `k.vassalStates` NOT `k.vassals`)
+     - Property types (e.g., `List<Army>` vs `HashSet<Kingdom>`)
+     - Method signatures (e.g., `army.EvalStrength()` returns what type?)
+
+  4. **Check for null safety patterns**
+     - Use `?.` operator: `k.realms?.Count ?? 0`
+     - Guard against empty collections
+
+  ## Phase 2: Implementation
+
+  1. **Determine if this is Enhanced AI only or all kingdoms**
+     - Enhanced only: Add `if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;`
+     - All kingdoms: No filter needed
+
+  2. **Choose correct Harmony patch type**
+     - **Prefix with return false**: Replace original method entirely
+     - **Postfix**: Add logic after original method runs
+     - **Transpiler**: Modify IL (advanced, avoid if possible)
+
+  3. **Write the patch following patterns:**
+     ```csharp
+     [HarmonyPatch(typeof(Logic.KingdomAI), "MethodName")]
+     public class MyFeaturePatch
+     {
+         static bool Prefix(Logic.KingdomAI __instance, ParamType param, ref ReturnType __result)
+         {
+             // Enhanced AI only (if applicable)
+             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+
+             // Null checks
+             if (__instance.kingdom == null) return true;
+
+             // Your logic using VERIFIED APIs only
+
+             // If replacing original:
+             __result = yourValue;
+             return false; // Skip original
+         }
+     }
+     ```
+
+  4. **Add logging for debugging**
+     ```csharp
+     AIOverhaulPlugin.Instance?.Log($"[AI-Mod] Your message here");
+     ```
+
+  ## Phase 3: Compilation Check (MANDATORY)
+
+  1. **Build the project**
+     ```bash
+     dotnet build
+     ```
+
+  2. **If errors occur:**
+     - Read the EXACT error message
+     - Check Sources/Logic/*.cs for correct API
+     - Fix and rebuild
+     - Repeat until 0 errors
+
+  3. **Do NOT proceed to Phase 4 until build succeeds**
+
+  ## Phase 4: Review and Improve (MANDATORY)
+
+  After successful build, review your code for:
+
+  **Correctness:**
+  - [ ] All APIs verified against Sources/Logic/*.cs
+  - [ ] Null checks on all property accesses
+  - [ ] Division by zero guards for calculations
+  - [ ] Edge cases handled (empty lists, defeated kingdoms, etc.)
+
+  **Code Quality:**
+  - [ ] Clear variable names
+  - [ ] Logical comments for complex logic
+  - [ ] No magic numbers (use named constants)
+  - [ ] Consistent with existing code style
+
+  **Performance:**
+  - [ ] No expensive operations in hot loops
+  - [ ] Cache repeated calculations
+  - [ ] Avoid LINQ where simple loops work
+
+  **Integration:**
+  - [ ] Doesn't break existing patches
+  - [ ] Logging messages are clear and useful
+  - [ ] Enhanced AI filter applied correctly
+  - [ ] No unintended side effects
+
+  **Make improvements now before committing**
+
+  ## Phase 5: Git Commit (MANDATORY)
+
+  1. **Check git status**
+     ```bash
+     git status
+     ```
+
+  2. **Review changes**
+     ```bash
+     git diff
+     ```
+
+  3. **Stage modified files**
+     ```bash
+     git add <files>
+     ```
+
+  4. **Commit with descriptive message**
+     ```bash
+     git commit -m "$(cat <<'EOF'
+     Brief summary of what feature does
+
+     - Detailed point 1
+     - Detailed point 2
+     - Implementation notes
+
+     Verified APIs against Sources/Logic/*.cs
+     Build succeeded with 0 errors.
+
+     🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+     Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+     EOF
+     )"
+     ```
+
+  # GAME API REFERENCE (ALWAYS VERIFY FIRST)
+
+  ## Common Types and Properties
+
+  **Logic.Kingdom** (VERIFY in Sources/Logic/Kingdom.cs)
+  - `k.id` (int)
+  - `k.Name` (string)
+  - `k.realms` (List<Realm>)
+  - `k.armies` (List<Army>)
+  - `k.resources` (Dictionary - use `[ResourceType.Gold]`)
+  - `k.wars` (List<War>)
+  - `k.allies` (List<Kingdom>) - NOT `k.pacts`
+  - `k.vassalStates` (List<Kingdom>) - NOT `k.vassals`
+  - `k.neighbors` (HashSet<Kingdom>)
+  - `k.religion` (Religion object with `.name` property)
+  - `k.royalFamily` (RoyalFamily)
+  - `k.traditions` (List<Tradition>)
+  - `k.books` (List<Book>)
+  - `k.ai` (KingdomAI)
+  - `k.IsDefeated()` (method)
+  - `k.IsEnemy(int kingdomId)` (method)
+  - `k.IsAlly(Kingdom k)` (method)
+
+  **Logic.Army** (VERIFY in Sources/Logic/Army.cs)
+  - `army.realm_in` (Realm)
+  - `army.kingdom_id` (int)
+  - `army.EvalStrength()` (method - returns int)
+  - `army.castle` (Castle?)
+  - `army.battle` (Battle?)
+  - `army.ai_status` (string)
+  - `army.Stop()` (method)
+  - `army.GetTarget()` (method)
+  - `army.IsHiredMercenary()` (method)
+
+  **Logic.Realm** (VERIFY in Sources/Logic/Realm.cs)
+  - `realm.armies` (List<Army>)
+  - `realm.castle` (Castle)
+  - `realm.kingdom_id` (int)
+
+  **Logic.Castle** (VERIFY in Sources/Logic/Castle.cs)
+  - `castle.name` (string)
+  - `castle.army` (Army?)
+  - `castle.realm` (Realm)
+
+  **Logic.Character** (VERIFY in Sources/Logic/Character.cs)
+  - `character.GetSkillRank(string skillName)` (method - returns int)
+  - `character.class_name` (string)
+
+  **Logic.Game** (VERIFY in Sources/Logic/Game.cs)
+  - `game.kingdoms` (List<Kingdom>)
+  - `game.session_time` (has `.hours` property)
+  - `game.time` (float)
+  - `game.defs` (DefinitionsLibrary)
+
+  ## Common Helpers in This Mod
+
+  **WarLogicHelper** (in WarDiplomacyLogic.cs)
+  - `WarLogicHelper.GetTotalPower(Kingdom k)` - Returns float
+  - `WarLogicHelper.IsStrategicNeighbor(Kingdom a, Kingdom b)` - Returns bool
+  - `WarLogicHelper.HasCommonEnemyWithAlly(Kingdom a, Kingdom b)` - Returns bool
+
+  **AIOverhaulPlugin** (in Plugin.cs)
+  - `AIOverhaulPlugin.IsEnhancedAI(Kingdom k)` - Check if Enhanced AI
+  - `AIOverhaulPlugin.IsBaselineAI(Kingdom k)` - Check if Baseline AI
+  - `AIOverhaulPlugin.Instance.Log(string message)` - Logging
+
+  **Constants** (use these, don't hardcode strings)
+  - `SkillNames.*` - All skill names
+  - `CharacterClassNames.*` - Character classes
+  - `BattleTacticNames.*` - Battle tactics
+  - `TraditionNames.*` - Traditions
+  - `BuildingNames.*` - Building types
+
+  ## Common Patterns
+
+  **Null-safe property access:**
+  ```csharp
+  int realmCount = k.realms?.Count ?? 0;
+  float gold = k.resources?[ResourceType.Gold] ?? 0f;
+  ```
+
+  **Iterating safely:**
+  ```csharp
+  if (k.armies != null)
+  {
+      foreach (var army in k.armies)
+      {
+          if (army == null) continue;
+          // Use army
+      }
+  }
+  ```
+
+  **Accessing nested properties:**
+  ```csharp
+  int writingSkill = k.royalFamily?.Sovereign?.GetSkillRank(SkillNames.Writing) ?? 0;
+  ```
+
+  **Division guards:**
+  ```csharp
+  float ratio = denominator > 0 ? numerator / denominator : 0f;
+  ```
+
+  **Calling private methods via Traverse:**
+  ```csharp
+  var result = Traverse.Create(__instance).Method("PrivateMethodName", new object[] { param1, param2 }).GetValue<ReturnType>();
+  ```
+
+  ## Common Pitfalls (AVOID THESE)
+
+  ❌ **Using wrong property names:**
+  - `k.vassals` → Use `k.vassalStates`
+  - `k.pacts` → Use `k.allies`
+  - `k.religion.id` → Use `k.religion.name`
+
+  ❌ **Forgetting null checks:**
+  - `k.realms.Count` → Use `k.realms?.Count ?? 0`
+
+  ❌ **Wrong type conversions:**
+  - LINQ Average() returns double → Cast to `(float)`
+
+  ❌ **Namespace conflicts:**
+  - `Path` is ambiguous → Use `using IOPath = System.IO.Path;`
+
+  ❌ **Using unsupported .NET methods:**
+  - `Dictionary.GetValueOrDefault()` → Use `TryGetValue()` pattern
+
+  ❌ **Assuming Army.id exists:**
+  - It doesn't in this game version - avoid using it
+
+  ## File Organization
+
+  **Where to add new patches:**
+  - Economy-related: `EconomyLogic.cs`
+  - War/Diplomacy-related: `WarDiplomacyLogic.cs`
+  - Military/Battle-related: `MilitaryLogic.cs`
+  - New category: Create new file, add to `.csproj`
+
+  **Adding to .csproj:**
+  ```xml
+  <Compile Include="YourNewFile.cs" />
+  ```
+
+  # RESPONSE FORMAT
+
+  When implementing a feature:
+
+  1. **State the feature** you're implementing
+  2. **List the game objects** you need to interact with
+  3. **Read relevant Sources/Logic files** and document findings
+  4. **Implement the patch** with verified APIs
+  5. **Build and fix** any compilation errors
+  6. **Review and improve** the code
+  7. **Commit the changes** with descriptive message
+  8. **Summarize what was done** for the user
+
+  # EXAMPLE INTERACTION
+
+  User: "Add a feature that prevents Enhanced AI from declaring war if they have low gold"
+
+  Your process:
+  1. ✅ Identify: Need Kingdom.resources, Kingdom.wars, war declaration logic
+  2. ✅ Read: Sources/Logic/Kingdom.cs to verify `resources` property
+  3. ✅ Implement: Patch `KingdomAI.ThinkDeclareWar` with gold check
+  4. ✅ Build: `dotnet build` - 0 errors
+  5. ✅ Review: Add configurable gold threshold, improve logging
+  6. ✅ Commit: With descriptive message
+  7. ✅ Report: "Feature implemented. Enhanced AI now requires 5000+ gold before declaring war."
+
+  # YOUR RESPONSIBILITY
+
+  - Write production-quality code
+  - Never guess API names
+  - Always compile successfully
+  - Review critically before committing
+  - Provide clear commit messages
+  - Explain what you did to the user
+
+  The user trusts you to maintain the quality and stability of this mod. Do not compromise on these standards.
