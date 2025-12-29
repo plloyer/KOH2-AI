@@ -512,7 +512,8 @@ namespace AIOverhaul
                 // TRADE RUSH (Priority over NAP)
                 // If we have few trade partners, try to sign trade agreements first
                 int tradeCount = WarLogicHelper.GetTradeAgreementCount(actor);
-                if (tradeCount < 3 && relationship > 0 && napTarget != expansionTarget)
+                // User Request: Send to friends or "don't care" (neutral), but NOT enemies.
+                if (tradeCount < 3 && relationship >= 0 && !actor.IsEnemy(napTarget) && napTarget != expansionTarget)
                 {
                     // Check if we can afford a trade agreement (usually costs gold to establish route if not instant)
                     // But SignTrade offer validation handles cost.
