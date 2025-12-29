@@ -36,15 +36,23 @@ namespace AIOverhaul
             Logger.LogInfo(message);
         }
 
+        /// <summary>
+        /// Static logging helper that automatically adds the [AI-Mod] prefix
+        /// </summary>
+        public static void LogMod(string message)
+        {
+            Instance?.Log($"{LogPrefix} {message}");
+        }
+
         private void Update()
         {
             if (Input.GetKeyDown(KeyCode.F9))
             {
-                Log($"{LogPrefix} F9 key detected!");
+                LogMod("F9 key detected!");
                 SpectatorMode = !SpectatorMode;
                 string status = SpectatorMode ? "ENABLED" : "DISABLED";
-                Log($"{LogPrefix} Spectator Mode toggled to: {status}");
-                Log($"{LogPrefix} SpectatorMode variable is now: {SpectatorMode}");
+                LogMod($"Spectator Mode toggled to: {status}");
+                LogMod($"SpectatorMode variable is now: {SpectatorMode}");
 
                 // Visual feedback (Toast or just log)
                 // Logic.UI.Toast.Show($"Spectator Mode: {status}"); // If accessible
@@ -98,17 +106,17 @@ namespace AIOverhaul
                 EnhancedPerformanceLogger.RecordBaseline(k, "Baseline", game);
             }
 
-            Instance.Log($"{LogPrefix} New game session detected. Selected {EnhancedKingdomIds.Count} enhanced and {BaselineKingdomIds.Count} baseline kingdoms out of {aiKingdoms.Count} total AI kingdoms.");
-            
+            LogMod($"New game session detected. Selected {EnhancedKingdomIds.Count} enhanced and {BaselineKingdomIds.Count} baseline kingdoms out of {aiKingdoms.Count} total AI kingdoms.");
+
             if (enhanced.Count > 0)
-                Instance.Log($"{LogPrefix} Enhanced ({enhanced.Count}): {string.Join(", ", enhanced.Select(k => k.Name))}");
+                LogMod($"Enhanced ({enhanced.Count}): {string.Join(", ", enhanced.Select(k => k.Name))}");
             else
-                Instance.Log($"{LogPrefix} Enhanced (0): None");
+                LogMod("Enhanced (0): None");
 
             if (baseline.Count > 0)
-                Instance.Log($"{LogPrefix} Baseline ({baseline.Count}): {string.Join(", ", baseline.Select(k => k.Name))}");
+                LogMod($"Baseline ({baseline.Count}): {string.Join(", ", baseline.Select(k => k.Name))}");
             else
-                Instance.Log($"{LogPrefix} Baseline (0): None");
+                LogMod("Baseline (0): None");
         }
 
         /// <summary>
@@ -182,7 +190,7 @@ namespace AIOverhaul
 
             // Record as mortal enemy - the FIRST kingdom to declare war becomes the permanent grudge
             AIOverhaulPlugin.MortalEnemies[k2.id] = k1.id;
-            AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} MORTAL ENEMY: {k2.Name} will never forgive {k1.Name} for attacking first!");
+            AIOverhaulPlugin.LogMod($"MORTAL ENEMY: {k2.Name} will never forgive {k1.Name} for attacking first!");
         }
     }
 
@@ -202,28 +210,28 @@ namespace AIOverhaul
                 // Log every call for player kingdom
                 if (isPlayer)
                 {
-                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} [Spectator Debug] Enabled() called for PLAYER kingdom '{kingdomName}' with flag: {flag}");
-                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} [Spectator Debug] SpectatorMode = {AIOverhaulPlugin.SpectatorMode}");
-                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} [Spectator Debug] is_player = {isPlayer}");
+                    AIOverhaulPlugin.LogMod($"[Spectator Debug] Enabled() called for PLAYER kingdom '{kingdomName}' with flag: {flag}");
+                    AIOverhaulPlugin.LogMod($"[Spectator Debug] SpectatorMode = {AIOverhaulPlugin.SpectatorMode}");
+                    AIOverhaulPlugin.LogMod($"[Spectator Debug] is_player = {isPlayer}");
                 }
             }
 
             // Only interfere if Spectator Mode is ON and this is the PLAYER kingdom
             if (AIOverhaulPlugin.SpectatorMode && __instance.kingdom.is_player)
             {
-                AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} [Spectator Debug] Spectator mode active for player kingdom!");
+                AIOverhaulPlugin.LogMod("[Spectator Debug] Spectator mode active for player kingdom!");
 
                 // Respect global AI switch (e.g. if game is paused/disabled)
                 if (__instance.game != null && !__instance.game.ai.enabled)
                 {
-                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} [Spectator Debug] Global AI disabled, returning false");
+                    AIOverhaulPlugin.LogMod("[Spectator Debug] Global AI disabled, returning false");
                     __result = false;
                     return false;
                 }
 
                 // BYPASS the internal 'enabled' bitmask check
                 // Force return true to say "Yes, this AI feature is enabled"
-                AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} [Spectator Debug] Forcing AI enabled for flag {flag}, returning TRUE");
+                AIOverhaulPlugin.LogMod($"[Spectator Debug] Forcing AI enabled for flag {flag}, returning TRUE");
                 __result = true;
                 return false; // Skip original method
             }
@@ -231,7 +239,7 @@ namespace AIOverhaul
             // Log when not interfering
             if (__instance?.kingdom != null && __instance.kingdom.is_player)
             {
-                AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} [Spectator Debug] Not interfering - running original method");
+                AIOverhaulPlugin.LogMod("[Spectator Debug] Not interfering - running original method");
             }
 
             return true; // Run original method

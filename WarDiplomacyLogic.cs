@@ -319,7 +319,7 @@ namespace AIOverhaul
             // CRITICAL: Never declare war if we have disorder
             if (WarLogicHelper.HasDisorder(__instance.kingdom))
             {
-                AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} Blocking war on {k.Name} - We have realm(s) in disorder!");
+                AIOverhaulPlugin.LogMod($" Blocking war on {k.Name} - We have realm(s) in disorder!");
                 __result = false;
                 return false;
             }
@@ -346,7 +346,7 @@ namespace AIOverhaul
             // If combined threats exceed our power by 2x, we're too vulnerable
             if (combinedThreat > ownPower * 2.0f)
             {
-                AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} Blocking war on {k.Name} - Too vulnerable (NeighborThreat: {neighborThreat:F0}, Target: {targetPower:F0}, Us: {ownPower:F0})");
+                AIOverhaulPlugin.LogMod($" Blocking war on {k.Name} - Too vulnerable (NeighborThreat: {neighborThreat:F0}, Target: {targetPower:F0}, Us: {ownPower:F0})");
                 __result = false;
                 return false;
             }
@@ -360,19 +360,19 @@ namespace AIOverhaul
                 // Don't attack if enemy is more than 2.5x stronger, even if distracted
                 if (targetPower > ownPower * 2.5f)
                 {
-                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} Blocking war on {k.Name} - Target way too strong ({targetPower:F0} vs {ownPower:F0}, ratio {(targetPower/ownPower):F1}x)");
+                    AIOverhaulPlugin.LogMod($" Blocking war on {k.Name} - Target way too strong ({targetPower:F0} vs {ownPower:F0}, ratio {(targetPower/ownPower):F1}x)");
                     __result = false;
                     return false;
                 }
 
                 if (!targetAtWar && !commonEnemy)
                 {
-                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} Blocking war on {k.Name} - Target too strong ({targetPower:F0} vs {ownPower:F0}) and not distracted.");
+                    AIOverhaulPlugin.LogMod($" Blocking war on {k.Name} - Target too strong ({targetPower:F0} vs {ownPower:F0}) and not distracted.");
                     __result = false;
                     return false;
                 }
 
-                AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} Proceeding with war on stronger target {k.Name} due to opportunity (AtWar: {targetAtWar}, CommonEnemy: {commonEnemy})");
+                AIOverhaulPlugin.LogMod($" Proceeding with war on stronger target {k.Name} due to opportunity (AtWar: {targetAtWar}, CommonEnemy: {commonEnemy})");
             }
 
             // NEW: War Preparation - Require 2 Full Armies
@@ -394,13 +394,13 @@ namespace AIOverhaul
 
             if (fullArmies < 2)
             {
-                AIOverhaulPlugin.Instance.Log($"{AIOverhaulPlugin.LogPrefix} Blocking war on {k.Name} - Not enough armies prepared ({fullArmies}/2).");
+                AIOverhaulPlugin.LogMod($" Blocking war on {k.Name} - Not enough armies prepared ({fullArmies}/2).");
                 __result = false;
                 return false;
             }
 
             float powerRatio = targetPower > 0 ? ownPower / targetPower : (ownPower > 0 ? 10f : 1f);
-            AIOverhaulPlugin.Instance.Log($"{AIOverhaulPlugin.LogPrefix} AI {__instance.kingdom.Name} declaring war on {k.Name}. Power Ratio: {powerRatio:F2}");
+            AIOverhaulPlugin.LogMod($" AI {__instance.kingdom.Name} declaring war on {k.Name}. Power Ratio: {powerRatio:F2}");
             return true;
         }
     }
@@ -418,7 +418,7 @@ namespace AIOverhaul
             // CRITICAL: If we have disorder and are at war, seek peace immediately
             if (WarLogicHelper.HasDisorder(actor) && actor.wars != null && actor.wars.Count > 0)
             {
-                AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} {actor.Name} has disorder - seeking peace urgently!");
+                AIOverhaulPlugin.LogMod($" {actor.Name} has disorder - seeking peace urgently!");
                 // Focus on making peace with ALL enemies
                 if (actor.wars.Count > 0)
                 {
@@ -460,7 +460,7 @@ namespace AIOverhaul
                     targetInfo = " (No expansion target)";
                 }
 
-                AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} {actor.Name} offering NAP to {napTarget.Name} (Rel: {relationship:F0}){targetInfo}");
+                AIOverhaulPlugin.LogMod($" {actor.Name} offering NAP to {napTarget.Name} (Rel: {relationship:F0}){targetInfo}");
 
                 __result = RunNonAggressionProposal(__instance, napTarget);
                 return false;
@@ -474,7 +474,7 @@ namespace AIOverhaul
                 {
                     float gold = actor.resources?[ResourceType.Gold] ?? 0f;
                     float threat = WarLogicHelper.GetNeighborThreat(actor);
-                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} {actor.Name} seeking defensive pact with {pactTarget.Name} (Gold: {gold:F0}, Threat: {threat:F0})");
+                    AIOverhaulPlugin.LogMod($" {actor.Name} seeking defensive pact with {pactTarget.Name} (Gold: {gold:F0}, Threat: {threat:F0})");
 
                     __result = RunDefensivePactProposal(__instance, pactTarget);
                     return false;
@@ -523,7 +523,7 @@ namespace AIOverhaul
 
                 if (target != null)
                 {
-                    AIOverhaulPlugin.Instance.Log($"{AIOverhaulPlugin.LogPrefix} {actor.Name} in survival mode. Focusing on {target.Name}");
+                    AIOverhaulPlugin.LogMod($" {actor.Name} in survival mode. Focusing on {target.Name}");
                     __result = RunDiplomacyWithTarget(__instance, target);
                     return false;
                 }
@@ -547,7 +547,7 @@ namespace AIOverhaul
                 string validation = pactOffer.Validate();
                 if (validation == "ok")
                 {
-                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} {ai.kingdom.Name} proposing defensive pact to {target.Name}");
+                    AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} proposing defensive pact to {target.Name}");
                     pactOffer.AI = true;
                     pactOffer.Send();
 
@@ -559,7 +559,7 @@ namespace AIOverhaul
                 }
                 else
                 {
-                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} {ai.kingdom.Name} pact offer to {target.Name} invalid: {validation}");
+                    AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} pact offer to {target.Name} invalid: {validation}");
                 }
             }
 
@@ -576,7 +576,7 @@ namespace AIOverhaul
                 string validation = napOffer.Validate();
                 if (validation == "ok")
                 {
-                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} {ai.kingdom.Name} offering FREE non-aggression pact to {target.Name}");
+                    AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} offering FREE non-aggression pact to {target.Name}");
                     napOffer.AI = true;
                     napOffer.Send();
 
@@ -588,7 +588,7 @@ namespace AIOverhaul
                 }
                 else
                 {
-                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} {ai.kingdom.Name} NAP offer to {target.Name} invalid: {validation}");
+                    AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} NAP offer to {target.Name} invalid: {validation}");
                 }
             }
 
@@ -616,7 +616,7 @@ namespace AIOverhaul
                     Logic.Offer indep = Logic.Offer.GetCachedOffer("ClaimIndependence", (Logic.Object)actor, (Logic.Object)k);
                     if (indep != null && indep.Validate() == "ok")
                     {
-                        AIOverhaulPlugin.Instance.Log($"{AIOverhaulPlugin.LogPrefix} {actor.Name} claiming independence from {k.Name}");
+                        AIOverhaulPlugin.LogMod($" {actor.Name} claiming independence from {k.Name}");
                         indep.Send();
                         if (k.is_player)
                         {
@@ -644,7 +644,7 @@ namespace AIOverhaul
                         peace.AI = true;
                         if (peace.Validate() == "ok")
                         {
-                            AIOverhaulPlugin.Instance.Log($"{AIOverhaulPlugin.LogPrefix} {actor.Name} SURRENDERING to {k.Name} as vassal!");
+                            AIOverhaulPlugin.LogMod($" {actor.Name} SURRENDERING to {k.Name} as vassal!");
                             peace.Send();
                             if (k.is_player)
                             {

@@ -21,7 +21,7 @@ namespace AIOverhaul
                         merchants++;
                 if (merchants < 2)
                 {
-                    AIOverhaulPlugin.Instance.Log($"{AIOverhaulPlugin.LogPrefix} High priority Merchant hire for {__instance.kingdom.Name} (Gold: {__instance.kingdom.resources[Logic.ResourceType.Gold]})");
+                    AIOverhaulPlugin.LogMod($" High priority Merchant hire for {__instance.kingdom.Name} (Gold: {__instance.kingdom.resources[Logic.ResourceType.Gold]})");
                     Traverse.Create(__instance).Method("HireKnight", new object[] { CharacterClassNames.Merchant }).GetValue();
                     __result = true;
                     return false;
@@ -62,7 +62,7 @@ namespace AIOverhaul
             // Simplify: Assume court size max is 9 (standard) or check court.Count
             if (k.court.Count < 9)
             {
-                 AIOverhaulPlugin.Instance.Log($"{AIOverhaulPlugin.LogPrefix} Priority Cleric hire for {k.Name}");
+                 AIOverhaulPlugin.LogMod($" Priority Cleric hire for {k.Name}");
                  Traverse.Create(__instance).Method("HireKnight", new object[] { CharacterClassNames.Cleric }).GetValue();
                  __result = true;
                  return false;
@@ -189,7 +189,7 @@ namespace AIOverhaul
         {
             if (__instance.IsKing() && AIOverhaulPlugin.EnhancedKingdomIds.Contains(__instance.GetKingdom().id))
             {
-                var writingSkill = skills.Find(s => s.id == SkillNames.Writing + "Skill");
+                var writingSkill = skills.Find(s => s != null && s.id == SkillNames.Writing + "Skill");
                 if (writingSkill != null)
                 {
                     __result = writingSkill;
@@ -212,7 +212,7 @@ namespace AIOverhaul
                 var skillsRef = Traverse.Create(__instance).Field("skills").GetValue<List<Logic.Skill>>();
                 if (skillsRef != null)
                 {
-                    var writingSkill = skillsRef.Find(s => s.def.id == SkillNames.Writing + "Skill");
+                    var writingSkill = skillsRef.Find(s => s != null && s.def != null && s.def.id == SkillNames.Writing + "Skill");
                     if (writingSkill != null && __instance.CanAddSkillRank(writingSkill))
                     {
                         if (!for_free)
