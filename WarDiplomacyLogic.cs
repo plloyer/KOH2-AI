@@ -145,10 +145,73 @@ namespace AIOverhaul
         }
 
         /// <summary>
-        /// Find the best neighbor to offer a non-aggression pact to
-        /// Prioritizes neighbors without existing NAPs, not at war with us, with neutral+ relations
+        /// Select the best neighbor to designate as expansion target
+        /// Strategy: Keep ONE enemy neighbor for expansion, sign NAPs with all others
         /// </summary>
-        public static Logic.Kingdom FindNonAggressionTarget(Logic.Kingdom k)
+        public static Logic.Kingdom SelectExpansionTarget(Logic.Kingdom k)
+        {
+            if (k == null || k.neighbors == null) return null;
+
+            // If already at war with a neighbor, that's our expansion target
+            foreach (var neighbor in k.neighbors)
+            {
+                if (neighbor is Logic.Kingdom nk && k.IsEnemy(nk) && !nk.IsDefeated())
+                {
+                    return nk;
+                }
+            }
+
+            // Otherwise, select best expansion target from peaceful neighbors
+            Logic.Kingdom bestTarget = null;
+            float bestScore = -99999f;
+            float ownPower = GetTotalPower(k);
+
+            foreach (var neighbor in k.neighbors)
+            {
+                if (neighbor is Logic.Kingdom neighborKingdom)
+                {
+                    // Skip if defeated
+                    if (neighborKingdom.IsDefeated()) continue;
+
+                    // Skip if allied (don't betray allies)
+                    if (k.IsAlly(neighborKingdom)) continue;
+
+                    // Calculate expansion attractiveness score
+                    float targetPower = GetTotalPower(neighborKingdom);
+                    int targetRealms = neighborKingdom.realms?.Count ?? 0;
+                    float relationship = k.GetRelationship(neighborKingdom);
+
+                    // Prefer weaker neighbors (easier conquest)
+                    float powerRatio = ownPower > 0 ? targetPower / ownPower : 1f;
+
+                    // Score components:
+                    // 1. Weakness: prefer 0.5-1.0 power ratio (winnable but not trivial)
+                    float weaknessScore = (powerRatio >= 0.3f && powerRatio <= 1.0f) ? (1.0f - powerRatio) * 100f : -50f;
+
+                    // 2. Strategic value: more realms = better
+                    float valueScore = targetRealms * 10f;
+
+                    // 3. Relationship: prefer enemies/hostile (already bad relations)
+                    float relationScore = -relationship * 0.1f; // Negative relationship = positive score
+
+                    float totalScore = weaknessScore + valueScore + relationScore;
+
+                    if (totalScore > bestScore)
+                    {
+                        bestScore = totalScore;
+                        bestTarget = neighborKingdom;
+                    }
+                }
+            }
+
+            return bestTarget;
+        }
+
+        /// <summary>
+        /// Find the best neighbor to offer a non-aggression pact to
+        /// EXCLUDES the designated expansion target - we want to keep one enemy neighbor
+        /// </summary>
+        public static Logic.Kingdom FindNonAggressionTarget(Logic.Kingdom k, Logic.Kingdom expansionTarget)
         {
             if (k == null || k.neighbors == null) return null;
 
@@ -164,6 +227,10 @@ namespace AIOverhaul
 
                     // Skip if at war
                     if (k.IsEnemy(neighborKingdom)) continue;
+
+                    // CRITICAL: Skip if this is our designated expansion target
+                    // We want to keep this neighbor as potential enemy for expansion
+                    if (neighborKingdom == expansionTarget) continue;
 
                     // Skip if already have non-aggression pact
                     if (k.HasStance(neighborKingdom, RelationUtils.Stance.NonAggression)) continue;
@@ -342,13 +409,17 @@ namespace AIOverhaul
                 }
             }
 
-            // NEW: Proactively offer non-aggression pacts to neighbors for preventative defense
-            // This builds a security buffer and prevents being attacked
-            Logic.Kingdom napTarget = WarLogicHelper.FindNonAggressionTarget(actor);
+            // NEW: Strategic expansion targeting - keep ONE enemy neighbor, NAP with all others
+            // This creates focused expansion direction with secure flanks
+            Logic.Kingdom expansionTarget = WarLogicHelper.SelectExpansionTarget(actor);
+
+            // Offer non-aggression pacts to all neighbors EXCEPT the expansion target
+            Logic.Kingdom napTarget = WarLogicHelper.FindNonAggressionTarget(actor, expansionTarget);
             if (napTarget != null)
             {
                 float relationship = actor.GetRelationship(napTarget);
-                AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} {actor.Name} offering non-aggression pact to neighbor {napTarget.Name} (Relationship: {relationship:F0})");
+                string targetInfo = expansionTarget != null ? $" (Expansion target: {expansionTarget.Name})" : " (No expansion target)";
+                AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} {actor.Name} offering NAP to {napTarget.Name} (Rel: {relationship:F0}){targetInfo}");
 
                 __result = RunNonAggressionProposal(__instance, napTarget);
                 return false;
