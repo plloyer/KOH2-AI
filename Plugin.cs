@@ -231,32 +231,36 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Logic.Game), "Update")]
     public class GameUpdatePatch
     {
-        private static int frameCounter = 0;
-        private static bool firstLogDone = false;
-
-        static void Postfix()
+        static void Postfix(Logic.Game __instance)
         {
-            // Debug: Log once to confirm patch is working
-            if (!firstLogDone)
-            {
-                AIOverhaulPlugin.LogMod("[GameUpdate Debug] GameUpdatePatch is active and running!");
-                firstLogDone = true;
-            }
-
-            // Debug: Log every 300 frames (roughly every 5 seconds at 60fps)
-            frameCounter++;
-            if (frameCounter % 300 == 0)
-            {
-                AIOverhaulPlugin.LogMod($"[GameUpdate Debug] Running (frame {frameCounter})");
-            }
-
             // Detect F9 key press to toggle spectator mode
             if (Input.GetKeyDown(KeyCode.F9))
             {
-                AIOverhaulPlugin.LogMod("F9 key detected - toggling Spectator Mode!");
                 AIOverhaulPlugin.SpectatorMode = !AIOverhaulPlugin.SpectatorMode;
-                string status = AIOverhaulPlugin.SpectatorMode ? "ENABLED" : "DISABLED";
-                AIOverhaulPlugin.LogMod($"Spectator Mode toggled to: {status}");
+
+                // Find player kingdom and add/remove from Enhanced AI
+                if (__instance?.kingdoms != null)
+                {
+                    var playerKingdom = __instance.kingdoms.FirstOrDefault(k => k != null && k.is_player);
+                    if (playerKingdom != null)
+                    {
+                        if (AIOverhaulPlugin.SpectatorMode)
+                        {
+                            // Enable Enhanced AI for player when spectator mode is on
+                            if (!AIOverhaulPlugin.EnhancedKingdomIds.Contains(playerKingdom.id))
+                            {
+                                AIOverhaulPlugin.EnhancedKingdomIds.Add(playerKingdom.id);
+                            }
+                            AIOverhaulPlugin.LogMod($"Spectator Mode ENABLED - Enhanced AI is now controlling {playerKingdom.Name}");
+                        }
+                        else
+                        {
+                            // Remove player from Enhanced AI when spectator mode is off
+                            AIOverhaulPlugin.EnhancedKingdomIds.Remove(playerKingdom.id);
+                            AIOverhaulPlugin.LogMod($"Spectator Mode DISABLED - Player control restored for {playerKingdom.Name}");
+                        }
+                    }
+                }
             }
         }
     }
@@ -266,45 +270,20 @@ namespace AIOverhaul
     {
         static bool Prefix(Logic.KingdomAI __instance, ref bool __result, Logic.KingdomAI.EnableFlags flag)
         {
-            // Debug logging to trace spectator mode
-            if (__instance?.kingdom != null)
-            {
-                bool isPlayer = __instance.kingdom.is_player;
-                string kingdomName = __instance.kingdom.Name ?? "Unknown";
-
-                // Log every call for player kingdom
-                if (isPlayer)
-                {
-                    AIOverhaulPlugin.LogMod($"[Spectator Debug] Enabled() called for PLAYER kingdom '{kingdomName}' with flag: {flag}");
-                    AIOverhaulPlugin.LogMod($"[Spectator Debug] SpectatorMode = {AIOverhaulPlugin.SpectatorMode}");
-                    AIOverhaulPlugin.LogMod($"[Spectator Debug] is_player = {isPlayer}");
-                }
-            }
-
             // Only interfere if Spectator Mode is ON and this is the PLAYER kingdom
-            if (AIOverhaulPlugin.SpectatorMode && __instance.kingdom.is_player)
+            if (AIOverhaulPlugin.SpectatorMode && __instance?.kingdom != null && __instance.kingdom.is_player)
             {
-                AIOverhaulPlugin.LogMod("[Spectator Debug] Spectator mode active for player kingdom!");
-
                 // Respect global AI switch (e.g. if game is paused/disabled)
                 if (__instance.game != null && !__instance.game.ai.enabled)
                 {
-                    AIOverhaulPlugin.LogMod("[Spectator Debug] Global AI disabled, returning false");
                     __result = false;
                     return false;
                 }
 
                 // BYPASS the internal 'enabled' bitmask check
-                // Force return true to say "Yes, this AI feature is enabled"
-                AIOverhaulPlugin.LogMod($"[Spectator Debug] Forcing AI enabled for flag {flag}, returning TRUE");
+                // Force return true to enable AI for player kingdom
                 __result = true;
                 return false; // Skip original method
-            }
-
-            // Log when not interfering
-            if (__instance?.kingdom != null && __instance.kingdom.is_player)
-            {
-                AIOverhaulPlugin.LogMod("[Spectator Debug] Not interfering - running original method");
             }
 
             return true; // Run original method
