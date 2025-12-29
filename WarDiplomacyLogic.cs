@@ -144,6 +144,54 @@ namespace AIOverhaul
             return bestTarget;
         }
 
+        /// <summary>
+        /// Find the best neighbor to offer a non-aggression pact to
+        /// Prioritizes neighbors without existing NAPs, not at war with us, with neutral+ relations
+        /// </summary>
+        public static Logic.Kingdom FindNonAggressionTarget(Logic.Kingdom k)
+        {
+            if (k == null || k.neighbors == null) return null;
+
+            Logic.Kingdom bestTarget = null;
+            float bestRelationship = -1000f;
+
+            foreach (var neighbor in k.neighbors)
+            {
+                if (neighbor is Logic.Kingdom neighborKingdom)
+                {
+                    // Skip if defeated
+                    if (neighborKingdom.IsDefeated()) continue;
+
+                    // Skip if at war
+                    if (k.IsEnemy(neighborKingdom)) continue;
+
+                    // Skip if already have non-aggression pact
+                    if (k.HasStance(neighborKingdom, RelationUtils.Stance.NonAggression)) continue;
+
+                    // Skip if already allied (better than NAP)
+                    if (k.IsAlly(neighborKingdom)) continue;
+
+                    // Get relationship value
+                    float relationship = k.GetRelationship(neighborKingdom);
+
+                    // Skip if relationship is too hostile (below "Reserved" threshold)
+                    // Reserved = -200, so only offer to neighbors we have at least neutral-ish relations with
+                    float reservedThreshold = RelationUtils.Def.GetLowerTreshold(RelationUtils.RelationshipType.Reserved);
+                    if (relationship < reservedThreshold) continue;
+
+                    // Prioritize neighbors with better relations (more likely to accept)
+                    // Focus on neutral/sympathetic/trusting neighbors to build security buffer
+                    if (relationship > bestRelationship)
+                    {
+                        bestRelationship = relationship;
+                        bestTarget = neighborKingdom;
+                    }
+                }
+            }
+
+            return bestTarget;
+        }
+
         public static bool IsStrategicNeighbor(Logic.Kingdom a, Logic.Kingdom b)
         {
             if (a == null || b == null) return false;
@@ -294,6 +342,18 @@ namespace AIOverhaul
                 }
             }
 
+            // NEW: Proactively offer non-aggression pacts to neighbors for preventative defense
+            // This builds a security buffer and prevents being attacked
+            Logic.Kingdom napTarget = WarLogicHelper.FindNonAggressionTarget(actor);
+            if (napTarget != null)
+            {
+                float relationship = actor.GetRelationship(napTarget);
+                AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} {actor.Name} offering non-aggression pact to neighbor {napTarget.Name} (Relationship: {relationship:F0})");
+
+                __result = RunNonAggressionProposal(__instance, napTarget);
+                return false;
+            }
+
             // NEW: Defensive pact formation when facing threats
             if (WarLogicHelper.ShouldSeekDefensivePact(actor))
             {
@@ -388,6 +448,35 @@ namespace AIOverhaul
                 else
                 {
                     AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} {ai.kingdom.Name} pact offer to {target.Name} invalid: {validation}");
+                }
+            }
+
+            yield break;
+        }
+
+        static IEnumerator RunNonAggressionProposal(Logic.KingdomAI ai, Logic.Kingdom target)
+        {
+            // Offer a FREE non-aggression pact (no gold demanded) to build good relations
+            Logic.Offer napOffer = Logic.Offer.GetCachedOffer("SignNonAggression", (Logic.Object)ai.kingdom, (Logic.Object)target);
+
+            if (napOffer != null)
+            {
+                string validation = napOffer.Validate();
+                if (validation == "ok")
+                {
+                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} {ai.kingdom.Name} offering FREE non-aggression pact to {target.Name}");
+                    napOffer.AI = true;
+                    napOffer.Send();
+
+                    if (target.is_player)
+                    {
+                        ai.SetLastOfferTimeToKingdom(target, napOffer);
+                        target.t_last_ai_offer_time = ai.game.time;
+                    }
+                }
+                else
+                {
+                    AIOverhaulPlugin.Instance?.Log($"{AIOverhaulPlugin.LogPrefix} {ai.kingdom.Name} NAP offer to {target.Name} invalid: {validation}");
                 }
             }
 
