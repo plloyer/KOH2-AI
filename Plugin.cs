@@ -22,6 +22,8 @@ namespace AIOverhaul
             Log("AI Overhaul Plugin Loaded with dynamic selection logic.");
         }
 
+        public const string LogPrefix = "[AI-Mod]";
+
         public void Log(string message)
         {
             Logger.LogInfo(message);
@@ -72,9 +74,9 @@ namespace AIOverhaul
                 EnhancedPerformanceLogger.RecordBaseline(k, "Baseline", game);
             }
 
-            Instance.Log($"[AI-Mod] New game session detected. Selected {EnhancedKingdomIds.Count} enhanced and {BaselineKingdomIds.Count} baseline kingdoms out of {aiKingdoms.Count} total AI kingdoms.");
-            Instance.Log($"[AI-Mod] Enhanced: {string.Join(", ", enhanced.Select(k => k.Name))}");
-            Instance.Log($"[AI-Mod] Baseline: {string.Join(", ", baseline.Select(k => k.Name))}");
+            Instance.Log($"{LogPrefix} New game session detected. Selected {EnhancedKingdomIds.Count} enhanced and {BaselineKingdomIds.Count} baseline kingdoms out of {aiKingdoms.Count} total AI kingdoms.");
+            Instance.Log($"{LogPrefix} Enhanced: {string.Join(", ", enhanced.Select(k => k.Name))}");
+            Instance.Log($"{LogPrefix} Baseline: {string.Join(", ", baseline.Select(k => k.Name))}");
         }
     }
 

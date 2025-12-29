@@ -200,7 +200,7 @@ namespace AIOverhaul
                     float soloWinChance = ownStrength / (ownStrength + enemyStrength);
                     if (soloWinChance < 0.45f && winChance >= 0.45f)
                     {
-                        AIOverhaulPlugin.Instance.Log($"[AI-Mod] Waiting for buddy before attacking. Combined chance: {winChance:P0}");
+                        AIOverhaulPlugin.Instance.Log($"{AIOverhaulPlugin.LogPrefix} Waiting for buddy before attacking. Combined chance: {winChance:P0}");
                         army.Stop();
                         army.ai_status = "wait_for_buddy";
                         __result = true;
@@ -217,7 +217,7 @@ namespace AIOverhaul
                         {
                             if (castle.army == null || castle.army == army)
                             {
-                                AIOverhaulPlugin.Instance.Log($"[AI-Mod] Low win chance ({winChance:P0}) - Retreating army to {castle.name}");
+                                AIOverhaulPlugin.Instance.Log($"{AIOverhaulPlugin.LogPrefix} Low win chance ({winChance:P0}) - Retreating army to {castle.name}");
                                 Traverse.Create(__instance).Method("Send", new object[] { army, castle, "retreat_low_chance", null }).GetValue();
                                 __result = true;
                                 return false;
@@ -225,7 +225,7 @@ namespace AIOverhaul
                         }
                     }
 
-                    AIOverhaulPlugin.Instance.Log($"[AI-Mod] Skipping battle: Win chance {winChance:P0} < 45%");
+                    AIOverhaulPlugin.Instance.Log($"{AIOverhaulPlugin.LogPrefix} Skipping battle: Win chance {winChance:P0} < 45%");
                     __result = false;
                     return false;
                 }
@@ -273,7 +273,7 @@ namespace AIOverhaul
                     if (leaderTarget != null && leaderTarget != army.GetTarget())
                     {
                         string targetName = (leaderTarget is Logic.Castle c) ? c.name : leaderTarget.ToString();
-                        AIOverhaulPlugin.Instance.Log($"[AI-Mod] Follower following leader to {targetName}");
+                        AIOverhaulPlugin.Instance.Log($"{AIOverhaulPlugin.LogPrefix} Follower following leader to {targetName}");
                         Traverse.Create(__instance).Method("Send", new object[] { army, leaderTarget, "follow_buddy", null }).GetValue();
                         return;
                     }
@@ -285,7 +285,7 @@ namespace AIOverhaul
                 Logic.Castle nearest = (Logic.Castle)Traverse.Create(__instance).Method("FindNearestOwnCastle", new object[] { army, true }).GetValue();
                 if (nearest != null)
                 {
-                    AIOverhaulPlugin.Instance.Log($"[AI-Mod] Idle Knight - Returning to garrison at {nearest.name}");
+                    AIOverhaulPlugin.Instance.Log($"{AIOverhaulPlugin.LogPrefix} Idle Knight - Returning to garrison at {nearest.name}");
                     Traverse.Create(__instance).Method("Send", new object[] { army, nearest, "go_inside", null }).GetValue();
                 }
             }
@@ -338,7 +338,7 @@ namespace AIOverhaul
                 if (action != null && action.Validate() == "ok")
                 {
                     // Fix: army.Name -> army.ToString()
-                    AIOverhaulPlugin.Instance.Log($"[AI-Mod] Army {army.ToString()} ({army.GetNid()}) needs heal (InOwn: {inOwnTerritory}). Camping.");
+                    AIOverhaulPlugin.Instance.Log($"{AIOverhaulPlugin.LogPrefix} Army {army.ToString()} ({army.GetNid()}) needs heal (InOwn: {inOwnTerritory}). Camping.");
                     action.Execute(null);
                     return false;
                 }
@@ -390,7 +390,7 @@ namespace AIOverhaul
                     }
                     else
                     {
-                        AIOverhaulPlugin.Instance.Log($"[AI-Mod] Blocking Assault on secondary castle/fort in {realm.ToString()}");
+                        AIOverhaulPlugin.Instance.Log($"{AIOverhaulPlugin.LogPrefix} Blocking Assault on secondary castle/fort in {realm.ToString()}");
                         return false;
                     }
                 }

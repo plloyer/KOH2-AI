@@ -9,7 +9,9 @@
       "Bash(git commit:*)",
       "Bash(dotnet build:*)",
       "Bash(dotnet clean:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)"
     ]
   }
 }

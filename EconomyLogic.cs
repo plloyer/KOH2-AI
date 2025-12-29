@@ -21,7 +21,7 @@ namespace AIOverhaul
                         merchants++;
                 if (merchants < 2)
                 {
-                    AIOverhaulPlugin.Instance.Log($"[AI-Mod] High priority Merchant hire for {__instance.kingdom.Name} (Gold: {__instance.kingdom.resources[Logic.ResourceType.Gold]})");
+                    AIOverhaulPlugin.Instance.Log($"{AIOverhaulPlugin.LogPrefix} High priority Merchant hire for {__instance.kingdom.Name} (Gold: {__instance.kingdom.resources[Logic.ResourceType.Gold]})");
                     Traverse.Create(__instance).Method("HireKnight", new object[] { CharacterClassNames.Merchant }).GetValue();
                     __result = true;
                     return false;
@@ -62,7 +62,7 @@ namespace AIOverhaul
             // Simplify: Assume court size max is 9 (standard) or check court.Count
             if (k.court.Count < 9)
             {
-                 AIOverhaulPlugin.Instance.Log($"[AI-Mod] Priority Cleric hire for {k.Name}");
+                 AIOverhaulPlugin.Instance.Log($"{AIOverhaulPlugin.LogPrefix} Priority Cleric hire for {k.Name}");
                  Traverse.Create(__instance).Method("HireKnight", new object[] { CharacterClassNames.Cleric }).GetValue();
                  __result = true;
                  return false;
