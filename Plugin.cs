@@ -88,43 +88,7 @@ namespace AIOverhaul
             Instance?.Log($"{LogPrefix} {message}");
         }
 
-        private int updateCounter = 0;
-        private bool updateLogged = false;
-
-        private void Update()
-        {
-            // Debug: Log once to confirm Update() is being called
-            if (!updateLogged)
-            {
-                LogMod("[Update Debug] Update() method is being called!");
-                updateLogged = true;
-            }
-
-            // Debug: Log every 300 frames (roughly every 5 seconds at 60fps)
-            updateCounter++;
-            if (updateCounter % 300 == 0)
-            {
-                LogMod($"[Update Debug] Update() running (frame {updateCounter})");
-            }
-
-            // Try all F-keys to test input detection
-            if (Input.GetKeyDown(KeyCode.F1)) LogMod("[Input Debug] F1 detected!");
-            if (Input.GetKeyDown(KeyCode.F2)) LogMod("[Input Debug] F2 detected!");
-            if (Input.GetKeyDown(KeyCode.F9)) LogMod("[Input Debug] F9 detected!");
-            if (Input.GetKeyDown(KeyCode.F10)) LogMod("[Input Debug] F10 detected!");
-
-            if (Input.GetKeyDown(KeyCode.F9))
-            {
-                LogMod("F9 key detected - toggling Spectator Mode!");
-                SpectatorMode = !SpectatorMode;
-                string status = SpectatorMode ? "ENABLED" : "DISABLED";
-                LogMod($"Spectator Mode toggled to: {status}");
-                LogMod($"SpectatorMode variable is now: {SpectatorMode}");
-
-                // Visual feedback (Toast or just log)
-                // Logic.UI.Toast.Show($"Spectator Mode: {status}"); // If accessible
-            }
-        }
+        // Update() method removed - F9 detection now handled in GameUpdatePatch
 
         public static bool IsEnhancedAI(Logic.Kingdom k)
         {
@@ -262,6 +226,40 @@ namespace AIOverhaul
     }
 
     // --- Spectator Mode Patches ---
+
+    // Hook into Logic.Game.Update() to detect F9 key press
+    [HarmonyPatch(typeof(Logic.Game), "Update")]
+    public class GameUpdatePatch
+    {
+        private static int frameCounter = 0;
+        private static bool firstLogDone = false;
+
+        static void Postfix()
+        {
+            // Debug: Log once to confirm patch is working
+            if (!firstLogDone)
+            {
+                AIOverhaulPlugin.LogMod("[GameUpdate Debug] GameUpdatePatch is active and running!");
+                firstLogDone = true;
+            }
+
+            // Debug: Log every 300 frames (roughly every 5 seconds at 60fps)
+            frameCounter++;
+            if (frameCounter % 300 == 0)
+            {
+                AIOverhaulPlugin.LogMod($"[GameUpdate Debug] Running (frame {frameCounter})");
+            }
+
+            // Detect F9 key press to toggle spectator mode
+            if (Input.GetKeyDown(KeyCode.F9))
+            {
+                AIOverhaulPlugin.LogMod("F9 key detected - toggling Spectator Mode!");
+                AIOverhaulPlugin.SpectatorMode = !AIOverhaulPlugin.SpectatorMode;
+                string status = AIOverhaulPlugin.SpectatorMode ? "ENABLED" : "DISABLED";
+                AIOverhaulPlugin.LogMod($"Spectator Mode toggled to: {status}");
+            }
+        }
+    }
 
     [HarmonyPatch(typeof(Logic.KingdomAI), "Enabled")]
     public class ForceAIEnabledPatch

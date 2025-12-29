@@ -8,6 +8,39 @@ namespace AIOverhaul
 {
     public static class WarLogicHelper
     {
+        /// <summary>
+        /// Calculate average war score for a kingdom across all wars.
+        /// Replacement for KingdomAI.GetAverageWarScore() which doesn't exist.
+        /// Negative score = losing, positive = winning.
+        /// </summary>
+        public static float GetAverageWarScore(Logic.Kingdom k)
+        {
+            if (k == null || k.wars == null || k.wars.Count == 0) return 0f;
+
+            float totalScore = 0f;
+            int validWars = 0;
+
+            foreach (var war in k.wars)
+            {
+                if (war == null) continue;
+
+                try
+                {
+                    int side = Traverse.Create(war).Method("GetSide", new object[] { k }).GetValue<int>();
+                    float warScore = Traverse.Create(war).Method("GetWarScore", new object[] { side }).GetValue<float>();
+                    totalScore += warScore;
+                    validWars++;
+                }
+                catch
+                {
+                    // Skip wars where we can't get score
+                    continue;
+                }
+            }
+
+            return validWars > 0 ? totalScore / validWars : 0f;
+        }
+
         public static float GetTotalPower(Logic.Kingdom k)
         {
             if (k == null) return 0f;
@@ -413,7 +446,7 @@ namespace AIOverhaul
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
             Logic.Kingdom actor = __instance.kingdom;
-            float score = Traverse.Create(actor.ai).Method("GetAverageWarScore").GetValue<float>();
+            float score = WarLogicHelper.GetAverageWarScore(actor);
 
             // CRITICAL: If we have disorder and are at war, seek peace immediately
             if (WarLogicHelper.HasDisorder(actor) && actor.wars != null && actor.wars.Count > 0)
@@ -610,7 +643,7 @@ namespace AIOverhaul
             {
                 float myStr = WarLogicHelper.GetTotalPower(actor);
                 float theirStr = WarLogicHelper.GetTotalPower(k);
-                float kScore = Traverse.Create(k.ai).Method("GetAverageWarScore").GetValue<float>();
+                float kScore = WarLogicHelper.GetAverageWarScore(k);
                 if (myStr > theirStr * 1.3f || k.wars.Count > 2 || kScore < -30f)
                 {
                     Logic.Offer indep = Logic.Offer.GetCachedOffer("ClaimIndependence", (Logic.Object)actor, (Logic.Object)k);
@@ -633,7 +666,7 @@ namespace AIOverhaul
             // Desperate Surrender
             if (actor.IsEnemy(k))
             {
-                float score = Traverse.Create(actor.ai).Method("GetAverageWarScore").GetValue<float>();
+                float score = WarLogicHelper.GetAverageWarScore(actor);
                 if (score < -40f || (score < -10f && SurvivalLogic.IsDesperate(actor)))
                 {
                     Logic.Offer peace = Logic.Offer.GetCachedOffer("PeaceOfferTribute", (Logic.Object)actor, (Logic.Object)k);
