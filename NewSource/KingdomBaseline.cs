@@ -9,6 +9,18 @@ namespace AIOverhaul
     /// </summary>
     public class KingdomBaseline
     {
+        /// <summary>
+        /// Escapes a string for CSV output by wrapping in quotes and escaping internal quotes
+        /// </summary>
+        private static string EscapeCsv(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return "";
+            if (value.Contains(",") || value.Contains("\"") || value.Contains("\n"))
+            {
+                return "\"" + value.Replace("\"", "\"\"") + "\"";
+            }
+            return value;
+        }
         public int KingdomId { get; set; }
         public string KingdomName { get; set; }
         public DateTime RecordedAt { get; set; }
@@ -126,10 +138,10 @@ namespace AIOverhaul
 
         public string ToCsvLine()
         {
-            return $"{KingdomId},{KingdomName},{RecordedAt:yyyy-MM-dd HH:mm:ss},{GameYear:F1}," +
+            return $"{KingdomId},{EscapeCsv(KingdomName)},{RecordedAt:yyyy-MM-dd HH:mm:ss},{GameYear:F1}," +
                    $"{InitialRealms},{InitialGold:F0},{InitialArmies},{InitialTotalStrength:F0}," +
                    $"{InitialWars},{InitialTraditions},{InitialBooks},{InitialVassals},{InitialAllies}," +
-                   $"{NeighborCount},{NeighborAvgStrength:F0},{IsIsland},{Religion}," +
+                   $"{NeighborCount},{NeighborAvgStrength:F0},{IsIsland},{EscapeCsv(Religion)}," +
                    $"{IsDefeated},{(DefeatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "")},{(SurvivalYears?.ToString("F1") ?? "")}";
         }
     }
