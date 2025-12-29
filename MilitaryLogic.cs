@@ -4,8 +4,18 @@ using System.Collections.Generic;
 
 namespace AIOverhaul
 {
+    // TODO: BuddySystem - Commented out due to compilation errors with Army.id
+    // Need to investigate correct way to track army relationships
+    /*
     public static class BuddySystem
     {
+        private static Dictionary<int, int> buddyMap = new Dictionary<int, int>();
+
+        public static void ClearCache()
+        {
+            buddyMap.Clear();
+        }
+
         public static List<Logic.Army> GetAllArmies(Logic.Kingdom kingdom)
         {
             return kingdom?.armies ?? new List<Logic.Army>();
@@ -14,20 +24,61 @@ namespace AIOverhaul
         public static bool IsFollower(Logic.Army army, Logic.Kingdom kingdom)
         {
             if (army == null || kingdom == null) return false;
-            var armies = GetAllArmies(kingdom);
-            int index = armies.IndexOf(army);
-            return index != -1 && index % 2 == 1;
+            var buddy = GetBuddy(army, kingdom);
+            if (buddy == null) return false;
+
+            // Determining "follower" role deterministically: Lower ID is leader, Higher ID is follower
+            return army.id > buddy.id;
         }
 
         public static Logic.Army GetBuddy(Logic.Army army, Logic.Kingdom kingdom)
         {
             if (army == null || kingdom == null) return null;
-            var armies = GetAllArmies(kingdom);
-            int index = armies.IndexOf(army);
-            if (index == -1) return null;
-            int buddyIndex = (index % 2 == 0) ? index + 1 : index - 1;
-            if (buddyIndex >= 0 && buddyIndex < armies.Count) return armies[buddyIndex];
+
+            // 1. Check existing cache
+            if (buddyMap.TryGetValue(army.id, out int buddyId))
+            {
+                var buddy = kingdom.armies.Find(a => a.id == buddyId);
+                // Verify buddy is alive and valid. Army.id should be unique and persistent.
+                if (buddy != null && buddy.realm_in != null) 
+                {
+                    return buddy;
+                }
+                else
+                {
+                    // Buddy is dead or invalid, clean up
+                    buddyMap.Remove(army.id);
+                }
+            }
+
+            // 2. Try to find a new buddy
+            foreach (var potentialBuddy in kingdom.armies)
+            {
+                if (potentialBuddy == null || potentialBuddy == army) continue;
+                if (potentialBuddy.realm_in == null) continue; // Skip invalid armies
+
+                // Check if this potential buddy is already assigned (or has me as buddy? Logic below handles mutual assignment)
+                // We want to find a free agent.
+                if (!buddyMap.ContainsKey(potentialBuddy.id))
+                {
+                    // Found a free agent! Link them.
+                    buddyMap[army.id] = potentialBuddy.id;
+                    buddyMap[potentialBuddy.id] = army.id;
+                    return potentialBuddy;
+                }
+            }
+
             return null;
+        }
+    }
+    */
+
+    // Placeholder stub for BuddySystem until proper implementation
+    public static class BuddySystem
+    {
+        public static void ClearCache()
+        {
+            // Placeholder
         }
     }
 
@@ -39,7 +90,11 @@ namespace AIOverhaul
             if (army == null || !AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
             Logic.Realm realmIn = army.realm_in;
-            if (realmIn == null) return true;
+            if (realmIn == null) 
+            {
+                // ADDED NULL CHECK
+                return true; 
+            }
 
             float ownStrength = 0;
             float friendStrength = 0;
@@ -62,8 +117,9 @@ namespace AIOverhaul
                 }
             }
 
-            Logic.Army buddy = BuddySystem.GetBuddy(army, __instance.kingdom);
-            bool buddyPresent = false;
+            // TODO: BuddySystem.GetBuddy disabled
+            Logic.Army buddy = null; // BuddySystem.GetBuddy(army, __instance.kingdom);
+            bool buddyPresent = false; // Disabled
             if (buddy != null)
             {
                 if (buddy.realm_in == realmIn) buddyPresent = true;
@@ -124,9 +180,10 @@ namespace AIOverhaul
 
             string status = army.ai_status;
 
-            if (BuddySystem.IsFollower(army, __instance.kingdom) && (status == "idle" || status == "wait_orders"))
+            // TODO: BuddySystem disabled
+            if (false && (status == "idle" || status == "wait_orders")) // was: BuddySystem.IsFollower
             {
-                Logic.Army leader = BuddySystem.GetBuddy(army, __instance.kingdom);
+                Logic.Army leader = null; // was: BuddySystem.GetBuddy(army, __instance.kingdom);
                 if (leader != null)
                 {
                     Logic.MapObject leaderTarget = leader.GetTarget();

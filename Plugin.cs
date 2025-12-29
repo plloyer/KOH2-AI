@@ -50,7 +50,8 @@ namespace AIOverhaul
 
             List<Logic.Kingdom> aiKingdoms = game.kingdoms.Where(k => k != null && !k.is_player && !k.IsDefeated()).ToList();
 
-            int targetCount = Mathf.Max(1, Mathf.RoundToInt(aiKingdoms.Count * 0.10f));
+            // Increased to 30% for better statistical validity
+            int targetCount = Mathf.Max(1, Mathf.RoundToInt(aiKingdoms.Count * 0.30f));
 
             // Randomize selection
             System.Random rand = new System.Random();
@@ -62,11 +63,13 @@ namespace AIOverhaul
             foreach (var k in enhanced)
             {
                 EnhancedKingdomIds.Add(k.id);
+                EnhancedPerformanceLogger.RecordBaseline(k, "Enhanced", game);
             }
 
             foreach (var k in baseline)
             {
                 BaselineKingdomIds.Add(k.id);
+                EnhancedPerformanceLogger.RecordBaseline(k, "Baseline", game);
             }
 
             Instance.Log($"[AI-Mod] New game session detected. Selected {EnhancedKingdomIds.Count} enhanced and {BaselineKingdomIds.Count} baseline kingdoms out of {aiKingdoms.Count} total AI kingdoms.");
@@ -82,6 +85,17 @@ namespace AIOverhaul
         {
             AIOverhaulPlugin.EnhancedKingdomIds.Clear();
             AIOverhaulPlugin.BaselineKingdomIds.Clear();
+            EnhancedPerformanceLogger.ClearData();
+            // BuddySystem.ClearCache(); // TODO: Uncomment when BuddySystem is implemented
+        }
+    }
+
+    [HarmonyPatch(typeof(Logic.Game), "Load")]
+    public class GameLoadPatch
+    {
+        static void Postfix(Logic.Game __instance)
+        {
+            AIOverhaulPlugin.InitializeEnhancedKingdoms(__instance);
         }
     }
 
@@ -91,7 +105,14 @@ namespace AIOverhaul
         static void Prefix(Logic.Kingdom __instance)
         {
             if (__instance == null) return;
-            AILogger.LogDefeat(__instance);
+
+            // Enhanced logger with survival time tracking
+            if (__instance.game != null)
+            {
+                float currentYear = KingdomBaseline.GetGameYear(__instance.game);
+                EnhancedPerformanceLogger.LogDefeat(__instance, currentYear);
+            }
+
             AIOverhaulPlugin.EnhancedKingdomIds.Remove(__instance.id);
             AIOverhaulPlugin.BaselineKingdomIds.Remove(__instance.id);
         }
