@@ -24,9 +24,24 @@ namespace AIOverhaul
 
         public const string LogPrefix = "[AI-Mod]";
 
+        public static bool SpectatorMode = false;
+
         public void Log(string message)
         {
             Logger.LogInfo(message);
+        }
+
+        private void Update()
+        {
+            if (Input.GetKeyDown(KeyCode.F10))
+            {
+                SpectatorMode = !SpectatorMode;
+                string status = SpectatorMode ? "ENABLED" : "DISABLED";
+                Log($"{LogPrefix} Spectator Mode {status}");
+                
+                // Visual feedback (Toast or just log)
+                // Logic.UI.Toast.Show($"Spectator Mode: {status}"); // If accessible
+            }
         }
 
         public static bool IsEnhancedAI(Logic.Kingdom k)
@@ -117,6 +132,32 @@ namespace AIOverhaul
 
             AIOverhaulPlugin.EnhancedKingdomIds.Remove(__instance.id);
             AIOverhaulPlugin.BaselineKingdomIds.Remove(__instance.id);
+        }
+    }
+
+    // --- Spectator Mode Patches ---
+
+    [HarmonyPatch(typeof(Logic.KingdomAI), "Enabled")]
+    public class ForceAIEnabledPatch
+    {
+        static bool Prefix(Logic.KingdomAI __instance, ref bool __result, Logic.KingdomAI.EnableFlags flag)
+        {
+            // Only interfere if Spectator Mode is ON and this is the PLAYER kingdom
+            if (AIOverhaulPlugin.SpectatorMode && __instance.kingdom.is_player)
+            {
+                // Respect global AI switch (e.g. if game is paused/disabled)
+                if (__instance.game != null && !__instance.game.ai.enabled)
+                {
+                    __result = false;
+                    return false;
+                }
+
+                // BYPASS the internal 'enabled' bitmask check
+                // Force return true to say "Yes, this AI feature is enabled"
+                __result = true;
+                return false; // Skip original method
+            }
+            return true; // Run original method
         }
     }
 }

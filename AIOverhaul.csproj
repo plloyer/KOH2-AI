@@ -34,26 +34,29 @@
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="0Harmony">
-          <HintPath>..\..\..\..\Program Files (x86)\Steam\steamapps\common\Knights of Honor II\BepInEx\core\0Harmony.dll</HintPath>
+          <HintPath>..\BepInEx\core\0Harmony.dll</HintPath>
         </Reference>
         <Reference Include="Assembly-CSharp">
-          <HintPath>..\..\..\..\Program Files (x86)\Steam\steamapps\common\Knights of Honor II\Sovereign_Data\Managed\Assembly-CSharp.dll</HintPath>
+          <HintPath>..\Sovereign_Data\Managed\Assembly-CSharp.dll</HintPath>
         </Reference>
         <Reference Include="Assembly-CSharp-firstpass">
-          <HintPath>..\..\..\..\Program Files (x86)\Steam\steamapps\common\Knights of Honor II\Sovereign_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+          <HintPath>..\Sovereign_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
         </Reference>
         <Reference Include="BepInEx">
-          <HintPath>..\..\..\..\Program Files (x86)\Steam\steamapps\common\Knights of Honor II\BepInEx\core\BepInEx.dll</HintPath>
+          <HintPath>..\BepInEx\core\BepInEx.dll</HintPath>
         </Reference>
         <Reference Include="System"/>
         <Reference Include="System.Core"/>
         <Reference Include="System.Data"/>
         <Reference Include="System.Xml"/>
         <Reference Include="UnityEngine">
-          <HintPath>..\..\..\..\Program Files (x86)\Steam\steamapps\common\Knights of Honor II\Sovereign_Data\Managed\UnityEngine.dll</HintPath>
+          <HintPath>..\Sovereign_Data\Managed\UnityEngine.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.CoreModule">
-          <HintPath>..\..\..\..\Program Files (x86)\Steam\steamapps\common\Knights of Honor II\Sovereign_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+          <HintPath>..\Sovereign_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.InputLegacyModule">
+          <HintPath>..\Sovereign_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
         </Reference>
     </ItemGroup>
     <ItemGroup>
