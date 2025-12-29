@@ -11,7 +11,8 @@
       "Bash(dotnet clean:*)",
       "Bash(grep:*)",
       "Bash(tail:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(cd:*)"
     ]
   }
 }

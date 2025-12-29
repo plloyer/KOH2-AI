@@ -33,7 +33,7 @@ namespace AIOverhaul
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.F10))
+            if (Input.GetKeyDown(KeyCode.F9))
             {
                 SpectatorMode = !SpectatorMode;
                 string status = SpectatorMode ? "ENABLED" : "DISABLED";
@@ -64,6 +64,7 @@ namespace AIOverhaul
 
             EnhancedKingdomIds.Clear();
             BaselineKingdomIds.Clear();
+            EnhancedPerformanceLogger.ClearData(); // Moved here from failed GameClearPatch
 
             List<Logic.Kingdom> aiKingdoms = game.kingdoms.Where(k => k != null && !k.is_player && !k.IsDefeated()).ToList();
 
@@ -103,26 +104,8 @@ namespace AIOverhaul
         }
     }
 
-    [HarmonyPatch(typeof(Logic.Game), "Clear")] // Good hook for session ending/cleanup
-    public class GameClearPatch
-    {
-        static void Postfix()
-        {
-            AIOverhaulPlugin.EnhancedKingdomIds.Clear();
-            AIOverhaulPlugin.BaselineKingdomIds.Clear();
-            EnhancedPerformanceLogger.ClearData();
-            // BuddySystem.ClearCache(); // TODO: Uncomment when BuddySystem is implemented
-        }
-    }
-
-    [HarmonyPatch(typeof(Logic.Game), "Load")]
-    public class GameLoadPatch
-    {
-        static void Postfix(Logic.Game __instance)
-        {
-            AIOverhaulPlugin.InitializeEnhancedKingdoms(__instance);
-        }
-    }
+    // Removed GameClearPatch and GameLoadPatch as target methods do not exist
+    // Initialization is now triggered by EnhancedLoggingPatch in EnhancedPerformanceLogger.cs
 
     [HarmonyPatch(typeof(Logic.Kingdom), "Destroy")]
     public class KingdomDestroyPatch

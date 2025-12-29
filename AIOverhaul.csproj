@@ -74,12 +74,8 @@
         <Compile Include="WarDiplomacyLogic.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
-    <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-         Other similar extension points exist, see Microsoft.Common.targets.
-    <Target Name="BeforeBuild">
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+        <Exec Command="copy /Y &quot;$(TargetDir)$(TargetName).dll&quot; &quot;..\BepInEx\plugins\$(TargetName).dll&quot;" />
     </Target>
-    <Target Name="AfterBuild">
-    </Target>
-    -->
 
 </Project>

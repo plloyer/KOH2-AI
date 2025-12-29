@@ -72,20 +72,25 @@ namespace AIOverhaul
         }
     }
 
-    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderHireSpy")]
-    public class SpyHiringPatch
+    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderExpense", new System.Type[] { typeof(Logic.KingdomAI.Expense) })]
+    public class SpyHiringBlockerPatch
     {
-        static bool Prefix(Logic.KingdomAI __instance, ref bool __result)
+        static bool Prefix(Logic.KingdomAI __instance, Logic.KingdomAI.Expense expense)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
-            // Rule: No spies until the AI has 500 of gold income
-            float income = __instance.kingdom.income[Logic.ResourceType.Gold];
-            
-            if (income < 500f)
+            // Check if this is a hiring expense for a Spy
+            if (expense.type == Logic.KingdomAI.Expense.Type.HireChacacter) // Note: Game typo 'HireChacacter'
             {
-                __result = false; // Block spy hiring
-                return false;
+                if (expense.defParam is Logic.CharacterClass.Def cDef && cDef.name == "Spy")
+                {
+                    // Rule: No spies until the AI has 500 gold income
+                    float income = __instance.kingdom.income[Logic.ResourceType.Gold];
+                    if (income < 500f)
+                    {
+                        return false; // Block this expense from being considered
+                    }
+                }
             }
 
             return true;
