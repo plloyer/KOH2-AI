@@ -36,6 +36,44 @@ namespace AIOverhaul
             return total;
         }
 
+        public static bool HasDisorder(Logic.Kingdom k)
+        {
+            if (k == null || k.realms == null) return false;
+
+            foreach (var realm in k.realms)
+            {
+                if (realm != null && realm.IsDisorder())
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static float GetNeighborThreat(Logic.Kingdom k)
+        {
+            if (k == null || k.neighbors == null) return 0f;
+
+            float totalThreat = 0f;
+
+            foreach (var neighbor in k.neighbors)
+            {
+                if (neighbor is Logic.Kingdom neighborKingdom)
+                {
+                    if (neighborKingdom.IsDefeated()) continue;
+
+                    // Consider enemies and those with bad relations as threats
+                    if (k.IsEnemy(neighborKingdom))
+                    {
+                        totalThreat += GetTotalPower(neighborKingdom);
+                    }
+                }
+            }
+
+            return totalThreat;
+        }
+
         public static bool IsStrategicNeighbor(Logic.Kingdom a, Logic.Kingdom b)
         {
             if (a == null || b == null) return false;
@@ -71,6 +109,14 @@ namespace AIOverhaul
         {
             if (k == null || !AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
+            // CRITICAL: Never declare war if we have disorder
+            if (WarLogicHelper.HasDisorder(__instance.kingdom))
+            {
+                AIOverhaulPlugin.Instance?.Log($"[AI-Mod] Blocking war on {k.Name} - We have realm(s) in disorder!");
+                __result = false;
+                return false;
+            }
+
             if (__instance.kingdom.IsAlly(k))
             {
                 __result = false;
@@ -86,19 +132,40 @@ namespace AIOverhaul
             float ownPower = WarLogicHelper.GetTotalPower(__instance.kingdom);
             float targetPower = WarLogicHelper.GetTotalPower(k);
 
+            // Check neighbor threat - assess if declaring war leaves us vulnerable
+            float neighborThreat = WarLogicHelper.GetNeighborThreat(__instance.kingdom);
+            float combinedThreat = neighborThreat + targetPower;
+
+            // If combined threats exceed our power by 2x, we're too vulnerable
+            if (combinedThreat > ownPower * 2.0f)
+            {
+                AIOverhaulPlugin.Instance?.Log($"[AI-Mod] Blocking war on {k.Name} - Too vulnerable (NeighborThreat: {neighborThreat:F0}, Target: {targetPower:F0}, Us: {ownPower:F0})");
+                __result = false;
+                return false;
+            }
+
             bool targetAtWar = k.wars != null && k.wars.Count > 0;
             bool commonEnemy = WarLogicHelper.HasCommonEnemyWithAlly(__instance.kingdom, k);
 
+            // Improved opportunistic war logic with upper limit
             if (targetPower > ownPower * 1.5f)
             {
-                if (!targetAtWar && !commonEnemy)
+                // Don't attack if enemy is more than 2.5x stronger, even if distracted
+                if (targetPower > ownPower * 2.5f)
                 {
-                    AIOverhaulPlugin.Instance.Log($"[AI-Mod] Blocking war on {k.Name} - Target too strong ({targetPower:F0} vs {ownPower:F0}) and not distracted.");
+                    AIOverhaulPlugin.Instance?.Log($"[AI-Mod] Blocking war on {k.Name} - Target way too strong ({targetPower:F0} vs {ownPower:F0}, ratio {(targetPower/ownPower):F1}x)");
                     __result = false;
                     return false;
                 }
 
-                AIOverhaulPlugin.Instance.Log($"[AI-Mod] Proceeding with war on stronger target {k.Name} due to opportunity (AtWar: {targetAtWar}, CommonEnemy: {commonEnemy})");
+                if (!targetAtWar && !commonEnemy)
+                {
+                    AIOverhaulPlugin.Instance?.Log($"[AI-Mod] Blocking war on {k.Name} - Target too strong ({targetPower:F0} vs {ownPower:F0}) and not distracted.");
+                    __result = false;
+                    return false;
+                }
+
+                AIOverhaulPlugin.Instance?.Log($"[AI-Mod] Proceeding with war on stronger target {k.Name} due to opportunity (AtWar: {targetAtWar}, CommonEnemy: {commonEnemy})");
             }
 
             // NEW: War Preparation - Require 2 Full Armies
@@ -140,6 +207,22 @@ namespace AIOverhaul
 
             Logic.Kingdom actor = __instance.kingdom;
             float score = Traverse.Create(actor.ai).Method("GetAverageWarScore").GetValue<float>();
+
+            // CRITICAL: If we have disorder and are at war, seek peace immediately
+            if (WarLogicHelper.HasDisorder(actor) && actor.wars != null && actor.wars.Count > 0)
+            {
+                AIOverhaulPlugin.Instance?.Log($"[AI-Mod] {actor.Name} has disorder - seeking peace urgently!");
+                // Focus on making peace with ALL enemies
+                if (actor.wars.Count > 0)
+                {
+                    Logic.Kingdom target = actor.wars[0].GetEnemyLeader(actor);
+                    if (target != null)
+                    {
+                        __result = RunDiplomacyWithTarget(__instance, target);
+                        return false;
+                    }
+                }
+            }
 
             if (score < -15f || actor.wars.Count >= 2)
             {
