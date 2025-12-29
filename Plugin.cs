@@ -90,8 +90,16 @@ namespace AIOverhaul
             }
 
             Instance.Log($"{LogPrefix} New game session detected. Selected {EnhancedKingdomIds.Count} enhanced and {BaselineKingdomIds.Count} baseline kingdoms out of {aiKingdoms.Count} total AI kingdoms.");
-            Instance.Log($"{LogPrefix} Enhanced: {string.Join(", ", enhanced.Select(k => k.Name))}");
-            Instance.Log($"{LogPrefix} Baseline: {string.Join(", ", baseline.Select(k => k.Name))}");
+            
+            if (enhanced.Count > 0)
+                Instance.Log($"{LogPrefix} Enhanced ({enhanced.Count}): {string.Join(", ", enhanced.Select(k => k.Name))}");
+            else
+                Instance.Log($"{LogPrefix} Enhanced (0): None");
+
+            if (baseline.Count > 0)
+                Instance.Log($"{LogPrefix} Baseline ({baseline.Count}): {string.Join(", ", baseline.Select(k => k.Name))}");
+            else
+                Instance.Log($"{LogPrefix} Baseline (0): None");
         }
     }
 
