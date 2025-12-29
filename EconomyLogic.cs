@@ -21,23 +21,11 @@ namespace AIOverhaul
                         merchants++;
                 if (merchants < 2)
                 {
-                    // Check for available Commerce (Trade resource)
-                    // Requirement: 10 available commerce per merchant to be useful
-                    float commerce = __instance.kingdom.resources[Logic.ResourceType.Trade];
-                    if (commerce < 10f) return true; // Not enough commerce to justify a new merchant
-
-                    // BUSY CHECK: Ensure all existing merchants are actually assigned to a trade (or other mission)
-                    foreach (var c in __instance.kingdom.court)
-                    {
-                        if (c != null && c.IsMerchant())
-                        {
-                            // If any merchant is idle (no mission kingdom), don't hire another
-                            if (c.mission_kingdom == null) 
-                                return true;
-                        }
-                    }
-
-                    AIOverhaulPlugin.LogMod($" High priority Merchant hire for {__instance.kingdom.Name} (Gold: {__instance.kingdom.resources[Logic.ResourceType.Gold]}, Commerce: {commerce}, Merchants Busy: Yes)");
+                    // USER OVERRIDE: Force 2 Merchants NO MATTER WHAT.
+                    // Removed checks for Commerce and Busy status for the first 2 slots.
+                    // This ensures the AI always has a baseline commercial capacity.
+                    
+                    AIOverhaulPlugin.LogMod($" FORCE Merchant hire for {__instance.kingdom.Name} (Merchants: {merchants}/2, Gold: {__instance.kingdom.resources[Logic.ResourceType.Gold]})");
                     Traverse.Create(__instance).Method("HireKnight", new object[] { CharacterClassNames.Merchant }).GetValue();
                     __result = true;
                     return false;
