@@ -372,8 +372,13 @@ namespace AIOverhaul
     {
         static bool Prefix(Logic.KingdomAI __instance, Logic.Army a)
         {
+            if (__instance == null || __instance.kingdom == null) return true;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
-            if (a == null || a.battle == null) return true;
+            
+            // Paranoid check for army and battle
+            if (a == null) return true;
+            // Accessing a.battle might technically throw if 'a' is in a weird state, but usually property access is safe-ish
+            if (a.battle == null) return true;
 
             // Fix: Battle.castle -> Battle.settlement as Castle
             var castle = a.battle.settlement as Logic.Castle;

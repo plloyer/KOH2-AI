@@ -340,6 +340,26 @@ namespace AIOverhaul
 
             return false;
         }
+
+        public static int GetTradeAgreementCount(Logic.Kingdom k)
+        {
+            if (k == null || k.game == null) return 0;
+            
+            // Iterate known kingdoms or just all active kingdoms to count trade agreements
+            int count = 0;
+            if (k.game.kingdoms != null)
+            {
+                foreach (var other in k.game.kingdoms)
+                {
+                    if (other != null && other != k && !other.IsDefeated())
+                    {
+                        if (k.HasTradeAgreement(other))
+                            count++;
+                    }
+                }
+            }
+            return count;
+        }
     }
 
     [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkDeclareWar")]
@@ -488,6 +508,24 @@ namespace AIOverhaul
                         targetInfo = $" (Expansion target: {expansionTarget.Name})";
                     }
                 }
+
+                // TRADE RUSH (Priority over NAP)
+                // If we have few trade partners, try to sign trade agreements first
+                int tradeCount = WarLogicHelper.GetTradeAgreementCount(actor);
+                if (tradeCount < 3 && relationship > 0 && napTarget != expansionTarget)
+                {
+                    // Check if we can afford a trade agreement (usually costs gold to establish route if not instant)
+                    // But SignTrade offer validation handles cost.
+                    // We just prefer Trade Agreement over NAP here if we need money/commerce.
+                    
+                    // Re-use napTarget as trade target if they are friendly enough
+                    // But we must check if we already have trade with them
+                    if (!actor.HasTradeAgreement(napTarget))
+                    {
+                        __result = RunTradeAgreementProposal(__instance, napTarget);
+                        return false;
+                    }
+                }
                 else
                 {
                     targetInfo = " (No expansion target)";
@@ -593,6 +631,31 @@ namespace AIOverhaul
                 else
                 {
                     AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} pact offer to {target.Name} invalid: {validation}");
+                }
+            }
+
+            yield break;
+        }
+
+        static IEnumerator RunTradeAgreementProposal(Logic.KingdomAI ai, Logic.Kingdom target)
+        {
+            // Try to propose a Trade Agreement (SignTrade)
+            Logic.Offer tradeOffer = Logic.Offer.GetCachedOffer("SignTrade", (Logic.Object)ai.kingdom, (Logic.Object)target);
+
+            if (tradeOffer != null)
+            {
+                string validation = tradeOffer.Validate();
+                if (validation == "ok")
+                {
+                    AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} RUSHING Trade Agreement with {target.Name}");
+                    tradeOffer.AI = true;
+                    tradeOffer.Send();
+
+                    if (target.is_player)
+                    {
+                        ai.SetLastOfferTimeToKingdom(target, tradeOffer);
+                        target.t_last_ai_offer_time = ai.game.time;
+                    }
                 }
             }
 
