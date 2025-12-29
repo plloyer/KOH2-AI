@@ -24,7 +24,51 @@ namespace AIOverhaul
             Instance = this;
             var harmony = new Harmony("com.mod.aioverhaul");
             harmony.PatchAll();
+            
+            // Listen to all Unity logs to capture game errors/warnings into BepInEx log
+            Application.logMessageReceived += OnUnityLogMessage;
+            
             Log("AI Overhaul Plugin Loaded with dynamic selection logic.");
+        }
+        
+        private void OnUnityLogMessage(string condition, string stackTrace, LogType type)
+        {
+            // Avoid infinite loops - ignore our own logs
+            if (condition.StartsWith(LogPrefix) || condition.StartsWith("[BepInEx]")) return;
+
+            // Map Unity LogType to BepInEx LogLevel
+            BepInEx.Logging.LogLevel level = BepInEx.Logging.LogLevel.Info;
+            string prefix = "[Unity]";
+            
+            switch (type)
+            {
+                case LogType.Error:
+                case LogType.Exception:
+                case LogType.Assert:
+                    level = BepInEx.Logging.LogLevel.Error;
+                    prefix = "[Unity Error]";
+                    break;
+                case LogType.Warning:
+                    level = BepInEx.Logging.LogLevel.Warning;
+                    prefix = "[Unity Warning]";
+                    break;
+            }
+
+            // Write to BepInEx log (disk)
+            // Note: We use LogInfo/LogWarning/LogError manually to ensure it hits the file
+            string msg = $"{prefix} {condition}";
+            if (level == BepInEx.Logging.LogLevel.Error)
+            {
+                Logger.LogError(msg + (string.IsNullOrEmpty(stackTrace) ? "" : $"\n{stackTrace}"));
+            }
+            else if (level == BepInEx.Logging.LogLevel.Warning)
+            {
+                Logger.LogWarning(msg);
+            }
+            else
+            {
+                Logger.LogInfo(msg);
+            }
         }
 
         public const string LogPrefix = "[AI-Mod]";
