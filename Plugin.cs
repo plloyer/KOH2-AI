@@ -44,11 +44,34 @@ namespace AIOverhaul
             Instance?.Log($"{LogPrefix} {message}");
         }
 
+        private int updateCounter = 0;
+        private bool updateLogged = false;
+
         private void Update()
         {
+            // Debug: Log once to confirm Update() is being called
+            if (!updateLogged)
+            {
+                LogMod("[Update Debug] Update() method is being called!");
+                updateLogged = true;
+            }
+
+            // Debug: Log every 300 frames (roughly every 5 seconds at 60fps)
+            updateCounter++;
+            if (updateCounter % 300 == 0)
+            {
+                LogMod($"[Update Debug] Update() running (frame {updateCounter})");
+            }
+
+            // Try all F-keys to test input detection
+            if (Input.GetKeyDown(KeyCode.F1)) LogMod("[Input Debug] F1 detected!");
+            if (Input.GetKeyDown(KeyCode.F2)) LogMod("[Input Debug] F2 detected!");
+            if (Input.GetKeyDown(KeyCode.F9)) LogMod("[Input Debug] F9 detected!");
+            if (Input.GetKeyDown(KeyCode.F10)) LogMod("[Input Debug] F10 detected!");
+
             if (Input.GetKeyDown(KeyCode.F9))
             {
-                LogMod("F9 key detected!");
+                LogMod("F9 key detected - toggling Spectator Mode!");
                 SpectatorMode = !SpectatorMode;
                 string status = SpectatorMode ? "ENABLED" : "DISABLED";
                 LogMod($"Spectator Mode toggled to: {status}");
