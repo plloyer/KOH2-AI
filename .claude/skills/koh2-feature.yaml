@@ -12,6 +12,7 @@ prompt: |
   3. **VERIFY THEN CODE** - Read relevant source files first, then implement
   4. **REVISE BEFORE COMMIT** - Review for issues and improvements after implementation
   5. **COMMIT WHEN DONE** - Git commit with descriptive message when complete
+  6. **NEVER BLINDLY REMOVE CODE** - If a method/API doesn't exist, understand what it does first, then implement a replacement. DO NOT just delete calls without preserving functionality
 
   # WORKFLOW - FOLLOW EXACTLY
 
@@ -211,6 +212,7 @@ prompt: |
   ## Common Helpers in This Mod
 
   **WarLogicHelper** (in WarDiplomacyLogic.cs)
+  - `WarLogicHelper.GetAverageWarScore(Kingdom k)` - Returns float (negative = losing, positive = winning)
   - `WarLogicHelper.GetTotalPower(Kingdom k)` - Returns float
   - `WarLogicHelper.IsStrategicNeighbor(Kingdom a, Kingdom b)` - Returns bool
   - `WarLogicHelper.HasCommonEnemyWithAlly(Kingdom a, Kingdom b)` - Returns bool
@@ -283,6 +285,11 @@ prompt: |
 
   ❌ **Assuming Army.id exists:**
   - It doesn't in this game version - avoid using it
+
+  ❌ **BLINDLY REMOVING CODE when API doesn't exist:**
+  - WRONG: Deleting `GetAverageWarScore()` calls because method doesn't exist
+  - RIGHT: Understand what it does (calculates war performance), implement helper using existing `GetWarScore()` per war, restore all logic
+  - NEVER sacrifice functionality just to make code compile!
 
   ## File Organization
 
