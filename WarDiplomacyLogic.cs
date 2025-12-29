@@ -74,6 +74,76 @@ namespace AIOverhaul
             return totalThreat;
         }
 
+        public static bool ShouldSeekDefensivePact(Logic.Kingdom k)
+        {
+            if (k == null) return false;
+
+            // Don't seek pacts if we already have 2+ allies
+            if (k.allies != null && k.allies.Count >= 2) return false;
+
+            // Need sufficient gold for diplomacy (5000+ gold)
+            float gold = k.resources?[ResourceType.Gold] ?? 0f;
+            if (gold < 5000f) return false;
+
+            // Check if we face significant neighbor threats
+            float ownPower = GetTotalPower(k);
+            float neighborThreat = GetNeighborThreat(k);
+
+            // Seek pacts if neighbor threat > 0.75x our power
+            return neighborThreat > ownPower * 0.75f;
+        }
+
+        public static Logic.Kingdom FindBestDefensivePactTarget(Logic.Kingdom k)
+        {
+            if (k == null || k.game == null) return null;
+
+            Logic.Kingdom bestTarget = null;
+            int mostCommonEnemies = 0;
+
+            foreach (var potentialAlly in k.game.kingdoms)
+            {
+                if (potentialAlly == null || potentialAlly == k) continue;
+                if (potentialAlly.IsDefeated()) continue;
+                if (k.IsEnemy(potentialAlly)) continue;
+                if (k.IsAlly(potentialAlly)) continue; // Already allied
+
+                // Count common enemies
+                int commonEnemies = 0;
+                if (k.wars != null && potentialAlly.wars != null)
+                {
+                    foreach (var ourWar in k.wars)
+                    {
+                        Logic.Kingdom ourEnemy = ourWar.GetEnemyLeader(k);
+                        if (potentialAlly.IsEnemy(ourEnemy))
+                        {
+                            commonEnemies++;
+                        }
+                    }
+                }
+
+                // Also consider if they're neighbors of our enemies
+                if (k.wars != null)
+                {
+                    foreach (var ourWar in k.wars)
+                    {
+                        Logic.Kingdom ourEnemy = ourWar.GetEnemyLeader(k);
+                        if (ourEnemy != null && IsStrategicNeighbor(potentialAlly, ourEnemy))
+                        {
+                            commonEnemies++;
+                        }
+                    }
+                }
+
+                if (commonEnemies > mostCommonEnemies)
+                {
+                    mostCommonEnemies = commonEnemies;
+                    bestTarget = potentialAlly;
+                }
+            }
+
+            return bestTarget;
+        }
+
         public static bool IsStrategicNeighbor(Logic.Kingdom a, Logic.Kingdom b)
         {
             if (a == null || b == null) return false;
@@ -224,6 +294,21 @@ namespace AIOverhaul
                 }
             }
 
+            // NEW: Defensive pact formation when facing threats
+            if (WarLogicHelper.ShouldSeekDefensivePact(actor))
+            {
+                Logic.Kingdom pactTarget = WarLogicHelper.FindBestDefensivePactTarget(actor);
+                if (pactTarget != null)
+                {
+                    float gold = actor.resources?[ResourceType.Gold] ?? 0f;
+                    float threat = WarLogicHelper.GetNeighborThreat(actor);
+                    AIOverhaulPlugin.Instance?.Log($"[AI-Mod] {actor.Name} seeking defensive pact with {pactTarget.Name} (Gold: {gold:F0}, Threat: {threat:F0})");
+
+                    __result = RunDefensivePactProposal(__instance, pactTarget);
+                    return false;
+                }
+            }
+
             if (score < -15f || actor.wars.Count >= 2)
             {
                 Logic.Kingdom target = null;
@@ -278,6 +363,35 @@ namespace AIOverhaul
         static IEnumerator RunDiplomacyWithTarget(Logic.KingdomAI ai, Logic.Kingdom target)
         {
             yield return (object)CoopThread.Call("ThinkProposeOffer", (IEnumerator)Traverse.Create(ai).Method("ThinkProposeOfferThread", new object[] { target, "neutral" }).GetValue());
+        }
+
+        static IEnumerator RunDefensivePactProposal(Logic.KingdomAI ai, Logic.Kingdom target)
+        {
+            // Try to propose a defensive pact
+            Logic.Offer pactOffer = Logic.Offer.GetCachedOffer("OfferJoinInDefensivePact", (Logic.Object)ai.kingdom, (Logic.Object)target);
+
+            if (pactOffer != null)
+            {
+                string validation = pactOffer.Validate();
+                if (validation == "ok")
+                {
+                    AIOverhaulPlugin.Instance?.Log($"[AI-Mod] {ai.kingdom.Name} proposing defensive pact to {target.Name}");
+                    pactOffer.AI = true;
+                    pactOffer.Send();
+
+                    if (target.is_player)
+                    {
+                        ai.SetLastOfferTimeToKingdom(target, pactOffer);
+                        target.t_last_ai_offer_time = ai.game.time;
+                    }
+                }
+                else
+                {
+                    AIOverhaulPlugin.Instance?.Log($"[AI-Mod] {ai.kingdom.Name} pact offer to {target.Name} invalid: {validation}");
+                }
+            }
+
+            yield break;
         }
     }
 
