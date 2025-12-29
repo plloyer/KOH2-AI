@@ -73,12 +73,67 @@ namespace AIOverhaul
     }
     */
 
-    // Placeholder stub for BuddySystem until proper implementation
     public static class BuddySystem
     {
+        // Key: Army ID, Value: Buddy Army ID
+        public static Dictionary<int, int> buddyMap = new Dictionary<int, int>();
+
         public static void ClearCache()
         {
-            // Placeholder
+            buddyMap.Clear();
+        }
+
+        public static Logic.Army GetBuddy(Logic.Army army, Logic.Kingdom kingdom)
+        {
+            if (army == null || kingdom == null) return null;
+            int armyId = army.GetNid();
+
+            // 1. Check existing buddy
+            if (buddyMap.ContainsKey(armyId))
+            {
+                int buddyId = buddyMap[armyId];
+                // Find army object by ID
+                var buddy = kingdom.armies.Find(a => a.GetNid() == buddyId);
+                if (buddy != null && buddy.IsValid() && buddy.is_alive)
+                {
+                     return buddy;
+                }
+                else
+                {
+                    // Buddy died or invalid
+                    buddyMap.Remove(armyId);
+                    // Also clean up reverse mapping if it existed
+                    if (buddyMap.ContainsKey(buddyId) && buddyMap[buddyId] == armyId)
+                        buddyMap.Remove(buddyId);
+                }
+            }
+
+            // 2. Assign new buddy if needed
+            // Simple logic: Pair with the nearest unpartnered army
+            var availableParams = kingdom.armies.Where(a => a != army && a.IsValid() && !buddyMap.ContainsKey(a.GetNid())).ToList();
+            if (availableParams.Count > 0)
+            {
+                // Find nearest
+                var nearest = availableParams.OrderBy(a => a.position.SqrDist(army.position)).First();
+                buddyMap[armyId] = nearest.GetNid();
+                buddyMap[nearest.GetNid()] = armyId; // Mutual
+                return nearest;
+            }
+
+            return null;
+        }
+
+        public static bool IsFollower(Logic.Army army)
+        {
+            // Simple rule: Lower ID follows Higher ID to avoid circular following
+            // Or use the map logic: if paired, one is leader, one is follower?
+            // Let's say: The one with lower ID is the follower.
+            if (buddyMap.ContainsKey(army.GetNid()))
+            {
+                int buddyId = buddyMap[army.GetNid()];
+                return army.GetNid() < buddyId;
+            }
+            return false;
         }
     }
 
@@ -117,8 +172,17 @@ namespace AIOverhaul
                 }
             }
 
-            // TODO: BuddySystem.GetBuddy disabled
-            Logic.Army buddy = null; // BuddySystem.GetBuddy(army, __instance.kingdom);
+            Logic.Army buddy = null;
+            if (AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom))
+            {
+                buddy = BuddySystem.GetBuddy(army, __instance.kingdom);
+                if (buddy != null && buddy.battle != null && buddy.battle != army.battle)
+                {
+                    // Buddy is in a different battle, maybe join them?
+                    // This creates a tendency to swarm
+                    // For now, just logging or minor influence
+                }
+            }
             bool buddyPresent = false; // Disabled
             if (buddy != null)
             {
@@ -180,10 +244,28 @@ namespace AIOverhaul
 
             string status = army.ai_status;
 
-            // TODO: BuddySystem disabled
-            if (false && (status == "idle" || status == "wait_orders")) // was: BuddySystem.IsFollower
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return;
+
+            // Access private field via reflection if needed, but usually public?
+            // Actually ai_status is likely internal/private. 
+            // Assuming "idle" check is correct from decompilation context.
+            // If status is not accessible, we skip.
+            
+            // Logic: If we are idle, follow our buddy
+            if (BuddySystem.IsFollower(army))
             {
-                Logic.Army leader = null; // was: BuddySystem.GetBuddy(army, __instance.kingdom);
+                Logic.Army leader = BuddySystem.GetBuddy(army, __instance.kingdom);
+                if (leader != null && leader.movement.IsMoving() && !army.movement.IsMoving())
+                {
+                    // Order to follow
+                    // Need access to army methods. 
+                    // army.Interact(leader, false); // Interact often handles 'follow' for friendly units
+                }
+            }
+            
+            if (status == "idle" || status == "wait_orders") // was: BuddySystem.IsFollower
+            {
+                Logic.Army leader = BuddySystem.GetBuddy(army, __instance.kingdom); // was: BuddySystem.GetBuddy(army, __instance.kingdom);
                 if (leader != null)
                 {
                     Logic.MapObject leaderTarget = leader.GetTarget();

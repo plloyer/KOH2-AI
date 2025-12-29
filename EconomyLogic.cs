@@ -32,6 +32,66 @@ namespace AIOverhaul
         }
     }
 
+    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderHireCleric")]
+    public class ClericHiringPatch
+    {
+        static bool Prefix(Logic.KingdomAI __instance, ref bool __result)
+        {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+
+            // Rule: Have at least 1 clergy when positive in Clergy opinion
+            // (but only after the first two merchants and at least 50 gold income)
+            
+            var k = __instance.kingdom;
+            float income = k.income[Logic.ResourceType.Gold];
+            
+            // Check prerequisites
+            if (income < 50f) return true; // Let vanilla decide if poor
+            
+            // Count merchants
+            int merchants = k.court.Count(c => c.IsMerchant());
+            if (merchants < 2) return true; // Prioritize merchants logic elsewhere/vanilla
+
+            // Check Clergy opinion
+            float clergyOpinion = k.opinions.GetOpinion(Logic.Kingdom.SocialGroup.Clergy);
+            if (clergyOpinion <= 0) return true;
+
+            // Check if we already have a cleric
+            if (k.court.Any(c => c.IsCleric())) return true; // Already have one
+
+            // If we have space, PRIORITIZE hiring
+            if (k.court.Count < k.ems.slots.Count) // Assuming slots check
+            {
+                 AIOverhaulPlugin.Instance.Log($"[AI-Mod] Priority Cleric hire for {k.Name} (Opinion: {clergyOpinion}, Merchants: {merchants})");
+                 Traverse.Create(__instance).Method("HireKnight", new object[] { CharacterClassNames.Cleric }).GetValue();
+                 __result = true;
+                 return false;
+            }
+
+            return true;
+        }
+    }
+
+    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderHireSpy")]
+    public class SpyHiringPatch
+    {
+        static bool Prefix(Logic.KingdomAI __instance, ref bool __result)
+        {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+
+            // Rule: No spies until the AI has 500 of gold income
+            float income = __instance.kingdom.income[Logic.ResourceType.Gold];
+            
+            if (income < 500f)
+            {
+                __result = false; // Block spy hiring
+                return false;
+            }
+
+            return true;
+        }
+    }
+
     [HarmonyPatch(typeof(Logic.KingdomAI), "AddExpense", new System.Type[] { typeof(WeightedRandom<Logic.KingdomAI.Expense>), typeof(Logic.KingdomAI.Expense) })]
     public class TradeActionPriorityPatch
     {
