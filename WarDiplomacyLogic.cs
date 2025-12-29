@@ -101,6 +101,30 @@ namespace AIOverhaul
                 AIOverhaulPlugin.Instance.Log($"[AI-Mod] Proceeding with war on stronger target {k.Name} due to opportunity (AtWar: {targetAtWar}, CommonEnemy: {commonEnemy})");
             }
 
+            // NEW: War Preparation - Require 2 Full Armies
+            int fullArmies = 0;
+            if (__instance.kingdom.armies != null)
+            {
+                foreach (var army in __instance.kingdom.armies)
+                {
+                    // Definition of "Full Army":
+                    // 1. Has a leader (Marshal or General)
+                    // 2. Has units (not just leader) - "Full" likely means combat ready.
+                    // 3. Let's say at least 4 units (Commanders have max 5-8).
+                    if (army.leader != null && army.units.Count >= 4 && army.battle == null)
+                    {
+                        fullArmies++;
+                    }
+                }
+            }
+
+            if (fullArmies < 2)
+            {
+                AIOverhaulPlugin.Instance.Log($"[AI-Mod] Blocking war on {k.Name} - Not enough armies prepared ({fullArmies}/2).");
+                __result = false;
+                return false;
+            }
+
             float powerRatio = targetPower > 0 ? ownPower / targetPower : (ownPower > 0 ? 10f : 1f);
             AIOverhaulPlugin.Instance.Log($"[AI-Mod] AI {__instance.kingdom.Name} declaring war on {k.Name}. Power Ratio: {powerRatio:F2}");
             return true;

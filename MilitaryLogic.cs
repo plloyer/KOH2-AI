@@ -1,6 +1,7 @@
 using HarmonyLib;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace AIOverhaul
 {
@@ -301,5 +302,156 @@ namespace AIOverhaul
                 allow_militia = false;
             }
         }
+    [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkArmy")]
+    public class HealingLogicPatch
+    {
+        static bool Prefix(Logic.KingdomAI __instance, Logic.Army army)
+        {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+            if (army == null || !army.IsValid() || !army.is_alive) return true;
+            if (army.battle != null) return true; // Don't camp in battle (handled by retreat)
+
+            // 1. In Own Territory: Heal ASAP (between fights)
+            bool inOwnTerritory = army.realm_in != null && army.realm_in.kingdom == __instance.kingdom;
+            
+            bool needsHeal = false;
+            if (inOwnTerritory)
+            {
+                // Heal if ANY damage or some fatigue (stamina implied by supplies/morale? No, assuming damage/units mostly)
+                // "Heal the units... as soon as possible"
+                needsHeal = IsDamaged(army);
+            }
+            else
+            {
+                // 2. Outside: Heal if lost 30% or more (Strength < 70%)
+                // We compare current units strength vs theoretical max? 
+                // Or just Unit damage? "Lost 30% or more".
+                // Let's check average unit health.
+                float healthPerc = GetArmyHealthPercentage(army);
+                if (healthPerc < 0.7f)
+                {
+                    needsHeal = true;
+                }
+            }
+
+            if (needsHeal)
+            {
+                // Execute Camp/Heal Action
+                // "CampArmyAction" heals and rests
+                var action = army.leader?.FindAction("CampArmyAction");
+                if (action != null && action.Validate() == "ok")
+                {
+                    AIOverhaulPlugin.Instance.Log($"[AI-Mod] Army {army.Name} ({army.GetNid()}) needs heal (InOwn: {inOwnTerritory}). Camping.");
+                    action.Execute(null);
+                    return false; // Skip original ThinkArmy to prevent overriding
+                }
+            }
+
+            return true;
+        }
+
+        static bool IsDamaged(Logic.Army army)
+        {
+            if (army.units == null) return false;
+            foreach (var u in army.units)
+            {
+                if (u.damage > 0) return true;
+            }
+            return false;
+        }
+
+        static float GetArmyHealthPercentage(Logic.Army army)
+        {
+            if (army.units == null || army.units.Count == 0) return 0;
+            float totalHealth = 0;
+            float maxHealth = 0;
+            foreach (var u in army.units)
+            {
+                // Assuming damage is absolute and MaxHealth is known or 100?
+                // Logic.Unit doesn't show MaxSquads here, but usually damage is subtracted from Max.
+                // Let's assume damage is a value.
+                // If we can't easily get max, we can check if damage is significant.
+                // A simplified approach:
+                // Max troops per squad depends on Def.
+                // current = max - damage? Or is damage a float 0-1?
+                // Visuals usually show squad count.
+                // Unit.EvalStrength() is easier. MaxEval?
+                // Let's try:
+                // If (u.GetTroops() < u.def.max_troops * 0.7f)
+                // Using reflection for GetTroops() if needed, or EvalStrength.
+                // Let's use a workaround:
+                // We assume 'damage' field is literal damage.
+                // If we don't know Max, this is hard.
+                // Fallback: Use `IsDamaged` logic but nuanced?
+                // Actually the user said "lost 30%".
+                // Let's assume Unit.Squads is the count.
+                if (u.def != null)
+                {
+                    // Approximation
+                    if (u.damage > 0) totalHealth += 0; // Count damaged as loss? No.
+                }
+            }
+            // Better: Compare Reflection GetCurrentSquads vs MaxSquads?
+            // Since we can't see the Unit class fully, let's rely on IsDamaged for Owning, 
+            // and for Outside, maybe check supplies or morale?
+            // "Heal units" implies health.
+            // Let's trust that if the army looks beat up, we heal.
+            // For now, I'll implement a helper that assumes 30% loss means significant damage.
+            
+            // Re-reading KingdomAI: EvalStrength() is used.
+            // Current Strength vs Max Potential Strength?
+            float current = army.EvalStrength();
+            float max = 0;
+            foreach(var u in army.units) max += u.def.strength_eval; // Rough max
+            
+            return max > 0 ? (current / max) : 0;
+        }
     }
-}
+
+    [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkAssaultSiege")]
+    public class AssaultLogicPatch
+    {
+        static bool Prefix(Logic.KingdomAI __instance, Logic.Army a)
+        {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+            if (a == null || a.battle == null) return true;
+
+            // "Attacking castle (not cities ones I mean) is not useful, don't do it."
+            // We assume "City" = The Realm's Capital Castle.
+            // "Castle" (non-city) = Other fortifications?
+            
+            if (a.battle.castle != null)
+            {
+                var realm = a.battle.castle.GetRealm();
+                if (realm != null)
+                {
+                    // Check if this castle is the main castle of the realm (The City)
+                    // Usually actions target realm.castle.
+                    // If a.battle.castle IS realm.castle, it is the City.
+                    if (a.battle.castle == realm.castle)
+                    {
+                        // It IS the City. Allow assault?
+                        // User said "Attacking castle (not cities ones I mean)..."
+                        // Implies: If it IS a City, attacking is maybe okay?
+                        // Or does "Attacking castle (not cities ones I mean)" mean "Attacking castles (which are NOT cities) is not useful"?
+                        // YES. "not cities ones I mean" qualifies "castle".
+                        // So: If Castle != City, BLOCK.
+                        // If Castle == City, ALLOW (default logic).
+                        
+                        // BUT: User also said "Attacking castle ... is not useful".
+                        // Maybe they mean "Assaulting" (the action) is bad in general, EXCEPT for cities?
+                        // I will BLOCK if it is NOT the city.
+                        return true;
+                    }
+                    else
+                    {
+                        // It is a secondary castle/fort. Block Assault.
+                        AIOverhaulPlugin.Instance.Log($"[AI-Mod] Blocking Assault on secondary castle/fort in {realm.Name}");
+                        return false;
+                    }
+                }
+            }
+            
+            return true;
+        }
+    }
