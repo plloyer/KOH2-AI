@@ -17,7 +17,7 @@ namespace AIOverhaul
             {
                 int merchants = 0;
                 foreach (var k in __instance.kingdom.court)
-                    if (k.class_def?.id == CharacterClassNames.Merchant)
+                    if (k != null && k.class_def?.id == CharacterClassNames.Merchant)
                         merchants++;
                 if (merchants < 2)
                 {
@@ -50,14 +50,14 @@ namespace AIOverhaul
             
             
             // Count merchants
-            int merchants = k.court.Count(c => c.IsMerchant());
+            int merchants = k.court.Count(c => c != null && c.IsMerchant());
             if (merchants < 2) return true;
 
             // Simplify: Remove Opinion logic for now to fix build (requires finding SocialGroup enum)
             // if (k.opinions.GetOpinion(Logic.Kingdom.SocialGroup.Clergy) <= 0) return true;
 
             // Check if we already have a cleric
-            if (k.court.Any(c => c.IsCleric())) return true;
+            if (k.court.Any(c => c != null && c.IsCleric())) return true;
 
             // Simplify: Assume court size max is 9 (standard) or check court.Count
             if (k.court.Count < 9)
