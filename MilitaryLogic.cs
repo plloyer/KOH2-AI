@@ -342,7 +342,7 @@ namespace AIOverhaul
     }
 
     // Army composition: Prefer 3-4 ranged for every 4-5 melee
-    // Early game (session time < 10 hours): 4 archers, 4 swordsmen
+    // First two armies: 4 archers, 4 swordsmen
     [HarmonyPatch(typeof(Logic.KingdomAI), "EvalHireUnit")]
     public class ArmyCompositionPatch
     {
@@ -368,13 +368,16 @@ namespace AIOverhaul
                 }
             }
 
-            bool isEarlyGame = kingdom.game != null && kingdom.game.session_time.hours < 10f;
+            // Count total armies to determine if this is one of the first two
+            int totalArmies = kingdom.armies?.Count ?? 0;
+            bool isFirstTwoArmies = totalArmies <= 2;
+
             bool isRanged = IsRangedUnit(def);
             bool isMelee = IsMeleeUnit(def);
 
-            if (isEarlyGame)
+            if (isFirstTwoArmies)
             {
-                // Early game: 4 archers, 4 swordsmen target
+                // First two armies: 4 archers, 4 swordsmen target
                 if (isRanged && rangedCount >= 4)
                 {
                     __result *= 0.1f; // Heavily discourage more ranged
