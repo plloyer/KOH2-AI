@@ -306,7 +306,7 @@ namespace AIOverhaul
     }
 
     // Prioritize Fletcher upgrade before Swordsmith in barracks
-    [HarmonyPatch(typeof(Logic.Castle), "AddBuildOptions")]
+    [HarmonyPatch(typeof(Logic.Castle), "AddBuildOptions", new Type[] { typeof(bool), typeof(Logic.Resource) })]
     public class FletcherPriorityPatch
     {
         static void Postfix(Logic.Castle __instance)
@@ -347,9 +347,9 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Logic.KingdomAI), "EvalHireUnit")]
     public class ArmyCompositionPatch
     {
-        static void Postfix(Logic.Unit.Def def, Logic.Army army, ref float __result)
+        static void Postfix(Logic.Unit.Def udef, Logic.Army army, ref float __result)
         {
-            if (army == null || def == null) return;
+            if (army == null || udef == null) return;
             Logic.Kingdom kingdom = army.GetKingdom();
             if (kingdom == null || !AIOverhaulPlugin.IsEnhancedAI(kingdom)) return;
 
@@ -373,8 +373,8 @@ namespace AIOverhaul
             int totalArmies = kingdom.armies?.Count ?? 0;
             bool isFirstTwoArmies = totalArmies <= 2;
 
-            bool isRanged = IsRangedUnit(def);
-            bool isMelee = IsMeleeUnit(def);
+            bool isRanged = IsRangedUnit(udef);
+            bool isMelee = IsMeleeUnit(udef);
 
             if (isFirstTwoArmies)
             {

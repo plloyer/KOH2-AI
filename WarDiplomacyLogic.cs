@@ -26,6 +26,7 @@ namespace AIOverhaul
 
                 try
                 {
+                    // TODO: USE CONSTANTS FOR METHOD NAME IN A STATIC CLASS. ALSO ALL INVOCATIONS SHOULD BE DONE THROUGH THAT STATIC CLASS.
                     int side = Traverse.Create(war).Method("GetSide", new object[] { k }).GetValue<int>();
                     float warScore = Traverse.Create(war).Method("GetWarScore", new object[] { side }).GetValue<float>();
                     totalScore += warScore;

@@ -1,3 +1,4 @@
+using System;
 using HarmonyLib;
 using Logic;
 using UnityEngine;
@@ -9,7 +10,7 @@ namespace AIOverhaul
 {
     // Prevent building churches in settlements without religion districts
     // Prioritize provinces with the most religion district slots
-    [HarmonyPatch(typeof(Logic.Castle), "AddBuildOptions")]
+    [HarmonyPatch(typeof(Logic.Castle), "AddBuildOptions", new Type[] { typeof(bool), typeof(Logic.Resource) })]
     public class ReligiousBuildingPatch
     {
         static void Postfix(Logic.Castle __instance)
@@ -132,6 +133,8 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderHireCleric")]
     public class ClericHiringPatch
     {
+        private const int MaxCourtSize = 9;
+
         static bool Prefix(Logic.KingdomAI __instance, ref bool __result)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
@@ -157,7 +160,7 @@ namespace AIOverhaul
             if (k.court.Any(c => c != null && c.IsCleric())) return true;
 
             // Simplify: Assume court size max is 9 (standard) or check court.Count
-            if (k.court.Count < 9)
+            if (k.court.Count < MaxCourtSize) 
             {
                  AIOverhaulPlugin.LogMod($" Priority Cleric hire for {k.Name}");
                  Traverse.Create(__instance).Method("HireKnight", new object[] { CharacterClassNames.Cleric }).GetValue();
@@ -252,6 +255,11 @@ namespace AIOverhaul
                 var traditionOptions = __instance.kingdom.GetNewTraditionOptions();
                 if (traditionOptions == null || traditionOptions.Count == 0) return true;
 
+                if (__instance == null || __instance.kingdom == null) return true;
+                
+                // Safety checks for kingdom properties
+                if (__instance.kingdom.traditions == null || __instance.kingdom.wars == null || __instance.kingdom.resources == null) return true;
+
                 // TRADITION RUSH LOGIC
                 bool rushingTradition = false;
                 // Use resources.Get(ResourceType.Books) and wars.Count
@@ -320,7 +328,11 @@ namespace AIOverhaul
         [HarmonyPrefix]
         public static bool Prefix(Logic.KingdomAI __instance, ref bool __result)
         {
+            if (__instance == null || __instance.kingdom == null) return true;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+
+            // Safety checks
+            if (__instance.kingdom.traditions == null || __instance.kingdom.wars == null || __instance.kingdom.resources == null) return true;
 
             // Block CA if Rushing Tradition
             // Check 0 Traditions, Not at War

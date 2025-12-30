@@ -36,6 +36,9 @@ namespace AIOverhaul
             // Avoid infinite loops - ignore our own logs
             if (condition.StartsWith(LogPrefix) || condition.StartsWith("[BepInEx]")) return;
 
+            // Suppress benign base game errors regarding remote vars
+            if (condition.Contains("invalid remote vars") || condition.Contains("Received data_changed") || condition.Contains("Could not resolve target")) return;
+
             // Map Unity LogType to BepInEx LogLevel
             BepInEx.Logging.LogLevel level = BepInEx.Logging.LogLevel.Info;
             string prefix = "[Unity]";
