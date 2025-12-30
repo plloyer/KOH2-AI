@@ -165,30 +165,63 @@ namespace AIOverhaul
         {
             if (k == null) return false;
 
-            // VERY RESTRICTIVE: Only hire diplomats when AT WAR
-            // Diplomats are expensive luxury characters that should only be hired in critical need
-            bool atWar = k.wars != null && k.wars.Count > 0;
+            // Diplomats are expensive luxury characters - only hire when we can afford it AND need diplomacy
+            float goldIncome = k.income?.Get(ResourceType.Gold) ?? 0f;
 
-            if (k.Name == "England")
-            {
-                AIOverhaulPlugin.LogMod($"[ENGLAND] Diplomat hiring check: atWar={atWar}, wars={k.wars?.Count ?? 0}");
-            }
-
-            if (!atWar)
+            // Need solid income to afford a diplomat (500+ gold income)
+            if (goldIncome < 500f)
             {
                 if (k.Name == "England")
                 {
-                    AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat hire: not at war");
+                    AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: goldIncome too low ({goldIncome} < 500)");
                 }
                 return false;
             }
 
-            // Only hire if we're actually at war
+            // Count neighbors that are stronger than us and threaten us
+            float ownPower = GetTotalPower(k);
+            int strongerThreats = 0;
+
+            if (k.neighbors != null)
+            {
+                foreach (var neighbor in k.neighbors)
+                {
+                    if (neighbor is Logic.Kingdom nk && !nk.IsDefeated())
+                    {
+                        // Skip allies - they're not threats
+                        if (k.IsAlly(nk)) continue;
+
+                        float neighborPower = GetTotalPower(nk);
+
+                        // Count as threat if they're stronger than us (1.2x power ratio)
+                        if (neighborPower > ownPower * 1.2f)
+                        {
+                            strongerThreats++;
+                        }
+                    }
+                }
+            }
+
             if (k.Name == "England")
             {
-                AIOverhaulPlugin.LogMod($"[ENGLAND] ALLOWING diplomat hire: at war");
+                AIOverhaulPlugin.LogMod($"[ENGLAND] Diplomat check: goldIncome={goldIncome}, ownPower={ownPower}, strongerThreats={strongerThreats}");
             }
-            return true;
+
+            // Hire diplomat if we have 2+ stronger neighbors (need alliances/NAPs to secure flanks)
+            if (strongerThreats >= 2)
+            {
+                if (k.Name == "England")
+                {
+                    AIOverhaulPlugin.LogMod($"[ENGLAND] ALLOWING diplomat: {strongerThreats} stronger neighbors threatening us");
+                }
+                return true;
+            }
+
+            if (k.Name == "England")
+            {
+                AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: only {strongerThreats} stronger threats (need 2+)");
+            }
+            return false;
         }
 
         public static bool WantsSpy(Logic.Kingdom k)
