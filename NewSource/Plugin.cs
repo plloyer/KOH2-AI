@@ -85,11 +85,12 @@ namespace AIOverhaul
         }
 
         /// <summary>
-        /// Static logging helper that automatically adds the [AI-Mod] prefix and category tag
+        /// Static logging helper that automatically adds the [AI-Mod] prefix, category tag, and kingdom name
         /// </summary>
-        public static void LogMod(string message, LogCategory category = LogCategory.General)
+        public static void LogMod(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null)
         {
-            Instance?.Log($"{LogPrefix}[{category}] {message}");
+            string kingdomTag = kingdom != null ? $"[{kingdom.Name}] " : "";
+            Instance?.Log($"{LogPrefix}[{category}]{kingdomTag}{message}");
         }
 
         // Update() method removed - F9 detection now handled in GameUpdatePatch
@@ -117,6 +118,20 @@ namespace AIOverhaul
             MortalEnemies.Clear(); // Reset mortal enemies for new game
             EnhancedPerformanceLogger.ClearData(); // Moved here from failed GameClearPatch
 
+            // ALWAYS add player kingdoms to enhanced AI list (for spectator mode testing)
+            List<Logic.Kingdom> playerKingdoms = game.kingdoms.Where(k => k != null && k.is_player && !k.IsDefeated()).ToList();
+            foreach (var playerKingdom in playerKingdoms)
+            {
+                EnhancedKingdomIds.Add(playerKingdom.id);
+                EnhancedPerformanceLogger.RecordBaseline(playerKingdom, "Enhanced", game);
+            }
+
+            if (playerKingdoms.Count > 0)
+            {
+                LogMod($"Player kingdoms added to Enhanced AI: {string.Join(", ", playerKingdoms.Select(k => k.Name))}", LogCategory.General);
+            }
+
+            // Now select enhanced/baseline from AI kingdoms only
             List<Logic.Kingdom> aiKingdoms = game.kingdoms.Where(k => k != null && !k.is_player && !k.IsDefeated()).ToList();
 
             // Increased to 30% for better statistical validity
@@ -226,7 +241,7 @@ namespace AIOverhaul
 
             // Record as mortal enemy - the FIRST kingdom to declare war becomes the permanent grudge
             AIOverhaulPlugin.MortalEnemies[k2.id] = k1.id;
-            AIOverhaulPlugin.LogMod($"MORTAL ENEMY: {k2.Name} will never forgive {k1.Name} for attacking first!", LogCategory.War);
+            AIOverhaulPlugin.LogMod($"MORTAL ENEMY: will never forgive {k1.Name} for attacking first!", LogCategory.War, k2);
         }
     }
 
@@ -257,13 +272,13 @@ namespace AIOverhaul
                             {
                                 AIOverhaulPlugin.EnhancedKingdomIds.Add(playerKingdom.id);
                             }
-                            AIOverhaulPlugin.LogMod($"Spectator Mode ENABLED - Enhanced AI is now controlling {playerKingdom.Name}", LogCategory.Spectator);
+                            AIOverhaulPlugin.LogMod($"Spectator Mode ENABLED - Enhanced AI is now controlling kingdom", LogCategory.Spectator, playerKingdom);
                         }
                         else
                         {
                             // Remove player from Enhanced AI when spectator mode is off
                             AIOverhaulPlugin.EnhancedKingdomIds.Remove(playerKingdom.id);
-                            AIOverhaulPlugin.LogMod($"Spectator Mode DISABLED - Player control restored for {playerKingdom.Name}", LogCategory.Spectator);
+                            AIOverhaulPlugin.LogMod($"Spectator Mode DISABLED - Player control restored", LogCategory.Spectator, playerKingdom);
                         }
                     }
                 }

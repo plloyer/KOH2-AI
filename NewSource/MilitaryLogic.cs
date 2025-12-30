@@ -342,7 +342,7 @@ namespace AIOverhaul
 
                             if (__instance.GetKingdom()?.Name == "England")
                             {
-                                AIOverhaulPlugin.LogMod($"[ENGLAND] BOOSTING first Barracks in {__instance.name} (Slots: {slots}, Boost: {boost:F1}x)", LogCategory.Military);
+                                AIOverhaulPlugin.LogMod($"BOOSTING first Barracks in {__instance.name} (Slots: {slots}, Boost: {boost:F1}x)", LogCategory.Military, __instance.GetKingdom());
                             }
                         }
                         // else: no boost but still allow (fallback if no Castle district exists)
@@ -357,7 +357,7 @@ namespace AIOverhaul
 
                             if (__instance.GetKingdom()?.Name == "England")
                             {
-                                AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING second Barracks in {__instance.name} - requires Castle district", LogCategory.Military);
+                                AIOverhaulPlugin.LogMod($"BLOCKING second Barracks in {__instance.name} - requires Castle district", LogCategory.Military, __instance.GetKingdom());
                             }
                         }
                     }
@@ -436,7 +436,7 @@ namespace AIOverhaul
                 {
                     if (kingdom.Name == "England")
                     {
-                        AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING all unit hiring: ranged={rangedCount}, melee={meleeCount}, need Swordsmith first!", LogCategory.Military);
+                        AIOverhaulPlugin.LogMod($"BLOCKING all unit hiring: ranged={rangedCount}, melee={meleeCount}, need Swordsmith first!", LogCategory.Military, kingdom);
                     }
                     __result *= GameBalance.StrictBlockMultiplier;
                     return;

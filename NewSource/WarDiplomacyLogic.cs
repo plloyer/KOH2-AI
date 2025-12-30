@@ -167,7 +167,7 @@ namespace AIOverhaul
 
             if (k.Name == "England")
             {
-                AIOverhaulPlugin.LogMod($"[ENGLAND] WantsDiplomat() called - starting diplomat check", LogCategory.Diplomacy);
+                AIOverhaulPlugin.LogMod($"WantsDiplomat() called - starting diplomat check", LogCategory.Diplomacy, k);
             }
 
             // EARLY GAME PREVENTION: Must have baseline economy established first
@@ -177,7 +177,7 @@ namespace AIOverhaul
             {
                 if (k.Name == "England")
                 {
-                    AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: need {GameBalance.RequiredMerchantCount} merchants first (have {merchants})", LogCategory.Diplomacy);
+                    AIOverhaulPlugin.LogMod($"BLOCKING diplomat: need {GameBalance.RequiredMerchantCount} merchants first (have {merchants})", LogCategory.Diplomacy, k);
                 }
                 return false;
             }
@@ -187,7 +187,7 @@ namespace AIOverhaul
             {
                 if (k.Name == "England")
                 {
-                    AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: need 2 ready armies first", LogCategory.Diplomacy);
+                    AIOverhaulPlugin.LogMod($"BLOCKING diplomat: need 2 ready armies first", LogCategory.Diplomacy, k);
                 }
                 return false;
             }
@@ -200,7 +200,7 @@ namespace AIOverhaul
             {
                 if (k.Name == "England")
                 {
-                    AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: goldIncome too low ({goldIncome} < {GameBalance.MinGoldIncomeForDiplomats})", LogCategory.Diplomacy);
+                    AIOverhaulPlugin.LogMod($"BLOCKING diplomat: goldIncome too low ({goldIncome} < {GameBalance.MinGoldIncomeForDiplomats})", LogCategory.Diplomacy, k);
                 }
                 return false;
             }
@@ -231,7 +231,7 @@ namespace AIOverhaul
 
             if (k.Name == "England")
             {
-                AIOverhaulPlugin.LogMod($"[ENGLAND] Diplomat check: goldIncome={goldIncome}, ownPower={ownPower}, strongerThreats={strongerThreats}", LogCategory.Diplomacy);
+                AIOverhaulPlugin.LogMod($"Diplomat check: goldIncome={goldIncome}, ownPower={ownPower}, strongerThreats={strongerThreats}", LogCategory.Diplomacy, k);
             }
 
             // Hire diplomat if we have enough stronger neighbors (need alliances/NAPs to secure flanks)
@@ -239,14 +239,14 @@ namespace AIOverhaul
             {
                 if (k.Name == "England")
                 {
-                    AIOverhaulPlugin.LogMod($"[ENGLAND] ALLOWING diplomat: {strongerThreats} stronger neighbors threatening us", LogCategory.Diplomacy);
+                    AIOverhaulPlugin.LogMod($"ALLOWING diplomat: {strongerThreats} stronger neighbors threatening us", LogCategory.Diplomacy, k);
                 }
                 return true;
             }
 
             if (k.Name == "England")
             {
-                AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: only {strongerThreats} stronger threats (need {GameBalance.MinStrongerThreatsForDiplomat}+)", LogCategory.Diplomacy);
+                AIOverhaulPlugin.LogMod($"BLOCKING diplomat: only {strongerThreats} stronger threats (need {GameBalance.MinStrongerThreatsForDiplomat}+)", LogCategory.Diplomacy, k);
             }
             return false;
         }
@@ -715,12 +715,12 @@ namespace AIOverhaul
                 // Only attack if we're clearly stronger
                 if (ownPower > targetPower)
                 {
-                    AIOverhaulPlugin.LogMod($" AI {__instance.kingdom.Name} declaring war on MORTAL ENEMY {k.Name} (well-prepared, stronger). Power Ratio: {powerRatio:F2}", LogCategory.War);
+                    AIOverhaulPlugin.LogMod($"Declaring war on MORTAL ENEMY {k.Name} (well-prepared, stronger). Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
                     return true;
                 }
 
                 // If mortal enemy is equal or stronger: Form coalition FIRST
-                AIOverhaulPlugin.LogMod($" AI {__instance.kingdom.Name} DEFERRING war against equal/stronger MORTAL ENEMY {k.Name} - seeking allies first. Power Ratio: {powerRatio:F2}", LogCategory.War);
+                AIOverhaulPlugin.LogMod($"DEFERRING war against equal/stronger MORTAL ENEMY {k.Name} - seeking allies first. Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
                 __result = false;
                 return false;
             }
@@ -731,12 +731,12 @@ namespace AIOverhaul
                 // Attack if we're stronger or if they're distracted
                 if (ownPower >= targetPower || targetAtWar || commonEnemy)
                 {
-                    AIOverhaulPlugin.LogMod($" AI {__instance.kingdom.Name} declaring war on {k.Name} (well-prepared). Power Ratio: {powerRatio:F2}", LogCategory.War);
+                    AIOverhaulPlugin.LogMod($"Declaring war on {k.Name} (well-prepared). Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
                     return true;
                 }
             }
 
-            AIOverhaulPlugin.LogMod($" AI {__instance.kingdom.Name} declaring war on {k.Name}. Power Ratio: {powerRatio:F2}", LogCategory.War);
+            AIOverhaulPlugin.LogMod($"Declaring war on {k.Name}. Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
             return true;
         }
     }
@@ -872,7 +872,7 @@ namespace AIOverhaul
 
                 if (target != null)
                 {
-                    AIOverhaulPlugin.LogMod($" {actor.Name} in survival mode. Focusing on {target.Name}", LogCategory.Diplomacy);
+                    AIOverhaulPlugin.LogMod($"In survival mode. Focusing on {target.Name}", LogCategory.Diplomacy, actor);
                     __result = RunDiplomacyWithTarget(__instance, target);
                     return false;
                 }
@@ -929,7 +929,7 @@ namespace AIOverhaul
                 {
                     if (OfferHelper.TrySendOffer("ClaimIndependence", __instance, k))
                     {
-                        AIOverhaulPlugin.LogMod($" {actor.Name} claiming independence from {k.Name}", LogCategory.War);
+                        AIOverhaulPlugin.LogMod($"Claiming independence from {k.Name}", LogCategory.War, actor);
                         __result = true;
                         return false;
                     }
@@ -950,7 +950,7 @@ namespace AIOverhaul
                         peace.AI = true;
                         if (peace.Validate() == "ok")
                         {
-                            AIOverhaulPlugin.LogMod($" {actor.Name} SURRENDERING to {k.Name} as vassal!", LogCategory.War);
+                            AIOverhaulPlugin.LogMod($"SURRENDERING to {k.Name} as vassal!", LogCategory.War, actor);
                             peace.Send();
                             if (k.is_player)
                             {
