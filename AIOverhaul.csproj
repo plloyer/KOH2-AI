@@ -68,10 +68,8 @@
         <Compile Include="NewSource\Constants\SkillNames.cs" />
         <Compile Include="NewSource\Constants\TraditionNames.cs" />
         <Compile Include="NewSource\Helpers\CsvHelper.cs" />
+        <Compile Include="NewSource\Helpers\KingdomHelper.cs" />
         <Compile Include="NewSource\Helpers\ModLog.cs" />
-        <Compile Include="NewSource\Helpers\ModLog.cs" />
-    <Compile Include="NewSource\Helpers\KingdomHelper.cs" />
-    <Compile Include="NewSource\Helpers\CsvHelper.cs" />
         <Compile Include="NewSource\Helpers\OfferHelper.cs" />
         <Compile Include="NewSource\Log\EnhancedPerformanceLogger.cs" />
         <Compile Include="NewSource\Log\KingdomBaseline.cs" />
