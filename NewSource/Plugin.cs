@@ -100,6 +100,38 @@ namespace AIOverhaul
             Instance?.Log($"{LogPrefix}[{category}]{kingdomTag}{levelTag}{message}");
         }
 
+        /// <summary>
+        /// Log an error message
+        /// </summary>
+        public static void LogError(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null)
+        {
+            LogMod(message, category, kingdom, LogLevel.Error);
+        }
+
+        /// <summary>
+        /// Log a warning message
+        /// </summary>
+        public static void LogWarning(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null)
+        {
+            LogMod(message, category, kingdom, LogLevel.Warning);
+        }
+
+        /// <summary>
+        /// Log a standard informational message
+        /// </summary>
+        public static void LogInfo(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null)
+        {
+            LogMod(message, category, kingdom, LogLevel.Log);
+        }
+
+        /// <summary>
+        /// Log a diagnostic message (only shown for England)
+        /// </summary>
+        public static void LogDiagnostic(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null)
+        {
+            LogMod(message, category, kingdom, LogLevel.Diagnostic);
+        }
+
         // Update() method removed - F9 detection now handled in GameUpdatePatch
 
         public static bool IsEnhancedAI(Logic.Kingdom k)

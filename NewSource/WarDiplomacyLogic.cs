@@ -165,21 +165,21 @@ namespace AIOverhaul
         {
             if (k == null) return false;
 
-            AIOverhaulPlugin.LogMod($"WantsDiplomat() called - starting diplomat check", LogCategory.Diplomacy, k, LogLevel.Diagnostic);
+            AIOverhaulPlugin.LogDiagnostic($"WantsDiplomat() called - starting diplomat check", LogCategory.Diplomacy, k);
 
             // EARLY GAME PREVENTION: Must have baseline economy established first
             // 1. Must have 2 merchants (baseline commercial capacity)
             int merchants = KingdomHelper.CountMerchants(k);
             if (merchants < GameBalance.RequiredMerchantCount)
             {
-                AIOverhaulPlugin.LogMod($"BLOCKING diplomat: need {GameBalance.RequiredMerchantCount} merchants first (have {merchants})", LogCategory.Diplomacy, k, LogLevel.Diagnostic);
+                AIOverhaulPlugin.LogDiagnostic($"BLOCKING diplomat: need {GameBalance.RequiredMerchantCount} merchants first (have {merchants})", LogCategory.Diplomacy, k);
                 return false;
             }
 
             // 2. Must have at least 2 armies ready (military foundation)
             if (!KingdomHelper.HasTwoReadyArmies(k))
             {
-                AIOverhaulPlugin.LogMod($"BLOCKING diplomat: need 2 ready armies first", LogCategory.Diplomacy, k, LogLevel.Diagnostic);
+                AIOverhaulPlugin.LogDiagnostic($"BLOCKING diplomat: need 2 ready armies first", LogCategory.Diplomacy, k);
                 return false;
             }
 
@@ -189,7 +189,7 @@ namespace AIOverhaul
             // Need solid income to afford a diplomat
             if (goldIncome < GameBalance.MinGoldIncomeForDiplomats)
             {
-                AIOverhaulPlugin.LogMod($"BLOCKING diplomat: goldIncome too low ({goldIncome} < {GameBalance.MinGoldIncomeForDiplomats})", LogCategory.Diplomacy, k, LogLevel.Diagnostic);
+                AIOverhaulPlugin.LogDiagnostic($"BLOCKING diplomat: goldIncome too low ({goldIncome} < {GameBalance.MinGoldIncomeForDiplomats})", LogCategory.Diplomacy, k);
                 return false;
             }
 
@@ -217,16 +217,16 @@ namespace AIOverhaul
                 }
             }
 
-            AIOverhaulPlugin.LogMod($"Diplomat check: goldIncome={goldIncome}, ownPower={ownPower}, strongerThreats={strongerThreats}", LogCategory.Diplomacy, k, LogLevel.Diagnostic);
+            AIOverhaulPlugin.LogDiagnostic($"Diplomat check: goldIncome={goldIncome}, ownPower={ownPower}, strongerThreats={strongerThreats}", LogCategory.Diplomacy, k);
 
             // Hire diplomat if we have enough stronger neighbors (need alliances/NAPs to secure flanks)
             if (strongerThreats >= GameBalance.MinStrongerThreatsForDiplomat)
             {
-                AIOverhaulPlugin.LogMod($"ALLOWING diplomat: {strongerThreats} stronger neighbors threatening us", LogCategory.Diplomacy, k, LogLevel.Diagnostic);
+                AIOverhaulPlugin.LogDiagnostic($"ALLOWING diplomat: {strongerThreats} stronger neighbors threatening us", LogCategory.Diplomacy, k);
                 return true;
             }
 
-            AIOverhaulPlugin.LogMod($"BLOCKING diplomat: only {strongerThreats} stronger threats (need {GameBalance.MinStrongerThreatsForDiplomat}+)", LogCategory.Diplomacy, k, LogLevel.Diagnostic);
+            AIOverhaulPlugin.LogDiagnostic($"BLOCKING diplomat: only {strongerThreats} stronger threats (need {GameBalance.MinStrongerThreatsForDiplomat}+)", LogCategory.Diplomacy, k);
             return false;
         }
 

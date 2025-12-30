@@ -340,7 +340,7 @@ namespace AIOverhaul
                             option.eval *= boost;
                             Logic.Castle.build_options[i] = option;
 
-                            AIOverhaulPlugin.LogMod($"BOOSTING first Barracks in {__instance.name} (Slots: {slots}, Boost: {boost:F1}x)", LogCategory.Military, __instance.GetKingdom(), LogLevel.Diagnostic);
+                            AIOverhaulPlugin.LogDiagnostic($"BOOSTING first Barracks in {__instance.name} (Slots: {slots}, Boost: {boost:F1}x)", LogCategory.Military, __instance.GetKingdom());
                         }
                         // else: no boost but still allow (fallback if no Castle district exists)
                     }
@@ -352,7 +352,7 @@ namespace AIOverhaul
                             // BLOCK second+ barracks if no Castle district
                             Logic.Castle.build_options.RemoveAt(i);
 
-                            AIOverhaulPlugin.LogMod($"BLOCKING second Barracks in {__instance.name} - requires Castle district", LogCategory.Military, __instance.GetKingdom(), LogLevel.Diagnostic);
+                            AIOverhaulPlugin.LogDiagnostic($"BLOCKING second Barracks in {__instance.name} - requires Castle district", LogCategory.Military, __instance.GetKingdom());
                         }
                     }
                 }
@@ -428,7 +428,7 @@ namespace AIOverhaul
                 // block ALL hiring until Swordsmith is built
                 if (!hasSwordsmith && rangedCount >= GameBalance.EarlyGameRangedCount && meleeCount < GameBalance.EarlyGameMeleeCount)
                 {
-                    AIOverhaulPlugin.LogMod($"BLOCKING all unit hiring: ranged={rangedCount}, melee={meleeCount}, need Swordsmith first!", LogCategory.Military, kingdom, LogLevel.Diagnostic);
+                    AIOverhaulPlugin.LogDiagnostic($"BLOCKING all unit hiring: ranged={rangedCount}, melee={meleeCount}, need Swordsmith first!", LogCategory.Military, kingdom);
                     __result *= GameBalance.StrictBlockMultiplier;
                     return;
                 }
