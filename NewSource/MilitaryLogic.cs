@@ -72,6 +72,7 @@ namespace AIOverhaul
         }
     }
 
+    // "ThinkFight" controls whether an army should engage in battle or retreat.
     [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkFight")]
     public class BattleEngagementPatch
     {
@@ -166,6 +167,7 @@ namespace AIOverhaul
         }
     }
 
+    // "ThinkArmy" handles general army tick logic including movement and actions.
     [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkArmy")]
     public class IdleArmyPatch
     {
@@ -221,6 +223,7 @@ namespace AIOverhaul
         }
     }
 
+    // "EvalHireUnits" determines if militia/peasants should be raised in a castle.
     [HarmonyPatch(typeof(Logic.Castle), "EvalHireUnits")]
     public class PeasantRecruitmentBlockPatch
     {
@@ -236,6 +239,7 @@ namespace AIOverhaul
     // Prioritize Swordsmith upgrade before Fletcher in barracks
     // Swordsmith = melee units (swordsmen), Fletcher = ranged units (archers)
     // We need melee first for balanced armies (4 melee + 4 ranged)
+    // "AddBuildOptions" generates the list of available buildings and upgrades for a castle.
     [HarmonyPatch(typeof(Logic.Castle), "AddBuildOptions", new Type[] { typeof(bool), typeof(Logic.Resource) })]
     public class SwordsmithPriorityPatch
     {
@@ -284,6 +288,7 @@ namespace AIOverhaul
     }
 
     // Prioritize first Barracks placement in provinces with most military districts
+    // "AddBuildOptions" generates the list of available buildings and upgrades for a castle.
     [HarmonyPatch(typeof(Logic.Castle), "AddBuildOptions", new Type[] { typeof(bool), typeof(Logic.Resource) })]
     public class BarracksPlacementPatch
     {
@@ -363,6 +368,7 @@ namespace AIOverhaul
 
     // Army composition: Prefer 3-4 ranged for every 4-5 melee
     // First two armies: 4 archers, 4 swordsmen
+    // "EvalHireUnit" evaluates the desirability of hiring a specific unit type for an army.
     [HarmonyPatch(typeof(Logic.KingdomAI), "EvalHireUnit")]
     public class ArmyCompositionPatch
     {
@@ -486,6 +492,7 @@ namespace AIOverhaul
         }
     }
     // Prioritize fortification upgrades when first two armies are established
+    // "ConsiderUpgradeFortifications" decides if castle walls and defenses should be upgraded.
     [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderUpgradeFortifications")]
     public class FortificationPriorityPatch
     {
@@ -542,6 +549,7 @@ namespace AIOverhaul
         }
     }
 
+    // "ThinkArmy" handles general army tick logic including movement and actions.
     [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkArmy")]
     public class HealingLogicPatch
     {
@@ -604,6 +612,7 @@ namespace AIOverhaul
         }
     }
 
+    // "ThinkAssaultSiege" decides whether a besieging army should launch an assault on the castle.
     [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkAssaultSiege")]
     public class AssaultLogicPatch
     {

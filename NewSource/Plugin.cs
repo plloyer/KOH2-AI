@@ -185,6 +185,7 @@ namespace AIOverhaul
     // EnhancedKingdomIds cleanup is handled on new game initialization.
 
     // Mortal Enemy System: Detect when someone declares war on an Enhanced AI kingdom
+    // "Logic.War" constructor is called when a new war is declared between two kingdoms.
     [HarmonyPatch(typeof(Logic.War), MethodType.Constructor, new System.Type[] {
         typeof(Logic.Kingdom),
         typeof(Logic.Kingdom),
@@ -232,6 +233,7 @@ namespace AIOverhaul
     // --- Spectator Mode Patches ---
 
     // Hook into Logic.Game.Update() to detect F9 key press
+    // "Update" is the main game loop update function, called every frame.
     [HarmonyPatch(typeof(Logic.Game), "Update")]
     public class GameUpdatePatch
     {
@@ -269,6 +271,7 @@ namespace AIOverhaul
         }
     }
 
+    // "Enabled" is a property getter determining if the AI should be active for a specific kingdom.
     [HarmonyPatch(typeof(Logic.KingdomAI), "Enabled")]
     public class ForceAIEnabledPatch
     {

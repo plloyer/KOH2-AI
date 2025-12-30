@@ -5,6 +5,7 @@ using AIOverhaul.Helpers;
 
 namespace AIOverhaul
 {
+    // "Eval" (GovernOption) scores how suitable a specific character is for governing a specific town.
     [HarmonyPatch(typeof(Logic.KingdomAI.GovernOption), "Eval")]
     public class EarlyGameGovernorPatch
     {

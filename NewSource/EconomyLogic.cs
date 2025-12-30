@@ -11,6 +11,7 @@ namespace AIOverhaul
 {
     // Prevent building churches in settlements without religion districts
     // Prioritize provinces with the most religion district slots
+    // "AddBuildOptions" generates the list of available buildings and upgrades for a castle.
     [HarmonyPatch(typeof(Castle), "AddBuildOptions", new Type[] { typeof(bool), typeof(Resource) })]
     public class ReligiousBuildingPatch
     {
@@ -104,6 +105,7 @@ namespace AIOverhaul
     // All character hiring goes through ConsiderExpense(KingdomAI.Expense)
     // See CharacterHiringControlPatch below
 
+    // "ConsiderExpense" evaluates a specific expense (hiring, building, bribing) to decide if the AI should pay for it.
     [HarmonyPatch(typeof(KingdomAI), "ConsiderExpense", new Type[] { typeof(KingdomAI.Expense) })]
     public class CharacterHiringControlPatch
     {
@@ -257,6 +259,7 @@ namespace AIOverhaul
         }
     }
 
+    // "AddExpense" adds a potential expense option to the AI's consideration list.
     [HarmonyPatch(typeof(KingdomAI), "AddExpense", new Type[] { typeof(WeightedRandom<KingdomAI.Expense>), typeof(KingdomAI.Expense) })]
     public class TradeActionPriorityPatch
     {
@@ -273,6 +276,7 @@ namespace AIOverhaul
         }
     }
 
+    // "EvalBuild" evaluates the priority/desirability of constructing a specific building definition.
     [HarmonyPatch(typeof(Castle), "EvalBuild")]
     public class BuildingPrioritizationPatch
     {
@@ -286,6 +290,7 @@ namespace AIOverhaul
         }
     }
 
+    // "Eval" (GovernOption) scores how suitable a specific character is for governing a specific town.
     [HarmonyPatch(typeof(KingdomAI.GovernOption), "Eval")]
     public class KnightAssignmentPatch
     {
@@ -304,6 +309,7 @@ namespace AIOverhaul
         }
     }
 
+    // "ConsiderIncreaseCrownAuthority" decides if the kingdom should spend resources to increase crown authority.
     [HarmonyPatch(typeof(KingdomAI), "ConsiderIncreaseCrownAuthority")]
     public static class SpendingPriorityPatch
     {
@@ -356,6 +362,7 @@ namespace AIOverhaul
         }
     }
 
+    // "ChooseNewSkill" picks a new skill for a character when they gain a level or slot.
     [HarmonyPatch(typeof(Logic.Character), "ChooseNewSkill")]
     public static class ChooseNewSkillPatch
     {
@@ -376,6 +383,7 @@ namespace AIOverhaul
         }
     }
 
+    // "ThinkUpgradeSkill" decides whether to upgrade an existing skill to the next rank.
     [HarmonyPatch(typeof(Logic.Character), "ThinkUpgradeSkill")]
     public static class ThinkUpgradeSkillPatch
     {

@@ -577,6 +577,7 @@ namespace AIOverhaul
         }
     }
 
+    // "ThinkDeclareWar" evaluates kingdom relations and power to decide if war should be declared.
     [HarmonyPatch(typeof(KingdomAI), "ThinkDeclareWar")]
     public class WarDeclarationPatch
     {
@@ -740,6 +741,7 @@ namespace AIOverhaul
         }
     }
 
+    // "ThinkDiplomacy" handles diplomatic actions like proposing alliances, pacts, or peace treaties.
     [HarmonyPatch(typeof(KingdomAI), "ThinkDiplomacy")]
     public class SurvivalDiplomacyPatch
     {
