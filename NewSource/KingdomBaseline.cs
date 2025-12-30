@@ -12,7 +12,7 @@ namespace AIOverhaul
         /// <summary>
         /// Escapes a string for CSV output by wrapping in quotes and escaping internal quotes
         /// </summary>
-        private static string EscapeCsv(string value)
+        static string EscapeCsv(string value)
         {
             if (string.IsNullOrEmpty(value)) return "";
             if (value.Contains(",") || value.Contains("\"") || value.Contains("\n"))
@@ -87,7 +87,7 @@ namespace AIOverhaul
             SurvivalYears = currentGameYear - GameYear;
         }
 
-        private static float CalculateNeighborAvgStrength(Logic.Kingdom k)
+        static float CalculateNeighborAvgStrength(Logic.Kingdom k)
         {
             if (k?.neighbors == null || k.neighbors.Count == 0) return 0f;
 
@@ -106,7 +106,7 @@ namespace AIOverhaul
             return count > 0 ? totalStrength / count : 0f;
         }
 
-        private static bool CheckIfIsland(Logic.Kingdom k)
+        static bool CheckIfIsland(Logic.Kingdom k)
         {
             if (k?.realms == null) return false;
 

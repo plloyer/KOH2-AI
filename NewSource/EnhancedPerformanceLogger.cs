@@ -17,18 +17,18 @@ namespace AIOverhaul
     /// </summary>
     public static class EnhancedPerformanceLogger
     {
-        private static string PerformanceLogPath = IOPath.Combine(Paths.ConfigPath, "AI_Performance_Enhanced.csv");
-        private static string BaselineLogPath = IOPath.Combine(Paths.ConfigPath, "AI_Baseline_Initial.csv");
-        private static string AggregateLogPath = IOPath.Combine(Paths.ConfigPath, "AI_Aggregate_Stats.csv");
+        static string PerformanceLogPath = IOPath.Combine(Paths.ConfigPath, "AI_Performance_Enhanced.csv");
+        static string BaselineLogPath = IOPath.Combine(Paths.ConfigPath, "AI_Baseline_Initial.csv");
+        static string AggregateLogPath = IOPath.Combine(Paths.ConfigPath, "AI_Aggregate_Stats.csv");
 
-        private static Dictionary<int, KingdomBaseline> kingdomBaselines = new Dictionary<int, KingdomBaseline>();
-        private static int logCounter = 0;
-        private static readonly int AGGREGATE_LOG_INTERVAL = 50; // Log aggregate stats every 50 cycles
+        static Dictionary<int, KingdomBaseline> kingdomBaselines = new Dictionary<int, KingdomBaseline>();
+        static int logCounter = 0;
+        static readonly int AGGREGATE_LOG_INTERVAL = 50; // Log aggregate stats every 50 cycles
 
         /// <summary>
         /// Escapes a string for CSV output by wrapping in quotes and escaping internal quotes
         /// </summary>
-        private static string EscapeCsv(string value)
+        static string EscapeCsv(string value)
         {
             if (string.IsNullOrEmpty(value)) return "";
             if (value.Contains(",") || value.Contains("\"") || value.Contains("\n"))
@@ -43,7 +43,7 @@ namespace AIOverhaul
             InitializeLogFiles();
         }
 
-        private static void InitializeLogFiles()
+        static void InitializeLogFiles()
         {
             try
             {
@@ -247,7 +247,7 @@ namespace AIOverhaul
             }
         }
 
-        private static void LogAggregateStats(Logic.Game game)
+        static void LogAggregateStats(Logic.Game game)
         {
             if (game == null || game.kingdoms == null) return;
 

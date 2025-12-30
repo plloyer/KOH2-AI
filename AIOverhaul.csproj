@@ -60,18 +60,18 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="NewSource\BattleTacticNames.cs" />
-        <Compile Include="NewSource\BuildingNames.cs" />
-        <Compile Include="NewSource\CharacterClassNames.cs" />
-        <Compile Include="NewSource\Constants.cs" />
+        <Compile Include="NewSource\Constants\BattleTacticNames.cs" />
+        <Compile Include="NewSource\Constants\BuildingNames.cs" />
+        <Compile Include="NewSource\Constants\CharacterClassNames.cs" />
+        <Compile Include="NewSource\Constants\Constants.cs" />
+        <Compile Include="NewSource\Constants\SkillNames.cs" />
+        <Compile Include="NewSource\Constants\TraditionNames.cs" />
         <Compile Include="NewSource\EconomyLogic.cs" />
         <Compile Include="NewSource\EnhancedPerformanceLogger.cs" />
         <Compile Include="NewSource\KingdomBaseline.cs" />
         <Compile Include="NewSource\MilitaryLogic.cs" />
         <Compile Include="NewSource\Plugin.cs" />
         <Compile Include="NewSource\RoyalFamilyLogic.cs" />
-        <Compile Include="NewSource\SkillNames.cs" />
-        <Compile Include="NewSource\TraditionNames.cs" />
         <Compile Include="NewSource\TraverseAPI.cs" />
         <Compile Include="NewSource\WarDiplomacyLogic.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>

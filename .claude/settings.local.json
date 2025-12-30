@@ -12,7 +12,8 @@
       "Bash(grep:*)",
       "Bash(tail:*)",
       "Bash(wc:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(git mv:*)"
     ]
   }
 }

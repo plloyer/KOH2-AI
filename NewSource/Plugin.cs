@@ -17,9 +17,9 @@ namespace AIOverhaul
         // Key = defender kingdom ID, Value = attacker kingdom ID (mortal enemy)
         public static Dictionary<int, int> MortalEnemies = new Dictionary<int, int>();
 
-        private static Logic.Game current_game;
+        static Logic.Game current_game;
 
-        private void Awake()
+        void Awake()
         {
             Instance = this;
             var harmony = new Harmony("com.mod.aioverhaul");
@@ -30,8 +30,8 @@ namespace AIOverhaul
             
             Log("AI Overhaul Plugin Loaded with dynamic selection logic.");
         }
-        
-        private void OnUnityLogMessage(string condition, string stackTrace, LogType type)
+
+        void OnUnityLogMessage(string condition, string stackTrace, LogType type)
         {
             // Avoid infinite loops - ignore our own logs
             if (condition.StartsWith(LogPrefix) || condition.StartsWith("[BepInEx]")) return;
