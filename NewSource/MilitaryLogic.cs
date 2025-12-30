@@ -323,28 +323,37 @@ namespace AIOverhaul
                 var option = Logic.Castle.build_options[i];
                 if (option.def != null && option.def.id == BuildingNames.Barracks)
                 {
-                    if (!hasCastleDistrict)
+                    if (!kingdomHasBarracks)
                     {
-                        // BLOCK barracks if no Castle district
-                        Logic.Castle.build_options.RemoveAt(i);
-
-                        if (__instance.GetKingdom()?.Name == "England")
+                        // FIRST barracks - allow anywhere, but boost Castle districts
+                        if (hasCastleDistrict)
                         {
-                            AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING Barracks in {__instance.name} - no Castle district", LogCategory.Military);
+                            // Boost based on Castle district slots
+                            int slots = castleDistrict.buildings?.Count ?? 0;
+                            float boost = 1.0f + (slots * GameBalance.BarracksSlotBoostPerSlot);
+
+                            option.eval *= boost;
+                            Logic.Castle.build_options[i] = option;
+
+                            if (__instance.GetKingdom()?.Name == "England")
+                            {
+                                AIOverhaulPlugin.LogMod($"[ENGLAND] BOOSTING first Barracks in {__instance.name} (Slots: {slots}, Boost: {boost:F1}x)", LogCategory.Military);
+                            }
                         }
+                        // else: no boost but still allow (fallback if no Castle district exists)
                     }
-                    else if (!kingdomHasBarracks)
+                    else
                     {
-                        // FIRST barracks - boost based on Castle district slots
-                        int slots = castleDistrict.buildings?.Count ?? 0;
-                        float boost = 1.0f + (slots * GameBalance.BarracksSlotBoostPerSlot);
-
-                        option.eval *= boost;
-                        Logic.Castle.build_options[i] = option;
-
-                        if (__instance.GetKingdom()?.Name == "England")
+                        // Kingdom already has barracks - ONLY allow in Castle districts
+                        if (!hasCastleDistrict)
                         {
-                            AIOverhaulPlugin.LogMod($"[ENGLAND] BOOSTING Barracks in {__instance.name} (Slots: {slots}, Boost: {boost:F1}x)", LogCategory.Military);
+                            // BLOCK second+ barracks if no Castle district
+                            Logic.Castle.build_options.RemoveAt(i);
+
+                            if (__instance.GetKingdom()?.Name == "England")
+                            {
+                                AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING second Barracks in {__instance.name} - requires Castle district", LogCategory.Military);
+                            }
                         }
                     }
                 }
