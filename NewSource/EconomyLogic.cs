@@ -126,9 +126,21 @@ namespace AIOverhaul
                     // Vanilla uses Ceiling(Max/10), which allows hiring when close (e.g. 24 commerce -> 3 merchants).
                     // We strictly enforce 10 commerce per merchant (e.g. 24 commerce -> max 2 merchants).
                     float maxCommerce = TraverseAPI.GetMaxCommerce(__instance.kingdom);
-                    if ((merchants + 1) * GameBalance.CommercePerMerchant > maxCommerce)
+                    int requiredCommerce = (merchants + 1) * GameBalance.CommercePerMerchant;
+
+                    if (__instance.kingdom.Name == "England")
                     {
-                         return false; // Block hire
+                        AIOverhaulPlugin.LogMod($"[ENGLAND] Merchant hiring check: merchants={merchants}, maxCommerce={maxCommerce}, requiredCommerce={requiredCommerce}");
+                    }
+
+                    if (requiredCommerce > maxCommerce)
+                    {
+                        if (__instance.kingdom.Name == "England")
+                        {
+                            AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING merchant hire: need {requiredCommerce} but only have {maxCommerce} max commerce");
+                        }
+                        __result = false;
+                        return false; // Block hire
                     }
                 }
             }
@@ -377,14 +389,34 @@ namespace AIOverhaul
                     if (cDef.id == CharacterClassNames.Diplomat)
                     {
                         float goldIncome = __instance.kingdom.income.Get(ResourceType.Gold);
-                        if (goldIncome <= 150f)
+
+                        if (__instance.kingdom.Name == "England")
                         {
-                            return false; 
+                            AIOverhaulPlugin.LogMod($"[ENGLAND] ConsiderExpense DIPLOMAT: goldIncome={goldIncome}");
                         }
 
-                        if (!WarLogicHelper.WantsDiplomat(__instance.kingdom))
+                        if (goldIncome <= 150f)
                         {
+                            if (__instance.kingdom.Name == "England")
+                            {
+                                AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: goldIncome too low ({goldIncome} <= 150)");
+                            }
                             return false;
+                        }
+
+                        bool wants = WarLogicHelper.WantsDiplomat(__instance.kingdom);
+                        if (!wants)
+                        {
+                            if (__instance.kingdom.Name == "England")
+                            {
+                                AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: WantsDiplomat returned false");
+                            }
+                            return false;
+                        }
+
+                        if (__instance.kingdom.Name == "England")
+                        {
+                            AIOverhaulPlugin.LogMod($"[ENGLAND] ALLOWING diplomat hire to proceed");
                         }
                     }
                     

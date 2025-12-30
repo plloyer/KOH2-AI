@@ -165,28 +165,30 @@ namespace AIOverhaul
         {
             if (k == null) return false;
 
-            // PREVENT EARLY HIRING: We want a solid economy before luxury characters like diplomats
-            int merchants = KingdomHelper.CountMerchants(k);
-
-            // Allow diplomats if at war regardless of other conditions (defensive need)
+            // VERY RESTRICTIVE: Only hire diplomats when AT WAR
+            // Diplomats are expensive luxury characters that should only be hired in critical need
             bool atWar = k.wars != null && k.wars.Count > 0;
+
+            if (k.Name == "England")
+            {
+                AIOverhaulPlugin.LogMod($"[ENGLAND] Diplomat hiring check: atWar={atWar}, wars={k.wars?.Count ?? 0}");
+            }
 
             if (!atWar)
             {
-                // Must have economy established (at least 2 merchants)
-                if (merchants < GameBalance.RequiredMerchantCount) return false;
+                if (k.Name == "England")
+                {
+                    AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat hire: not at war");
+                }
+                return false;
             }
 
-            // 1. Defensive Intent: Someone is threatening us (or we are already at war)
-            if (atWar || HasHighThreat(k)) return true;
-
-            // 2. Offensive Intent: We are planning to attack someone and want an invasion plan
-            if (WantsInvasionPlan(k)) return true;
-
-            // 3. Survival Intent: We are losing a war and need peace
-            if (atWar && GetAverageWarScore(k) < GameBalance.WarScoreSurvival) return true;
-
-            return false;
+            // Only hire if we're actually at war
+            if (k.Name == "England")
+            {
+                AIOverhaulPlugin.LogMod($"[ENGLAND] ALLOWING diplomat hire: at war");
+            }
+            return true;
         }
 
         public static bool WantsSpy(Logic.Kingdom k)

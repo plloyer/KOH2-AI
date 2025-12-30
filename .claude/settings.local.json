@@ -14,7 +14,8 @@
       "Bash(wc:*)",
       "Bash(cd:*)",
       "Bash(git mv:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(start Sovereign.exe)"
     ]
   }
 }
