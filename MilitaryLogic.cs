@@ -1,5 +1,6 @@
 using HarmonyLib;
 using UnityEngine;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -443,6 +444,98 @@ namespace AIOverhaul
                    id.Contains("militia") && !id.Contains("archer");
         }
     }
+    // Prioritize fortification upgrades when first two armies are established
+    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderUpgradeFortifications")]
+    public class FortificationPriorityPatch
+    {
+        static bool Prefix(Logic.KingdomAI __instance, Logic.Castle castle, ref bool __result)
+        {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+
+            // Check if first two armies are ready
+            bool firstTwoArmiesReady = AreFirstTwoArmiesReady(__instance.kingdom);
+
+            // Only boost priority for level 0 -> 1 upgrade when first two armies are ready
+            if (!firstTwoArmiesReady || castle?.fortifications == null || castle.fortifications.level != 0)
+            {
+                return true; // Run original method
+            }
+
+            // Reimplementation with High priority for first fortification level
+            Logic.Realm realm = castle.GetRealm();
+            if (realm == null)
+            {
+                __result = false;
+                return false;
+            }
+
+            Logic.KingdomAI.Threat threat = realm.threat;
+            if (threat.level == Logic.KingdomAI.Threat.Level.Safe || threat.level >= Logic.KingdomAI.Threat.Level.Invaded)
+            {
+                __result = false;
+                return false;
+            }
+
+            // Access categories[1] for Military weight check
+            var categories = Traverse.Create(__instance).Field("categories").GetValue<Logic.KingdomAI.CategoryData[]>();
+            if (categories == null || categories.Length < 2 || categories[1].weight <= 0f)
+            {
+                __result = false;
+                return false;
+            }
+
+            if (!castle.CanUpgradeFortification() || !castle.CanAffordFortificationsUpgrade())
+            {
+                __result = false;
+                return false;
+            }
+
+            // Boost to High priority when first two armies are ready
+            Logic.KingdomAI.Expense.Priority priority = Logic.KingdomAI.Expense.Priority.High;
+            AIOverhaulPlugin.LogMod($" First two armies ready - upgrading {castle.name} fortifications to level 1 with HIGH priority");
+
+            // Call ConsiderExpense with High priority
+            Traverse.Create(__instance).Method("ConsiderExpense",
+                new object[] {
+                    Logic.KingdomAI.Expense.Type.UpgradeFortifications,
+                    null,
+                    castle,
+                    Logic.KingdomAI.Expense.Category.Military,
+                    priority,
+                    null
+                }).GetValue();
+
+            __result = true;
+            return false; // Skip original method
+        }
+
+        static bool AreFirstTwoArmiesReady(Logic.Kingdom kingdom)
+        {
+            if (kingdom?.armies == null || kingdom.armies.Count < 2) return false;
+
+            int readyArmies = 0;
+            for (int i = 0; i < Math.Min(2, kingdom.armies.Count); i++)
+            {
+                var army = kingdom.armies[i];
+                if (army == null || army.units == null) continue;
+
+                // Check if army is full (8 units)
+                bool isFull = army.units.Count >= 8;
+
+                // Check if army has at least 250 strength
+                int strength = army.EvalStrength();
+                bool hasStrength = strength >= 250;
+
+                if (isFull && hasStrength)
+                {
+                    readyArmies++;
+                }
+            }
+
+            return readyArmies >= 2;
+        }
+    }
+
     [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkArmy")]
     public class HealingLogicPatch
     {
