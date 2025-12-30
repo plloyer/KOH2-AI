@@ -70,9 +70,9 @@
         <Compile Include="NewSource\Helpers\CsvHelper.cs" />
         <Compile Include="NewSource\Helpers\KingdomHelper.cs" />
         <Compile Include="NewSource\Helpers\OfferHelper.cs" />
+        <Compile Include="NewSource\Log\EnhancedPerformanceLogger.cs" />
+        <Compile Include="NewSource\Log\KingdomBaseline.cs" />
         <Compile Include="NewSource\EconomyLogic.cs" />
-        <Compile Include="NewSource\EnhancedPerformanceLogger.cs" />
-        <Compile Include="NewSource\KingdomBaseline.cs" />
         <Compile Include="NewSource\MilitaryLogic.cs" />
         <Compile Include="NewSource\Plugin.cs" />
         <Compile Include="NewSource\RoyalFamilyLogic.cs" />

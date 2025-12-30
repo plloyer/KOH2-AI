@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Logic;
 using AIOverhaul.Helpers;
 using AIOverhaul.Constants;
@@ -38,7 +37,7 @@ namespace AIOverhaul
         public DateTime? DefeatedAt { get; set; }
         public float? SurvivalYears { get; set; }
 
-        public static KingdomBaseline Create(Logic.Kingdom k, Logic.Game game)
+        public static KingdomBaseline Create(Logic.Kingdom k, Game game)
         {
             if (k == null) return null;
 
@@ -112,7 +111,7 @@ namespace AIOverhaul
         /// Calculate game year from session time (hours / 24 / 365 = years)
         /// Assumes 1 game year = 365 game days
         /// </summary>
-        public static float GetGameYear(Logic.Game game)
+        public static float GetGameYear(Game game)
         {
             if (game == null) return 0f;
             float hours = game.session_time.hours;

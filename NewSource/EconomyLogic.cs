@@ -4,7 +4,6 @@ using Logic;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using AIOverhaul;
 using AIOverhaul.Constants;
 using AIOverhaul.Helpers;
 
@@ -12,10 +11,10 @@ namespace AIOverhaul
 {
     // Prevent building churches in settlements without religion districts
     // Prioritize provinces with the most religion district slots
-    [HarmonyPatch(typeof(Logic.Castle), "AddBuildOptions", new Type[] { typeof(bool), typeof(Logic.Resource) })]
+    [HarmonyPatch(typeof(Castle), "AddBuildOptions", new Type[] { typeof(bool), typeof(Resource) })]
     public class ReligiousBuildingPatch
     {
-        static void Postfix(Logic.Castle __instance)
+        static void Postfix(Castle __instance)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
 
@@ -27,9 +26,9 @@ namespace AIOverhaul
             bool hasReligionDistrict = __instance.HasDistrict(religionDistrict);
 
             // Find all religious buildings in build options
-            for (int i = Logic.Castle.build_options.Count - 1; i >= 0; i--)
+            for (int i = Castle.build_options.Count - 1; i >= 0; i--)
             {
-                var option = Logic.Castle.build_options[i];
+                var option = Castle.build_options[i];
                 if (option.def == null) continue;
 
                 bool isReligiousBuilding = IsReligiousBuilding(option.def.id);
@@ -39,7 +38,7 @@ namespace AIOverhaul
                     if (!hasReligionDistrict)
                     {
                         // Block building if no religion district
-                        Logic.Castle.build_options.RemoveAt(i);
+                        Castle.build_options.RemoveAt(i);
                         AIOverhaulPlugin.LogMod($" Blocking {option.def.id} in {__instance.name} - no Religion district");
                     }
                     else
@@ -49,15 +48,15 @@ namespace AIOverhaul
                         int religionSlots = CountReligionSlots(__instance, religionDistrict);
                         float boost = 1.0f + (religionSlots * GameBalance.ReligionBuildingBoostPerSlot);
                         option.eval *= boost;
-                        Logic.Castle.build_options[i] = option;
+                        Castle.build_options[i] = option;
                     }
                 }
             }
 
             // Do the same for upgrade options
-            for (int i = Logic.Castle.upgrade_options.Count - 1; i >= 0; i--)
+            for (int i = Castle.upgrade_options.Count - 1; i >= 0; i--)
             {
-                var option = Logic.Castle.upgrade_options[i];
+                var option = Castle.upgrade_options[i];
                 if (option.def == null) continue;
 
                 bool isReligiousBuilding = IsReligiousBuilding(option.def.id);
@@ -67,7 +66,7 @@ namespace AIOverhaul
                     if (!hasReligionDistrict)
                     {
                         // Block building if no religion district
-                        Logic.Castle.upgrade_options.RemoveAt(i);
+                        Castle.upgrade_options.RemoveAt(i);
                         AIOverhaulPlugin.LogMod($" Blocking {option.def.id} upgrade in {__instance.name} - no Religion district");
                     }
                     else
@@ -76,7 +75,7 @@ namespace AIOverhaul
                         int religionSlots = CountReligionSlots(__instance, religionDistrict);
                         float boost = 1.0f + (religionSlots * GameBalance.ReligionBuildingBoostPerSlot);
                         option.eval *= boost;
-                        Logic.Castle.upgrade_options[i] = option;
+                        Castle.upgrade_options[i] = option;
                     }
                 }
             }
@@ -94,7 +93,7 @@ namespace AIOverhaul
                    buildingId == BuildingNames.GreatMosque;
         }
 
-        static int CountReligionSlots(Logic.Castle castle, Logic.District.Def religionDistrict)
+        static int CountReligionSlots(Castle castle, Logic.District.Def religionDistrict)
         {
             if (religionDistrict?.buildings == null) return 0;
 
@@ -103,10 +102,10 @@ namespace AIOverhaul
         }
     }
 
-    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderHireMerchant")]
+    [HarmonyPatch(typeof(KingdomAI), "ConsiderHireMerchant")]
     public class MerchantHiringPatch
     {
-        static bool Prefix(Logic.KingdomAI __instance, ref bool __result)
+        static bool Prefix(KingdomAI __instance, ref bool __result)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
             float gold = KingdomHelper.GetGold(__instance.kingdom);
@@ -142,10 +141,10 @@ namespace AIOverhaul
         }
     }
 
-    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderHireCleric")]
+    [HarmonyPatch(typeof(KingdomAI), "ConsiderHireCleric")]
     public class ClericHiringPatch
     {
-        static bool Prefix(Logic.KingdomAI __instance, ref bool __result)
+        static bool Prefix(KingdomAI __instance, ref bool __result)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
@@ -182,15 +181,15 @@ namespace AIOverhaul
         }
     }
 
-    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderExpense", new System.Type[] { typeof(Logic.KingdomAI.Expense) })]
+    [HarmonyPatch(typeof(KingdomAI), "ConsiderExpense", new Type[] { typeof(KingdomAI.Expense) })]
     public class SpyHiringBlockerPatch
     {
-        static bool Prefix(Logic.KingdomAI __instance, Logic.KingdomAI.Expense expense)
+        static bool Prefix(KingdomAI __instance, KingdomAI.Expense expense)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
             // Check if this is a hiring expense for a Spy
-            if (expense.type == Logic.KingdomAI.Expense.Type.HireChacacter) // Note: Game typo 'HireChacacter'
+            if (expense.type == KingdomAI.Expense.Type.HireChacacter) // Note: Game typo 'HireChacacter'
             {
                 if (expense.defParam is Logic.CharacterClass.Def cDef && cDef.name == "Spy")
                 {
@@ -207,13 +206,13 @@ namespace AIOverhaul
         }
     }
 
-    [HarmonyPatch(typeof(Logic.KingdomAI), "AddExpense", new System.Type[] { typeof(WeightedRandom<Logic.KingdomAI.Expense>), typeof(Logic.KingdomAI.Expense) })]
+    [HarmonyPatch(typeof(KingdomAI), "AddExpense", new Type[] { typeof(WeightedRandom<KingdomAI.Expense>), typeof(KingdomAI.Expense) })]
     public class TradeActionPriorityPatch
     {
-        static void Prefix(Logic.KingdomAI __instance, object expenses, Logic.KingdomAI.Expense expense)
+        static void Prefix(KingdomAI __instance, object expenses, KingdomAI.Expense expense)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return;
-            if (expense.category == Logic.KingdomAI.Expense.Category.Diplomacy)
+            if (expense.category == KingdomAI.Expense.Category.Diplomacy)
             {
                 if (expense.defParam is Logic.Action action && action.def.id == "TradeAction")
                 {
@@ -223,10 +222,10 @@ namespace AIOverhaul
         }
     }
 
-    [HarmonyPatch(typeof(Logic.Castle), "EvalBuild")]
+    [HarmonyPatch(typeof(Castle), "EvalBuild")]
     public class BuildingPrioritizationPatch
     {
-        static void Postfix(Logic.Castle __instance, Logic.Building.Def def, Logic.Resource production_weights, ref float __result)
+        static void Postfix(Castle __instance, Logic.Building.Def def, Resource production_weights, ref float __result)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
             if (def.id.Contains(BuildingNames.MarketSquare) || def.id.Contains("Farm") || def.id.Contains(CharacterClassNames.Merchant))
@@ -236,10 +235,10 @@ namespace AIOverhaul
         }
     }
 
-    [HarmonyPatch(typeof(Logic.KingdomAI.GovernOption), "Eval")]
+    [HarmonyPatch(typeof(KingdomAI.GovernOption), "Eval")]
     public class KnightAssignmentPatch
     {
-        static void Postfix(ref Logic.KingdomAI.GovernOption __instance, ref float __result)
+        static void Postfix(ref KingdomAI.GovernOption __instance, ref float __result)
         {
             if (__instance.governor == null || __instance.castle == null) return;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.castle.GetKingdom())) return;
@@ -254,11 +253,11 @@ namespace AIOverhaul
         }
     }
 
-    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderAdoptTradition")]
+    [HarmonyPatch(typeof(KingdomAI), "ConsiderAdoptTradition")]
     public static class ChooseAdoptTraditionPatch
     {
         [HarmonyPrefix]
-        public static bool Prefix(Logic.KingdomAI __instance, ref bool __result)
+        public static bool Prefix(KingdomAI __instance, ref bool __result)
         {
             if (AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom))
             {
@@ -273,7 +272,7 @@ namespace AIOverhaul
                 // TRADITION RUSH LOGIC
                 bool rushingTradition = false;
                 // Use resources.Get(ResourceType.Books) and wars.Count
-                if (__instance.kingdom.traditions.Count == 0 && __instance.kingdom.wars.Count == 0 && __instance.kingdom.resources.Get(Logic.ResourceType.Books) >= 400f)
+                if (__instance.kingdom.traditions.Count == 0 && __instance.kingdom.wars.Count == 0 && __instance.kingdom.resources.Get(ResourceType.Books) >= 400f)
                 {
                     rushingTradition = true;
                 }
@@ -286,15 +285,15 @@ namespace AIOverhaul
                 // If rushing, force pick even if we have to save gold (priority Urgent?)
                 if (rushingTradition && preferredTradition != null)
                 {
-                    Logic.Resource cost = preferredTradition.GetAdoptCost(__instance.kingdom);
+                    Resource cost = preferredTradition.GetAdoptCost(__instance.kingdom);
                     if (__instance.kingdom.resources.CanAfford(cost, 1f))
                     {
                         TraverseAPI.ConsiderExpense(__instance,
-                            Logic.KingdomAI.Expense.Type.AdoptTradition,
+                            KingdomAI.Expense.Type.AdoptTradition,
                             preferredTradition,
                             null,
-                            Logic.KingdomAI.Expense.Category.Economy,
-                            Logic.KingdomAI.Expense.Priority.Urgent,
+                            KingdomAI.Expense.Category.Economy,
+                            KingdomAI.Expense.Priority.Urgent,
                             null);
 
                         __result = true;
@@ -313,11 +312,11 @@ namespace AIOverhaul
                     if (__instance.kingdom.resources.CanAfford(preferredTradition.GetAdoptCost(__instance.kingdom)))
                     {
                         TraverseAPI.ConsiderExpense(__instance,
-                            Logic.KingdomAI.Expense.Type.AdoptTradition,
+                            KingdomAI.Expense.Type.AdoptTradition,
                             preferredTradition,
                             null,
-                            Logic.KingdomAI.Expense.Category.Economy,
-                            Logic.KingdomAI.Expense.Priority.High,
+                            KingdomAI.Expense.Category.Economy,
+                            KingdomAI.Expense.Priority.High,
                             null);
 
                         __result = true;
@@ -330,11 +329,11 @@ namespace AIOverhaul
         }
     }
 
-    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderIncreaseCrownAuthority")]
+    [HarmonyPatch(typeof(KingdomAI), "ConsiderIncreaseCrownAuthority")]
     public static class SpendingPriorityPatch
     {
         [HarmonyPrefix]
-        public static bool Prefix(Logic.KingdomAI __instance, ref bool __result)
+        public static bool Prefix(KingdomAI __instance, ref bool __result)
         {
             if (__instance == null || __instance.kingdom == null) return true;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
@@ -348,8 +347,8 @@ namespace AIOverhaul
             {
                  // If we have books, save gold for tradition.
                  // Correctly access resources
-                 float books = __instance.kingdom.resources.Get(Logic.ResourceType.Books);
-                 float gold = __instance.kingdom.resources.Get(Logic.ResourceType.Gold);
+                 float books = __instance.kingdom.resources.Get(ResourceType.Books);
+                 float gold = __instance.kingdom.resources.Get(ResourceType.Gold);
 
                  if (books >= 350f && gold < 2000f) // Thresholds
                  {
@@ -442,23 +441,23 @@ namespace AIOverhaul
         }
     }
 
-    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderExpense")]
-    [HarmonyPatch(new System.Type[] { typeof(Logic.KingdomAI.Expense.Type), typeof(Logic.BaseObject), typeof(Logic.Object), typeof(Logic.KingdomAI.Expense.Category), typeof(Logic.KingdomAI.Expense.Priority), typeof(List<Logic.Value>) })]
+    [HarmonyPatch(typeof(KingdomAI), "ConsiderExpense")]
+    [HarmonyPatch(new Type[] { typeof(Logic.KingdomAI.Expense.Type), typeof(BaseObject), typeof(Logic.Object), typeof(KingdomAI.Expense.Category), typeof(Logic.KingdomAI.Expense.Priority), typeof(List<Value>) })]
     public static class DiplomatHiringPatch
     {
-        static bool Prefix(Logic.KingdomAI __instance, Logic.BaseObject defParam, Logic.KingdomAI.Expense.Type type)
+        static bool Prefix(KingdomAI __instance, BaseObject defParam, Logic.KingdomAI.Expense.Type type)
         {
             try
             {
                 if (__instance.kingdom == null || __instance.kingdom.is_player || !AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom))
                     return true;
 
-                if (type == Logic.KingdomAI.Expense.Type.HireChacacter && defParam is Logic.CharacterClass.Def cDef)
+                if (type == KingdomAI.Expense.Type.HireChacacter && defParam is Logic.CharacterClass.Def cDef)
                 {
                     if (cDef.id == "Diplomat")
                     {
                         // Check Income > 150
-                        float goldIncome = __instance.kingdom.income.Get(Logic.ResourceType.Gold);
+                        float goldIncome = __instance.kingdom.income.Get(ResourceType.Gold);
                         if (goldIncome <= 150f)
                         {
                             return false; 
@@ -472,7 +471,7 @@ namespace AIOverhaul
                     }
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 AIOverhaulPlugin.LogMod($"Error in DiplomatHiringPatch: {ex}");
             }

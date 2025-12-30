@@ -63,7 +63,7 @@ namespace AIOverhaul
 
                     if (realm.castle != null && k.ai != null)
                     {
-                        total += Logic.KingdomAI.Threat.EvalCastleStrength(realm.castle);
+                        total += KingdomAI.Threat.EvalCastleStrength(realm.castle);
                     }
                 }
             }
@@ -114,10 +114,10 @@ namespace AIOverhaul
             if (k == null || k.ai == null) return false;
 
             // Access threats via reflection (since it's internal/private in KingdomAI)
-            var threatsField = typeof(Logic.KingdomAI).GetField("threats", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+            var threatsField = typeof(KingdomAI).GetField("threats", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
             if (threatsField != null)
             {
-                var threats = threatsField.GetValue(k.ai) as System.Collections.IList;
+                var threats = threatsField.GetValue(k.ai) as IList;
                 if (threats != null)
                 {
                     foreach (var t in threats)
@@ -441,10 +441,10 @@ namespace AIOverhaul
         }
     }
 
-    [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkDeclareWar")]
+    [HarmonyPatch(typeof(KingdomAI), "ThinkDeclareWar")]
     public class WarDeclarationPatch
     {
-        static bool Prefix(Logic.KingdomAI __instance, Logic.Kingdom k, ref bool __result)
+        static bool Prefix(KingdomAI __instance, Logic.Kingdom k, ref bool __result)
         {
             if (k == null || !AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
@@ -537,10 +537,10 @@ namespace AIOverhaul
         }
     }
 
-    [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkDiplomacy")]
+    [HarmonyPatch(typeof(KingdomAI), "ThinkDiplomacy")]
     public class SurvivalDiplomacyPatch
     {
-        static bool Prefix(Logic.KingdomAI __instance, ref IEnumerator __result)
+        static bool Prefix(KingdomAI __instance, ref IEnumerator __result)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
@@ -683,12 +683,12 @@ namespace AIOverhaul
             return true;
         }
 
-        static IEnumerator RunDiplomacyWithTarget(Logic.KingdomAI ai, Logic.Kingdom target)
+        static IEnumerator RunDiplomacyWithTarget(KingdomAI ai, Logic.Kingdom target)
         {
             yield return (object)CoopThread.Call("ThinkProposeOffer", TraverseAPI.ThinkProposeOfferThread(ai, target, "neutral"));
         }
 
-        static IEnumerator RunDefensivePactProposal(Logic.KingdomAI ai, Logic.Kingdom target)
+        static IEnumerator RunDefensivePactProposal(KingdomAI ai, Logic.Kingdom target)
         {
             // Try to propose a defensive pact
             if (OfferHelper.TrySendOffer("OfferJoinInDefensivePact", ai, target))
@@ -699,7 +699,7 @@ namespace AIOverhaul
             yield break;
         }
 
-        static IEnumerator RunTradeAgreementProposal(Logic.KingdomAI ai, Logic.Kingdom target)
+        static IEnumerator RunTradeAgreementProposal(KingdomAI ai, Logic.Kingdom target)
         {
             // Try to propose a Trade Agreement (SignTrade)
             if (OfferHelper.TrySendOffer("SignTrade", ai, target))
@@ -710,7 +710,7 @@ namespace AIOverhaul
             yield break;
         }
 
-        static IEnumerator RunNonAggressionProposal(Logic.KingdomAI ai, Logic.Kingdom target)
+        static IEnumerator RunNonAggressionProposal(KingdomAI ai, Logic.Kingdom target)
         {
             // Offer a FREE non-aggression pact (no gold demanded) to build good relations
             if (OfferHelper.TrySendOffer("SignNonAggression", ai, target))
@@ -722,10 +722,10 @@ namespace AIOverhaul
         }
     }
 
-    [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkWhitePeace")]
+    [HarmonyPatch(typeof(KingdomAI), "ThinkWhitePeace")]
     public class SurvivalPeacePatch
     {
-        static bool Prefix(Logic.KingdomAI __instance, Logic.Kingdom k, ref bool __result)
+        static bool Prefix(KingdomAI __instance, Logic.Kingdom k, ref bool __result)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
             Logic.Kingdom actor = __instance.kingdom;
@@ -756,11 +756,11 @@ namespace AIOverhaul
                 float score = WarLogicHelper.GetAverageWarScore(actor);
                 if (score < GameBalance.WarScoreSurrender || (score < GameBalance.WarScoreDesperateIndependence && SurvivalLogic.IsDesperate(actor)))
                 {
-                    Logic.Offer peace = Logic.Offer.GetCachedOffer("PeaceOfferTribute", (Logic.Object)actor, (Logic.Object)k);
-                    Logic.Offer vassal = Logic.Offer.GetCachedOffer("OfferVassalage", (Logic.Object)actor, (Logic.Object)k);
+                    Offer peace = Offer.GetCachedOffer("PeaceOfferTribute", (Logic.Object)actor, (Logic.Object)k);
+                    Offer vassal = Offer.GetCachedOffer("OfferVassalage", (Logic.Object)actor, (Logic.Object)k);
                     if (peace != null && vassal != null)
                     {
-                        peace.args = new List<Logic.Value> { new Logic.Value(vassal) };
+                        peace.args = new List<Value> { new Value(vassal) };
                         peace.AI = true;
                         if (peace.Validate() == "ok")
                         {
@@ -797,11 +797,11 @@ namespace AIOverhaul
         }
     }
 
-    [HarmonyPatch(typeof(Logic.ProsAndCons), "Eval")]
+    [HarmonyPatch(typeof(ProsAndCons), "Eval")]
     [HarmonyPatch(new System.Type[] { typeof(string) })]
     public static class TradeAcceptancePatch
     {
-        static bool Prefix(Logic.ProsAndCons __instance, string threshold_name, ref float __result)
+        static bool Prefix(ProsAndCons __instance, string threshold_name, ref float __result)
         {
             try
             {
@@ -811,12 +811,12 @@ namespace AIOverhaul
                     {
                         if (__instance.def.id.EndsWith("SignTrade"))
                         {
-                            Logic.Offer offer = __instance.offer;
+                            Offer offer = __instance.offer;
                             if (offer != null && offer.from is Logic.Kingdom sender)
                             {
                                 if (__instance.our_kingdom.IsEnemy(sender)) return true;
 
-                                var expTargetField = typeof(Logic.KingdomAI).GetField("expansionTarget", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+                                var expTargetField = typeof(KingdomAI).GetField("expansionTarget", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
                                 Logic.Kingdom expTarget = null;
                                 if (expTargetField != null)
                                 {

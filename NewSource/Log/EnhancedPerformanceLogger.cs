@@ -74,13 +74,13 @@ namespace AIOverhaul
                     System.IO.File.WriteAllText(AggregateLogPath, header);
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 AIOverhaulPlugin.Instance?.Log($"[AI-Logger] ERROR initializing log files: {ex.Message}");
             }
         }
 
-        public static void RecordBaseline(Logic.Kingdom k, string aiType, Logic.Game game)
+        public static void RecordBaseline(Logic.Kingdom k, string aiType, Game game)
         {
             if (k == null || kingdomBaselines.ContainsKey(k.id)) return;
 
@@ -95,13 +95,13 @@ namespace AIOverhaul
                 string line = baseline.ToCsvLine() + $",{aiType}";
                 System.IO.File.AppendAllText(BaselineLogPath, line + "\n");
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 AIOverhaulPlugin.Instance?.Log($"[AI-Logger] ERROR recording baseline for {k.Name}: {ex.Message}");
             }
         }
 
-        public static void LogState(Logic.Game game)
+        public static void LogState(Game game)
         {
             if (game == null || game.kingdoms == null) return;
 
@@ -184,7 +184,7 @@ namespace AIOverhaul
                 {
                     System.IO.File.AppendAllLines(PerformanceLogPath, lines);
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     AIOverhaulPlugin.Instance?.Log($"[AI-Logger] ERROR writing performance log: {ex.Message}");
                 }
@@ -228,7 +228,7 @@ namespace AIOverhaul
                     {
                         System.IO.File.AppendAllText(PerformanceLogPath, line + "\n");
                     }
-                    catch (System.Exception ex)
+                    catch (Exception ex)
                     {
                         AIOverhaulPlugin.Instance?.Log($"[AI-Logger] ERROR logging defeat for {k.Name}: {ex.Message}");
                     }
@@ -236,7 +236,7 @@ namespace AIOverhaul
             }
         }
 
-        static void LogAggregateStats(Logic.Game game)
+        static void LogAggregateStats(Game game)
         {
             if (game == null || game.kingdoms == null) return;
 
@@ -290,7 +290,7 @@ namespace AIOverhaul
             {
                 System.IO.File.AppendAllText(AggregateLogPath, line + "\n");
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 AIOverhaulPlugin.Instance?.Log($"[AI-Logger] ERROR writing aggregate stats: {ex.Message}");
             }
