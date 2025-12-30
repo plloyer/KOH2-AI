@@ -142,9 +142,21 @@ namespace AIOverhaul
                         __result = false;
                         return false; // Block hire
                     }
+                    else
+                    {
+                        // We have enough commerce - hire the merchant ourselves
+                        if (__instance.kingdom.Name == "England")
+                        {
+                            AIOverhaulPlugin.LogMod($"[ENGLAND] ALLOWING merchant hire: {requiredCommerce} <= {maxCommerce}", LogCategory.Economy);
+                        }
+                        TraverseAPI.HireKnight(__instance, CharacterClassNames.Merchant);
+                        __result = true;
+                        return false; // Skip vanilla - we handled it
+                    }
                 }
             }
 
+            // Not enough gold or court full - let vanilla decide
             return true;
         }
     }
