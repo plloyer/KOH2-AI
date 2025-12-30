@@ -130,14 +130,14 @@ namespace AIOverhaul
 
                     if (__instance.kingdom.Name == "England")
                     {
-                        AIOverhaulPlugin.LogMod($"[ENGLAND] Merchant hiring check: merchants={merchants}, maxCommerce={maxCommerce}, requiredCommerce={requiredCommerce}");
+                        AIOverhaulPlugin.LogMod($"[ENGLAND] Merchant hiring check: merchants={merchants}, maxCommerce={maxCommerce}, requiredCommerce={requiredCommerce}", LogCategory.Economy);
                     }
 
                     if (requiredCommerce > maxCommerce)
                     {
                         if (__instance.kingdom.Name == "England")
                         {
-                            AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING merchant hire: need {requiredCommerce} but only have {maxCommerce} max commerce");
+                            AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING merchant hire: need {requiredCommerce} but only have {maxCommerce} max commerce", LogCategory.Economy);
                         }
                         __result = false;
                         return false; // Block hire
@@ -392,14 +392,14 @@ namespace AIOverhaul
 
                         if (__instance.kingdom.Name == "England")
                         {
-                            AIOverhaulPlugin.LogMod($"[ENGLAND] ConsiderExpense DIPLOMAT: goldIncome={goldIncome}");
+                            AIOverhaulPlugin.LogMod($"[ENGLAND] ConsiderExpense DIPLOMAT: goldIncome={goldIncome}", LogCategory.Knights);
                         }
 
                         if (goldIncome <= 150f)
                         {
                             if (__instance.kingdom.Name == "England")
                             {
-                                AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: goldIncome too low ({goldIncome} <= 150)");
+                                AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: goldIncome too low ({goldIncome} <= 150)", LogCategory.Knights);
                             }
                             return false;
                         }
@@ -409,14 +409,14 @@ namespace AIOverhaul
                         {
                             if (__instance.kingdom.Name == "England")
                             {
-                                AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: WantsDiplomat returned false");
+                                AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: WantsDiplomat returned false", LogCategory.Knights);
                             }
                             return false;
                         }
 
                         if (__instance.kingdom.Name == "England")
                         {
-                            AIOverhaulPlugin.LogMod($"[ENGLAND] ALLOWING diplomat hire to proceed");
+                            AIOverhaulPlugin.LogMod($"[ENGLAND] ALLOWING diplomat hire to proceed", LogCategory.Knights);
                         }
                     }
                     
@@ -438,7 +438,7 @@ namespace AIOverhaul
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.LogMod($"Error in CharacterHiringPatch: {ex}");
+                AIOverhaulPlugin.LogMod($"Error in CharacterHiringPatch: {ex}", LogCategory.General);
             }
 
             return true;

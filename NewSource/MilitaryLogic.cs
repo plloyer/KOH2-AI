@@ -214,7 +214,7 @@ namespace AIOverhaul
                 Logic.Castle nearest = TraverseAPI.FindNearestOwnCastle(__instance, army, true);
                 if (nearest != null)
                 {
-                    AIOverhaulPlugin.LogMod($" Idle Knight - Returning to garrison at {nearest.name}");
+                    AIOverhaulPlugin.LogMod($" Idle Knight - Returning to garrison at {nearest.name}", LogCategory.Military);
                     TraverseAPI.SendArmy(__instance, army, nearest, "go_inside", null);
                 }
             }

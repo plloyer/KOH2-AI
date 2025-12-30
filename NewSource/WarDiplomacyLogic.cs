@@ -173,7 +173,7 @@ namespace AIOverhaul
             {
                 if (k.Name == "England")
                 {
-                    AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: goldIncome too low ({goldIncome} < {GameBalance.MinGoldIncomeForDiplomats})");
+                    AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: goldIncome too low ({goldIncome} < {GameBalance.MinGoldIncomeForDiplomats})", LogCategory.Diplomacy);
                 }
                 return false;
             }
@@ -204,7 +204,7 @@ namespace AIOverhaul
 
             if (k.Name == "England")
             {
-                AIOverhaulPlugin.LogMod($"[ENGLAND] Diplomat check: goldIncome={goldIncome}, ownPower={ownPower}, strongerThreats={strongerThreats}");
+                AIOverhaulPlugin.LogMod($"[ENGLAND] Diplomat check: goldIncome={goldIncome}, ownPower={ownPower}, strongerThreats={strongerThreats}", LogCategory.Diplomacy);
             }
 
             // Hire diplomat if we have enough stronger neighbors (need alliances/NAPs to secure flanks)
@@ -212,14 +212,14 @@ namespace AIOverhaul
             {
                 if (k.Name == "England")
                 {
-                    AIOverhaulPlugin.LogMod($"[ENGLAND] ALLOWING diplomat: {strongerThreats} stronger neighbors threatening us");
+                    AIOverhaulPlugin.LogMod($"[ENGLAND] ALLOWING diplomat: {strongerThreats} stronger neighbors threatening us", LogCategory.Diplomacy);
                 }
                 return true;
             }
 
             if (k.Name == "England")
             {
-                AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: only {strongerThreats} stronger threats (need {GameBalance.MinStrongerThreatsForDiplomat}+)");
+                AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: only {strongerThreats} stronger threats (need {GameBalance.MinStrongerThreatsForDiplomat}+)", LogCategory.Diplomacy);
             }
             return false;
         }
@@ -583,7 +583,7 @@ namespace AIOverhaul
             }
 
             float powerRatio = targetPower > 0 ? ownPower / targetPower : (ownPower > 0 ? 10f : 1f);
-            AIOverhaulPlugin.LogMod($" AI {__instance.kingdom.Name} declaring war on {k.Name}. Power Ratio: {powerRatio:F2}");
+            AIOverhaulPlugin.LogMod($" AI {__instance.kingdom.Name} declaring war on {k.Name}. Power Ratio: {powerRatio:F2}", LogCategory.War);
             return true;
         }
     }
@@ -718,7 +718,7 @@ namespace AIOverhaul
 
                 if (target != null)
                 {
-                    AIOverhaulPlugin.LogMod($" {actor.Name} in survival mode. Focusing on {target.Name}");
+                    AIOverhaulPlugin.LogMod($" {actor.Name} in survival mode. Focusing on {target.Name}", LogCategory.Diplomacy);
                     __result = RunDiplomacyWithTarget(__instance, target);
                     return false;
                 }
@@ -775,7 +775,7 @@ namespace AIOverhaul
                 {
                     if (OfferHelper.TrySendOffer("ClaimIndependence", __instance, k))
                     {
-                        AIOverhaulPlugin.LogMod($" {actor.Name} claiming independence from {k.Name}");
+                        AIOverhaulPlugin.LogMod($" {actor.Name} claiming independence from {k.Name}", LogCategory.War);
                         __result = true;
                         return false;
                     }
@@ -796,7 +796,7 @@ namespace AIOverhaul
                         peace.AI = true;
                         if (peace.Validate() == "ok")
                         {
-                            AIOverhaulPlugin.LogMod($" {actor.Name} SURRENDERING to {k.Name} as vassal!");
+                            AIOverhaulPlugin.LogMod($" {actor.Name} SURRENDERING to {k.Name} as vassal!", LogCategory.War);
                             peace.Send();
                             if (k.is_player)
                             {
@@ -866,7 +866,7 @@ namespace AIOverhaul
             }
             catch (System.Exception ex)
             {
-                AIOverhaulPlugin.LogMod($"Error in TradeAcceptancePatch: {ex}");
+                AIOverhaulPlugin.LogMod($"Error in TradeAcceptancePatch: {ex}", LogCategory.General);
             }
             return true;
         }

@@ -65,6 +65,7 @@
         <Compile Include="NewSource\Constants\CharacterClassNames.cs" />
         <Compile Include="NewSource\Constants\Constants.cs" />
         <Compile Include="NewSource\Constants\GameBalance.cs" />
+        <Compile Include="NewSource\Constants\LogCategory.cs" />
         <Compile Include="NewSource\Constants\SkillNames.cs" />
         <Compile Include="NewSource\Constants\TraditionNames.cs" />
         <Compile Include="NewSource\Helpers\CsvHelper.cs" />
