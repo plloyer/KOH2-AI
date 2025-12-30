@@ -165,6 +165,11 @@ namespace AIOverhaul
         {
             if (k == null) return false;
 
+            if (k.Name == "England")
+            {
+                AIOverhaulPlugin.LogMod($"[ENGLAND] WantsDiplomat() called - starting diplomat check", LogCategory.Diplomacy);
+            }
+
             // EARLY GAME PREVENTION: Must have baseline economy established first
             // 1. Must have 2 merchants (baseline commercial capacity)
             int merchants = KingdomHelper.CountMerchants(k);
