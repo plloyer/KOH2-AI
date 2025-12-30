@@ -282,22 +282,58 @@ namespace AIOverhaul
             Logic.District.Def militaryDistrict = __instance.game?.defs?.Get<Logic.District.Def>("Military");
             if (militaryDistrict == null) return;
 
-            // Check if this castle already has Barracks (don't boost if it does, as we want to pick the location for the FIRST one)
+            // Check if this castle HAS the Military district
+            bool hasMilitaryDistrict = __instance.HasDistrict(militaryDistrict);
+
+            // Check if kingdom already has any barracks (across all provinces)
+            bool kingdomHasBarracks = false;
             Logic.Building.Def barracksDef = __instance.game?.defs?.Get<Logic.Building.Def>(BuildingNames.Barracks);
-            if (barracksDef != null && __instance.HasBuilding(barracksDef)) return;
+            if (barracksDef != null)
+            {
+                var kingdom = __instance.GetKingdom();
+                if (kingdom?.realms != null)
+                {
+                    foreach (var realm in kingdom.realms)
+                    {
+                        if (realm?.castle != null && realm.castle.HasBuilding(barracksDef))
+                        {
+                            kingdomHasBarracks = true;
+                            break;
+                        }
+                    }
+                }
+            }
 
             // Find Barracks in build options
-            for (int i = 0; i < Logic.Castle.build_options.Count; i++)
+            for (int i = Logic.Castle.build_options.Count - 1; i >= 0; i--)
             {
                 var option = Logic.Castle.build_options[i];
                 if (option.def != null && option.def.id == BuildingNames.Barracks)
                 {
-                    // Boost priority based on military district slots
-                    int slots = militaryDistrict.buildings?.Count ?? 0;
-                    float boost = 1.0f + (slots * GameBalance.BarracksSlotBoostPerSlot);
+                    if (!hasMilitaryDistrict)
+                    {
+                        // BLOCK barracks if no Military district
+                        Logic.Castle.build_options.RemoveAt(i);
 
-                    option.eval *= boost;
-                    Logic.Castle.build_options[i] = option;
+                        if (__instance.GetKingdom()?.Name == "England")
+                        {
+                            AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING Barracks in {__instance.name} - no Military district", LogCategory.Military);
+                        }
+                    }
+                    else if (!kingdomHasBarracks)
+                    {
+                        // FIRST barracks - boost based on military district slots
+                        int slots = militaryDistrict.buildings?.Count ?? 0;
+                        float boost = 1.0f + (slots * GameBalance.BarracksSlotBoostPerSlot);
+
+                        option.eval *= boost;
+                        Logic.Castle.build_options[i] = option;
+
+                        if (__instance.GetKingdom()?.Name == "England")
+                        {
+                            AIOverhaulPlugin.LogMod($"[ENGLAND] BOOSTING Barracks in {__instance.name} (Slots: {slots}, Boost: {boost:F1}x)", LogCategory.Military);
+                        }
+                    }
                 }
             }
         }
