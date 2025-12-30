@@ -278,12 +278,26 @@ namespace AIOverhaul
             // Don't seek pacts if we already have 2+ allies
             if (k.allies != null && k.allies.Count >= 2) return false;
 
+            float ownPower = GetTotalPower(k);
+
+            // PRIORITY: If we have a mortal enemy that's equal or stronger, ALWAYS seek allies FAST
+            Logic.Kingdom mortalEnemy = AIOverhaulPlugin.GetMortalEnemy(k, k.game);
+            if (mortalEnemy != null && !mortalEnemy.IsDefeated())
+            {
+                float enemyPower = GetTotalPower(mortalEnemy);
+
+                // If mortal enemy is equal or stronger, we MUST seek allies before attacking
+                if (enemyPower >= ownPower)
+                {
+                    return true; // Prioritize forming coalition against equal/stronger mortal enemy
+                }
+            }
+
             // Need sufficient gold for diplomacy (5000+ gold)
             float gold = k.resources?[ResourceType.Gold] ?? 0f;
             if (gold < 5000f) return false;
 
             // Check if we face significant neighbor threats
-            float ownPower = GetTotalPower(k);
             float neighborThreat = GetNeighborThreat(k);
 
             // Seek pacts if neighbor threat > 0.75x our power
@@ -294,8 +308,9 @@ namespace AIOverhaul
         {
             if (k == null || k.game == null) return null;
 
+            Logic.Kingdom mortalEnemy = AIOverhaulPlugin.GetMortalEnemy(k, k.game);
             Logic.Kingdom bestTarget = null;
-            int mostCommonEnemies = 0;
+            int bestScore = 0;
 
             foreach (var potentialAlly in k.game.kingdoms)
             {
@@ -304,8 +319,31 @@ namespace AIOverhaul
                 if (k.IsEnemy(potentialAlly)) continue;
                 if (k.IsAlly(potentialAlly)) continue; // Already allied
 
+                // REQUIREMENT: Cannot form defensive pact with kingdoms currently at war
+                if (potentialAlly.wars != null && potentialAlly.wars.Count > 0) continue;
+
+                int score = 0;
+
+                // HIGHEST PRIORITY: If they're already enemies with our mortal enemy
+                if (mortalEnemy != null && potentialAlly.IsEnemy(mortalEnemy))
+                {
+                    score += GameBalance.AllianceScoreFightingMortalEnemy;
+                }
+
+                // HIGH PRIORITY: If they're neighbors of our mortal enemy (can join war later)
+                if (mortalEnemy != null && IsStrategicNeighbor(potentialAlly, mortalEnemy))
+                {
+                    score += GameBalance.AllianceScoreNeighborOfMortalEnemy;
+                }
+
+                // PRIORITY: Unfriendly neighbors are good alliance targets
+                float relationship = k.GetRelationship(potentialAlly);
+                if (relationship < 0 && IsStrategicNeighbor(k, potentialAlly))
+                {
+                    score += GameBalance.AllianceScoreUnfriendlyNeighbor;
+                }
+
                 // Count common enemies
-                int commonEnemies = 0;
                 if (k.wars != null && potentialAlly.wars != null)
                 {
                     foreach (var ourWar in k.wars)
@@ -313,7 +351,7 @@ namespace AIOverhaul
                         Logic.Kingdom ourEnemy = ourWar.GetEnemyLeader(k);
                         if (potentialAlly.IsEnemy(ourEnemy))
                         {
-                            commonEnemies++;
+                            score++; // Bonus for each common enemy
                         }
                     }
                 }
@@ -326,14 +364,14 @@ namespace AIOverhaul
                         Logic.Kingdom ourEnemy = ourWar.GetEnemyLeader(k);
                         if (ourEnemy != null && IsStrategicNeighbor(potentialAlly, ourEnemy))
                         {
-                            commonEnemies++;
+                            score++; // Small bonus for being positioned against our enemies
                         }
                     }
                 }
 
-                if (commonEnemies > mostCommonEnemies)
+                if (score > bestScore)
                 {
-                    mostCommonEnemies = commonEnemies;
+                    bestScore = score;
                     bestTarget = potentialAlly;
                 }
             }
@@ -508,7 +546,7 @@ namespace AIOverhaul
         public static int GetTradeAgreementCount(Logic.Kingdom k)
         {
             if (k == null || k.game == null) return 0;
-            
+
             // Iterate known kingdoms or just all active kingdoms to count trade agreements
             int count = 0;
             if (k.game.kingdoms != null)
@@ -523,6 +561,19 @@ namespace AIOverhaul
                 }
             }
             return count;
+        }
+
+        public static bool IsMortalEnemy(Logic.Kingdom kingdom, Logic.Kingdom potentialEnemy)
+        {
+            if (kingdom == null || potentialEnemy == null) return false;
+
+            // Check if potentialEnemy is kingdom's mortal enemy
+            if (AIOverhaulPlugin.MortalEnemies.ContainsKey(kingdom.id))
+            {
+                return AIOverhaulPlugin.MortalEnemies[kingdom.id] == potentialEnemy.id;
+            }
+
+            return false;
         }
     }
 
@@ -594,11 +645,26 @@ namespace AIOverhaul
                 {
                     // Definition of "Full Army":
                     // 1. Has a leader (Marshal or General)
-                    // 2. Has units (not just leader) - "Full" likely means combat ready.
-                    // 3. Let's say at least 4 units (Commanders have max 5-8).
-                    if (army.leader != null && army.units.Count >= 4 && army.battle == null)
+                    // 2. Has 8 units (full capacity)
+                    // 3. Fully replenished (all units healthy)
+                    // 4. Not currently in battle
+                    if (army.leader != null && army.units.Count >= GameBalance.FullArmySize && army.battle == null)
                     {
-                        fullArmies++;
+                        // Check if fully healed/replenished
+                        bool fullyReplenished = true;
+                        foreach (var unit in army.units)
+                        {
+                            if (unit != null && unit.health < GameBalance.FullHealthThreshold)
+                            {
+                                fullyReplenished = false;
+                                break;
+                            }
+                        }
+
+                        if (fullyReplenished)
+                        {
+                            fullArmies++;
+                        }
                     }
                 }
             }
@@ -609,7 +675,66 @@ namespace AIOverhaul
                 return false;
             }
 
+            // NEW: Check if kingdom is "well-prepared" for war (strong economy + military)
+            bool isWellPrepared = false;
+            if (fullArmies >= GameBalance.MinArmiesForWar)
+            {
+                // Check fortifications - at least one province with level 1+ fortification
+                int fortifiedProvinces = 0;
+                if (__instance.kingdom.realms != null)
+                {
+                    foreach (var realm in __instance.kingdom.realms)
+                    {
+                        if (realm?.castle?.fortifications != null && realm.castle.fortifications.level >= 1)
+                        {
+                            fortifiedProvinces++;
+                        }
+                    }
+                }
+
+                // Check gold reserves
+                float gold = __instance.kingdom.resources?.Get(ResourceType.Gold) ?? 0f;
+
+                // Well-prepared = 2 armies + at least 1 fortification + 2000+ gold
+                if (fortifiedProvinces >= GameBalance.MinFortifiedProvincesForAggression && gold >= GameBalance.MinGoldForAggression)
+                {
+                    isWellPrepared = true;
+                }
+            }
+
+            // Calculate power ratio once
             float powerRatio = targetPower > 0 ? ownPower / targetPower : (ownPower > 0 ? 10f : 1f);
+
+            // NEW: Mortal Enemy priority - when well-prepared, prioritize attacking mortal enemies
+            bool isMortalEnemy = WarLogicHelper.IsMortalEnemy(__instance.kingdom, k);
+
+            // If well-prepared and this is mortal enemy, prioritize but be smart
+            if (isWellPrepared && isMortalEnemy)
+            {
+                // Only attack if we're clearly stronger
+                if (ownPower > targetPower)
+                {
+                    AIOverhaulPlugin.LogMod($" AI {__instance.kingdom.Name} declaring war on MORTAL ENEMY {k.Name} (well-prepared, stronger). Power Ratio: {powerRatio:F2}", LogCategory.War);
+                    return true;
+                }
+
+                // If mortal enemy is equal or stronger: Form coalition FIRST
+                AIOverhaulPlugin.LogMod($" AI {__instance.kingdom.Name} DEFERRING war against equal/stronger MORTAL ENEMY {k.Name} - seeking allies first. Power Ratio: {powerRatio:F2}", LogCategory.War);
+                __result = false;
+                return false;
+            }
+
+            // If well-prepared (but not mortal enemy), attack if we have advantage
+            if (isWellPrepared)
+            {
+                // Attack if we're stronger or if they're distracted
+                if (ownPower >= targetPower || targetAtWar || commonEnemy)
+                {
+                    AIOverhaulPlugin.LogMod($" AI {__instance.kingdom.Name} declaring war on {k.Name} (well-prepared). Power Ratio: {powerRatio:F2}", LogCategory.War);
+                    return true;
+                }
+            }
+
             AIOverhaulPlugin.LogMod($" AI {__instance.kingdom.Name} declaring war on {k.Name}. Power Ratio: {powerRatio:F2}", LogCategory.War);
             return true;
         }

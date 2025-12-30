@@ -144,7 +144,7 @@ namespace AIOverhaul
             LogMod($"New game session detected. Selected {EnhancedKingdomIds.Count} enhanced and {BaselineKingdomIds.Count} baseline kingdoms out of {aiKingdoms.Count} total AI kingdoms.", LogCategory.General);
 
             if (enhanced.Count > 0)
-                LogMod($"Enhanced ({enhanced.Count}): {string.Join(", ", enhanced.Select(k => k.Name))}", LogCategory.General);
+                LogMod($"-----> Enhanced ({enhanced.Count}): {string.Join(", ", enhanced.Select(k => k.Name))}", LogCategory.General);
             else
                 LogMod("Enhanced (0): None", LogCategory.General);
 

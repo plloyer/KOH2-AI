@@ -65,6 +65,16 @@ namespace AIOverhaul.Constants
 
         // Diplomacy - War Preparation
         public const int MinArmiesForWar = 2;
+        public const int MinFortifiedProvincesForAggression = 1; // Need at least 1 fortified province to be "well-prepared"
+        public const float MinGoldForAggression = 2000f; // Need 2000+ gold to be "well-prepared"
+        public const float MortalEnemyDistractedPowerRatio = 0.8f; // Attack mortal enemy if distracted and we're 80%+ their power
+        public const float StrongerEnemyAllianceThreshold = 1.2f; // Seek allies if enemy is 1.2x+ stronger
+        public const float FullHealthThreshold = 1.0f; // Unit must be at 100% health to be considered "fully replenished"
+
+        // Diplomacy - Alliance Scoring
+        public const int AllianceScoreFightingMortalEnemy = 10; // Ally already fighting our mortal enemy
+        public const int AllianceScoreNeighborOfMortalEnemy = 5; // Ally is neighbor of our mortal enemy
+        public const int AllianceScoreUnfriendlyNeighbor = 3; // Ally is unfriendly neighbor (shared border concern)
 
         // Economy - Court Hiring
         public const int RequiredMerchantCount = 2;
