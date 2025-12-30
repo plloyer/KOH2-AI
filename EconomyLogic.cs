@@ -154,30 +154,114 @@ namespace AIOverhaul
         [HarmonyPrefix]
         public static bool Prefix(Logic.KingdomAI __instance, ref bool __result)
         {
-            if (AIOverhaulPlugin.EnhancedKingdomIds.Contains(__instance.kingdom.id))
+            if (AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom))
             {
                 var traditionOptions = __instance.kingdom.GetNewTraditionOptions();
                 if (traditionOptions == null || traditionOptions.Count == 0) return true;
 
-                // Look for Writing tradition
-                var writingTradition = traditionOptions.Find(t => t.id == TraditionNames.WritingTradition);
-                if (writingTradition != null)
+                // TRADITION RUSH LOGIC
+                bool rushingTradition = false;
+                // Use resources.Get(ResourceType.Books) and wars.Count
+                if (__instance.kingdom.traditions.Count == 0 && __instance.kingdom.wars.Count == 0 && __instance.kingdom.resources.Get(Logic.ResourceType.Books) >= 400f)
                 {
-                    if (__instance.kingdom.resources.CanAfford(writingTradition.GetAdoptCost(__instance.kingdom)))
+                    rushingTradition = true;
+                }
+
+                // Look for Writing or Learning tradition
+                var preferredTradition = traditionOptions.Find(t => t.id == TraditionNames.WritingTradition);
+                if (preferredTradition == null)
+                    preferredTradition = traditionOptions.Find(t => t.id == TraditionNames.LearningTradition);
+
+                // If rushing, force pick even if we have to save gold (priority Urgent?)
+                if (rushingTradition && preferredTradition != null)
+                {
+                    Logic.Resource cost = preferredTradition.GetAdoptCost(__instance.kingdom);
+                    if (__instance.kingdom.resources.CanAfford(cost, 1f))
                     {
-                        // Use Traverse to call private ConsiderExpense
                         Traverse.Create(__instance).Method("ConsiderExpense",
                             Logic.KingdomAI.Expense.Type.AdoptTradition,
-                            (Logic.BaseObject)writingTradition,
+                            (Logic.BaseObject)preferredTradition,
                             (UnityEngine.Object)null,
                             Logic.KingdomAI.Expense.Category.Economy,
-                            Logic.KingdomAI.Expense.Priority.High,
-                            null // args
+                            Logic.KingdomAI.Expense.Priority.Urgent, // URGENT for rush
+                            null
                         ).GetValue();
 
                         __result = true;
-                        return false; // Skip original
+                        return false; 
                     }
+                    else
+                    {
+                        // Wait for money
+                        return false; 
+                    }
+                }
+
+                // Default behavior for other cases
+                if (preferredTradition != null)
+                {
+                    if (__instance.kingdom.resources.CanAfford(preferredTradition.GetAdoptCost(__instance.kingdom)))
+                    {
+                        Traverse.Create(__instance).Method("ConsiderExpense",
+                            Logic.KingdomAI.Expense.Type.AdoptTradition,
+                            (Logic.BaseObject)preferredTradition,
+                            (UnityEngine.Object)null,
+                            Logic.KingdomAI.Expense.Category.Economy,
+                            Logic.KingdomAI.Expense.Priority.High,
+                            null 
+                        ).GetValue();
+
+                        __result = true;
+                        return false; 
+                    }
+                }
+            }
+
+            return true;
+        }
+    }
+
+    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderIncreaseCrownAuthority")]
+    public static class SpendingPriorityPatch
+    {
+        [HarmonyPrefix]
+        public static bool Prefix(Logic.KingdomAI __instance, ref bool __result)
+        {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+
+            // Block CA if Rushing Tradition
+            // Check 0 Traditions, Not at War
+            if (__instance.kingdom.traditions.Count == 0 && __instance.kingdom.wars.Count == 0)
+            {
+                 // If we have books, save gold for tradition.
+                 // Correctly access resources
+                 float books = __instance.kingdom.resources.Get(Logic.ResourceType.Books);
+                 float gold = __instance.kingdom.resources.Get(Logic.ResourceType.Gold);
+
+                 if (books >= 350f && gold < 2000f) // Thresholds
+                 {
+                     __result = false;
+                     return false; // Block CA
+                 }
+            }
+
+            // Block CA if Fortifications needed
+            if (__instance.kingdom.realms != null)
+            {
+                foreach (var realm in __instance.kingdom.realms)
+                {
+                     // Remove IsDepleted check, rely on CanUpgradeFortification
+                     if (realm.castle != null && realm.castle.CanUpgradeFortification())
+                     {
+                         if (realm.castle.fortifications.level == 0) // Prioritize level 1 heavily
+                         {
+                             // Also checking if we can mostly afford it? 
+                             // If we can afford it, we should definitely block CA.
+                             // Even if we can't afford it yet, we should probably save for it if it's level 0?
+                             __result = false;
+                             return false; 
+                         }
+                     }
                 }
             }
 
@@ -241,6 +325,63 @@ namespace AIOverhaul
                 }
             }
 
+            return true;
+        }
+    }
+
+    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderExpense")]
+    [HarmonyPatch(new System.Type[] { typeof(Logic.KingdomAI.Expense.Type), typeof(Logic.BaseObject), typeof(Logic.Object), typeof(Logic.KingdomAI.Expense.Category), typeof(Logic.KingdomAI.Expense.Priority), typeof(List<Logic.Value>) })]
+    public static class DiplomatHiringPatch
+    {
+        static bool Prefix(Logic.KingdomAI __instance, Logic.BaseObject defParam, Logic.KingdomAI.Expense.Type type)
+        {
+            try
+            {
+                if (__instance.kingdom == null || __instance.kingdom.is_player || !AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom))
+                    return true;
+
+                if (type == Logic.KingdomAI.Expense.Type.HireChacacter && defParam is Logic.CharacterClass.Def cDef)
+                {
+                    if (cDef.id == "Diplomat")
+                    {
+                        // Check Income > 150
+                        float goldIncome = __instance.kingdom.income.Get(Logic.ResourceType.Gold);
+                        if (goldIncome <= 150f)
+                        {
+                            return false; 
+                        }
+
+                        // Check Threat Level
+                        var threatsField = typeof(Logic.KingdomAI).GetField("threats", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+                        if (threatsField != null)
+                        {
+                            var threats = threatsField.GetValue(__instance) as System.Collections.IList;
+                            if (threats != null)
+                            {
+                                bool highThreat = false;
+                                foreach (var t in threats)
+                                {
+                                    var levelField = t.GetType().GetField("level");
+                                    if (levelField != null)
+                                    {
+                                         var levelVal = (int)levelField.GetValue(t);
+                                         if (levelVal >= 3) 
+                                         {
+                                             highThreat = true;
+                                             break;
+                                         }
+                                    }
+                                }
+                                if (!highThreat) return false;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                AIOverhaulPlugin.LogMod($"Error in DiplomatHiringPatch: {ex}");
+            }
             return true;
         }
     }

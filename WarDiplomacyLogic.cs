@@ -774,4 +774,48 @@ namespace AIOverhaul
             return totalStr < k.realms.Count * 250f;
         }
     }
+
+    [HarmonyPatch(typeof(Logic.ProsAndCons), "Eval")]
+    [HarmonyPatch(new System.Type[] { typeof(string) })]
+    public static class TradeAcceptancePatch
+    {
+        static bool Prefix(Logic.ProsAndCons __instance, string threshold_name, ref float __result)
+        {
+            try
+            {
+                if (__instance.our_kingdom != null && !__instance.our_kingdom.is_player && AIOverhaulPlugin.IsEnhancedAI(__instance.our_kingdom))
+                {
+                    if (threshold_name == "accept")
+                    {
+                        if (__instance.def.id.EndsWith("SignTrade"))
+                        {
+                            Logic.Offer offer = __instance.offer;
+                            if (offer != null && offer.from is Logic.Kingdom sender)
+                            {
+                                if (__instance.our_kingdom.IsEnemy(sender)) return true;
+
+                                var expTargetField = typeof(Logic.KingdomAI).GetField("expansionTarget", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+                                Logic.Kingdom expTarget = null;
+                                if (expTargetField != null)
+                                {
+                                    expTarget = expTargetField.GetValue(__instance.our_kingdom.ai) as Logic.Kingdom;
+                                }
+
+                                if (expTarget != null && sender == expTarget) return true;
+
+                                __result = 1000f;
+                                AIOverhaulPlugin.LogMod($" {__instance.our_kingdom.Name} FORCE ACCEPTING Trade from {sender.Name}");
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                AIOverhaulPlugin.LogMod($"Error in TradeAcceptancePatch: {ex}");
+            }
+            return true;
+        }
+    }
 }
