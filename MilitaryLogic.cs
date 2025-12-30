@@ -303,6 +303,143 @@ namespace AIOverhaul
             }
         }
     }
+
+    // Prioritize Fletcher upgrade before Swordsmith in barracks
+    [HarmonyPatch(typeof(Logic.Castle), "AddBuildOptions")]
+    public class FletcherPriorityPatch
+    {
+        static void Postfix(Logic.Castle __instance)
+        {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
+
+            // Boost Fletcher_Barracks evaluation, reduce Swordsmith evaluation
+            for (int i = 0; i < Logic.Castle.upgrade_options.Count; i++)
+            {
+                var option = Logic.Castle.upgrade_options[i];
+                if (option.def != null)
+                {
+                    if (option.def.id == "Fletcher_Barracks")
+                    {
+                        // Significantly boost Fletcher evaluation
+                        option.eval *= 2.0f;
+                        Logic.Castle.upgrade_options[i] = option;
+                    }
+                    else if (option.def.id == "Swordsmith")
+                    {
+                        // Check if Fletcher_Barracks is not yet built
+                        Logic.Building.Def fletcherDef = __instance.game?.defs?.Get<Logic.Building.Def>("Fletcher_Barracks");
+                        bool hasFletcherBarracks = fletcherDef != null && __instance.HasBuilding(fletcherDef);
+                        if (!hasFletcherBarracks)
+                        {
+                            // Drastically reduce Swordsmith priority until Fletcher is built
+                            option.eval *= 0.1f;
+                            Logic.Castle.upgrade_options[i] = option;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Army composition: Prefer 3-4 ranged for every 4-5 melee
+    // Early game (session time < 10 hours): 4 archers, 4 swordsmen
+    [HarmonyPatch(typeof(Logic.KingdomAI), "EvalHireUnit")]
+    public class ArmyCompositionPatch
+    {
+        static void Postfix(Logic.Unit.Def def, Logic.Army army, ref float __result)
+        {
+            if (army == null || def == null) return;
+            Logic.Kingdom kingdom = army.GetKingdom();
+            if (kingdom == null || !AIOverhaulPlugin.IsEnhancedAI(kingdom)) return;
+
+            // Count current ranged vs melee units in this army
+            int rangedCount = 0;
+            int meleeCount = 0;
+
+            if (army.units != null)
+            {
+                foreach (var unit in army.units)
+                {
+                    if (unit?.def == null) continue;
+                    if (IsRangedUnit(unit.def))
+                        rangedCount++;
+                    else if (IsMeleeUnit(unit.def))
+                        meleeCount++;
+                }
+            }
+
+            bool isEarlyGame = kingdom.game != null && kingdom.game.session_time.hours < 10f;
+            bool isRanged = IsRangedUnit(def);
+            bool isMelee = IsMeleeUnit(def);
+
+            if (isEarlyGame)
+            {
+                // Early game: 4 archers, 4 swordsmen target
+                if (isRanged && rangedCount >= 4)
+                {
+                    __result *= 0.1f; // Heavily discourage more ranged
+                }
+                else if (isMelee && meleeCount >= 4)
+                {
+                    __result *= 0.1f; // Heavily discourage more melee
+                }
+                else if (isRanged && rangedCount < 4)
+                {
+                    __result *= 1.5f; // Boost ranged priority
+                }
+                else if (isMelee && meleeCount < 4)
+                {
+                    __result *= 1.2f; // Slightly boost melee
+                }
+            }
+            else
+            {
+                // Late game: 3-4 ranged for 4-5 melee (approximately 3.5:4.5 ratio = 0.778)
+                float currentRatio = meleeCount > 0 ? (float)rangedCount / meleeCount : 999f;
+                float targetRatio = 3.5f / 4.5f; // ~0.778
+
+                if (isRanged)
+                {
+                    if (currentRatio > targetRatio * 1.2f) // Too many ranged
+                    {
+                        __result *= 0.3f;
+                    }
+                    else if (currentRatio < targetRatio * 0.8f) // Need more ranged
+                    {
+                        __result *= 1.8f;
+                    }
+                }
+                else if (isMelee)
+                {
+                    if (currentRatio < targetRatio * 0.8f) // Need more melee
+                    {
+                        __result *= 1.5f;
+                    }
+                    else if (currentRatio > targetRatio * 1.2f) // Too much melee
+                    {
+                        __result *= 0.5f;
+                    }
+                }
+            }
+        }
+
+        static bool IsRangedUnit(Logic.Unit.Def def)
+        {
+            if (def?.id == null) return false;
+            string id = def.id.ToLower();
+            return id.Contains("archer") || id.Contains("crossbow") || id.Contains("marksman");
+        }
+
+        static bool IsMeleeUnit(Logic.Unit.Def def)
+        {
+            if (def?.id == null) return false;
+            string id = def.id.ToLower();
+            // Melee includes swordsmen, pikemen, spearmen, infantry, etc.
+            return id.Contains("swordsman") || id.Contains("spearman") || id.Contains("pikeman") ||
+                   id.Contains("infantry") || id.Contains("guard") || id.Contains("footman") ||
+                   id.Contains("militia") && !id.Contains("archer");
+        }
+    }
     [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkArmy")]
     public class HealingLogicPatch
     {
