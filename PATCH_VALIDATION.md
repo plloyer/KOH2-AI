@@ -7,8 +7,28 @@
 
 ## Fixed Issues
 1. ❌ **REMOVED:** `ConsiderExpense` with 6 parameters - Method doesn't exist
-2. ❌ **REMOVED:** `ConsiderHireMerchant` - Method doesn't exist
-3. ❌ **REMOVED:** `ConsiderHireCleric` - Method doesn't exist
+2. ❌ **REMOVED:** `ConsiderHireMerchant` - Method doesn't exist (never worked)
+3. ❌ **REMOVED:** `ConsiderHireCleric` - Method doesn't exist (never worked)
+
+## Functionality Restored
+The old patches never ran because they patched non-existent methods. All functionality has been **reimplemented correctly** in `CharacterHiringControlPatch`:
+
+**Merchant Hiring:**
+- ✅ Block 3rd+ merchant if insufficient commerce (10 per merchant)
+- ✅ Allow first 2 merchants unconditionally
+- ✅ Strict enforcement prevents vanilla's broken logic
+
+**Cleric Hiring:**
+- ✅ Block if less than 2 merchants (economy first)
+- ✅ Block if income < 50 gold
+- ✅ Limit to 1 cleric per kingdom
+
+**Spy Hiring:**
+- ✅ Block if income < 500 gold
+- ✅ Block if not strategically needed
+
+**Diplomat Hiring:**
+- ✅ Block if prerequisites not met (2 merchants, 2 armies, 500 income, 2+ stronger neighbors)
 
 ## Valid Patches by File
 
