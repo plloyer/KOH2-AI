@@ -7,6 +7,99 @@ using AIOverhaul;
 
 namespace AIOverhaul
 {
+    // Prevent building churches in settlements without religion districts
+    // Prioritize provinces with the most religion district slots
+    [HarmonyPatch(typeof(Logic.Castle), "AddBuildOptions")]
+    public class ReligiousBuildingPatch
+    {
+        static void Postfix(Logic.Castle __instance)
+        {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
+
+            // Get Religion district definition
+            Logic.District.Def religionDistrict = __instance.game?.defs?.Get<Logic.District.Def>("Religion");
+            if (religionDistrict == null) return;
+
+            // Check if this castle has the Religion district
+            bool hasReligionDistrict = __instance.HasDistrict(religionDistrict);
+
+            // Find all religious buildings in build options
+            for (int i = Logic.Castle.build_options.Count - 1; i >= 0; i--)
+            {
+                var option = Logic.Castle.build_options[i];
+                if (option.def == null) continue;
+
+                bool isReligiousBuilding = IsReligiousBuilding(option.def.id);
+
+                if (isReligiousBuilding)
+                {
+                    if (!hasReligionDistrict)
+                    {
+                        // Block building if no religion district
+                        Logic.Castle.build_options.RemoveAt(i);
+                        AIOverhaulPlugin.LogMod($" Blocking {option.def.id} in {__instance.name} - no Religion district");
+                    }
+                    else
+                    {
+                        // Boost priority for castles with religion district
+                        // Further boost based on how many religion slots available
+                        int religionSlots = CountReligionSlots(__instance, religionDistrict);
+                        float boost = 1.0f + (religionSlots * 0.2f); // 20% boost per slot
+                        option.eval *= boost;
+                        Logic.Castle.build_options[i] = option;
+                    }
+                }
+            }
+
+            // Do the same for upgrade options
+            for (int i = Logic.Castle.upgrade_options.Count - 1; i >= 0; i--)
+            {
+                var option = Logic.Castle.upgrade_options[i];
+                if (option.def == null) continue;
+
+                bool isReligiousBuilding = IsReligiousBuilding(option.def.id);
+
+                if (isReligiousBuilding)
+                {
+                    if (!hasReligionDistrict)
+                    {
+                        // Block building if no religion district
+                        Logic.Castle.upgrade_options.RemoveAt(i);
+                        AIOverhaulPlugin.LogMod($" Blocking {option.def.id} upgrade in {__instance.name} - no Religion district");
+                    }
+                    else
+                    {
+                        // Boost priority for castles with religion district
+                        int religionSlots = CountReligionSlots(__instance, religionDistrict);
+                        float boost = 1.0f + (religionSlots * 0.2f);
+                        option.eval *= boost;
+                        Logic.Castle.upgrade_options[i] = option;
+                    }
+                }
+            }
+        }
+
+        static bool IsReligiousBuilding(string buildingId)
+        {
+            if (string.IsNullOrEmpty(buildingId)) return false;
+
+            // Religious buildings include Church, Masjid, Temple, Cathedral, GreatMosque
+            return buildingId == BuildingNames.Church ||
+                   buildingId == BuildingNames.Masjid ||
+                   buildingId == BuildingNames.Temple ||
+                   buildingId == BuildingNames.Cathedral ||
+                   buildingId == BuildingNames.GreatMosque;
+        }
+
+        static int CountReligionSlots(Logic.Castle castle, Logic.District.Def religionDistrict)
+        {
+            if (religionDistrict?.buildings == null) return 0;
+
+            // Count how many religion building slots exist in this district definition
+            return religionDistrict.buildings.Count;
+        }
+    }
+
     [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderHireMerchant")]
     public class MerchantHiringPatch
     {
