@@ -60,20 +60,21 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="BattleTacticNames.cs" />
-        <Compile Include="BuildingNames.cs" />
-        <Compile Include="CharacterClassNames.cs" />
-        <Compile Include="Constants.cs" />
-        <Compile Include="EconomyLogic.cs" />
+        <Compile Include="NewSource\BattleTacticNames.cs" />
+        <Compile Include="NewSource\BuildingNames.cs" />
+        <Compile Include="NewSource\CharacterClassNames.cs" />
+        <Compile Include="NewSource\Constants.cs" />
+        <Compile Include="NewSource\EconomyLogic.cs" />
         <Compile Include="NewSource\EnhancedPerformanceLogger.cs" />
         <Compile Include="NewSource\KingdomBaseline.cs" />
-        <Compile Include="MilitaryLogic.cs" />
-        <Compile Include="Plugin.cs" />
+        <Compile Include="NewSource\MilitaryLogic.cs" />
+        <Compile Include="NewSource\Plugin.cs" />
+        <Compile Include="NewSource\RoyalFamilyLogic.cs" />
+        <Compile Include="NewSource\SkillNames.cs" />
+        <Compile Include="NewSource\TraditionNames.cs" />
+        <Compile Include="NewSource\TraverseAPI.cs" />
+        <Compile Include="NewSource\WarDiplomacyLogic.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>
-        <Compile Include="SkillNames.cs" />
-        <Compile Include="TraditionNames.cs" />
-        <Compile Include="TraverseAPI.cs" />
-        <Compile Include="WarDiplomacyLogic.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
