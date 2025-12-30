@@ -233,34 +233,47 @@ namespace AIOverhaul
         }
     }
 
-    // Prioritize Fletcher upgrade before Swordsmith in barracks
+    // Prioritize Swordsmith upgrade before Fletcher in barracks
+    // Swordsmith = melee units (swordsmen), Fletcher = ranged units (archers)
+    // We need melee first for balanced armies (4 melee + 4 ranged)
     [HarmonyPatch(typeof(Logic.Castle), "AddBuildOptions", new Type[] { typeof(bool), typeof(Logic.Resource) })]
-    public class FletcherPriorityPatch
+    public class SwordsmithPriorityPatch
     {
         static void Postfix(Logic.Castle __instance)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
 
-            // Boost Fletcher_Barracks evaluation, reduce Swordsmith evaluation
+            // Boost Swordsmith evaluation, reduce Fletcher evaluation
             for (int i = 0; i < Logic.Castle.upgrade_options.Count; i++)
             {
                 var option = Logic.Castle.upgrade_options[i];
                 if (option.def != null)
                 {
-                    if (option.def.id == "Fletcher_Barracks")
+                    if (option.def.id == "Swordsmith")
                     {
-                        // Significantly boost Fletcher evaluation
+                        // Significantly boost Swordsmith evaluation (need melee units first)
                         option.eval *= GameBalance.StrongBoostMultiplier;
                         Logic.Castle.upgrade_options[i] = option;
                     }
-                    else if (option.def.id == "Swordsmith")
+                    else if (option.def.id == "Fletcher_Barracks")
                     {
-                        // Check if Fletcher_Barracks is not yet built
-                        Logic.Building.Def fletcherDef = __instance.game?.defs?.Get<Logic.Building.Def>("Fletcher_Barracks");
-                        bool hasFletcherBarracks = fletcherDef != null && __instance.HasBuilding(fletcherDef);
-                        if (!hasFletcherBarracks)
+                        // Check if Swordsmith is not yet built
+                        bool hasSwordsmith = false;
+                        if (__instance.buildings != null)
                         {
-                            // Drastically reduce Swordsmith priority until Fletcher is built
+                            foreach (var building in __instance.buildings)
+                            {
+                                if (building?.def?.id == "Swordsmith")
+                                {
+                                    hasSwordsmith = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!hasSwordsmith)
+                        {
+                            // Drastically reduce Fletcher priority until Swordsmith is built
                             option.eval *= GameBalance.StrongPenaltyMultiplier;
                             Logic.Castle.upgrade_options[i] = option;
                         }
@@ -375,6 +388,45 @@ namespace AIOverhaul
 
             if (isFirstTwoArmies)
             {
+                // CRITICAL: Check if Swordsmith is built (required for melee units)
+                // If we have 4+ archers but few melee, and Swordsmith isn't built,
+                // block ALL hiring to force building Swordsmith first
+                bool hasSwordsmith = false;
+                if (kingdom.realms != null)
+                {
+                    foreach (var realm in kingdom.realms)
+                    {
+                        if (realm?.castle != null)
+                        {
+                            var buildings = realm.castle.buildings;
+                            if (buildings != null)
+                            {
+                                foreach (var building in buildings)
+                                {
+                                    if (building?.def?.id == "Swordsmith")
+                                    {
+                                        hasSwordsmith = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (hasSwordsmith) break;
+                    }
+                }
+
+                // If we have imbalanced armies (lots of archers, few melee) and no Swordsmith,
+                // block ALL hiring until Swordsmith is built
+                if (!hasSwordsmith && rangedCount >= GameBalance.EarlyGameRangedCount && meleeCount < GameBalance.EarlyGameMeleeCount)
+                {
+                    if (kingdom.Name == "England")
+                    {
+                        AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING all unit hiring: ranged={rangedCount}, melee={meleeCount}, need Swordsmith first!", LogCategory.Military);
+                    }
+                    __result *= GameBalance.StrictBlockMultiplier;
+                    return;
+                }
+
                 // First two armies: 4 archers, 4 swordsmen target
                 if (isRanged && rangedCount >= GameBalance.EarlyGameRangedCount)
                 {
