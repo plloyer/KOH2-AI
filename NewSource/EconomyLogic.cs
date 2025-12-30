@@ -147,7 +147,7 @@ namespace AIOverhaul
                         {
                             AIOverhaulPlugin.LogMod($"[ENGLAND] ALLOWING merchant #{merchants + 1} (first 2 are guaranteed)", LogCategory.Economy);
                         }
-                        return true; // Allow vanilla to hire
+                        return true; // Allow vanilla to hire (ConsiderExpense just evaluates, actual hiring happens elsewhere)
                     }
 
                     // For 3rd+ merchant: strict commerce check
@@ -164,6 +164,55 @@ namespace AIOverhaul
                     {
                         AIOverhaulPlugin.LogMod($"[ENGLAND] ALLOWING merchant hire: {requiredCommerce} <= {maxCommerce}", LogCategory.Economy);
                     }
+                    return true; // Allow hiring (commerce check passed)
+                }
+
+                // CLERIC HIRING LOGIC
+                if (cDef.id == CharacterClassNames.Cleric)
+                {
+                    // Rule: Hire 1 cleric after 2 merchants and 50+ gold income
+                    float income = KingdomHelper.GetGoldIncome(__instance.kingdom);
+                    int merchants = KingdomHelper.CountMerchants(__instance.kingdom);
+                    bool hasCleric = KingdomHelper.HasCleric(__instance.kingdom);
+
+                    if (__instance.kingdom.Name == "England")
+                    {
+                        AIOverhaulPlugin.LogMod($"[ENGLAND] Cleric hiring check: income={income}, merchants={merchants}, hasCleric={hasCleric}", LogCategory.Economy);
+                    }
+
+                    // Prerequisites: 2 merchants first, then 50+ income
+                    if (merchants < GameBalance.RequiredMerchantCount)
+                    {
+                        if (__instance.kingdom.Name == "England")
+                        {
+                            AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING cleric: need {GameBalance.RequiredMerchantCount} merchants first", LogCategory.Economy);
+                        }
+                        return false;
+                    }
+
+                    if (income < GameBalance.MinGoldIncomeForClerics)
+                    {
+                        if (__instance.kingdom.Name == "England")
+                        {
+                            AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING cleric: income too low ({income} < {GameBalance.MinGoldIncomeForClerics})", LogCategory.Economy);
+                        }
+                        return false;
+                    }
+
+                    if (hasCleric)
+                    {
+                        if (__instance.kingdom.Name == "England")
+                        {
+                            AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING cleric: already have one", LogCategory.Economy);
+                        }
+                        return false;
+                    }
+
+                    if (__instance.kingdom.Name == "England")
+                    {
+                        AIOverhaulPlugin.LogMod($"[ENGLAND] ALLOWING cleric hire", LogCategory.Economy);
+                    }
+                    return true;
                 }
 
                 // SPY HIRING LOGIC
