@@ -165,6 +165,28 @@ namespace AIOverhaul
         {
             if (k == null) return false;
 
+            // EARLY GAME PREVENTION: Must have baseline economy established first
+            // 1. Must have 2 merchants (baseline commercial capacity)
+            int merchants = KingdomHelper.CountMerchants(k);
+            if (merchants < GameBalance.RequiredMerchantCount)
+            {
+                if (k.Name == "England")
+                {
+                    AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: need {GameBalance.RequiredMerchantCount} merchants first (have {merchants})", LogCategory.Diplomacy);
+                }
+                return false;
+            }
+
+            // 2. Must have at least 2 armies ready (military foundation)
+            if (!KingdomHelper.HasTwoReadyArmies(k))
+            {
+                if (k.Name == "England")
+                {
+                    AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: need 2 ready armies first", LogCategory.Diplomacy);
+                }
+                return false;
+            }
+
             // Diplomats are expensive luxury characters - only hire when we can afford it AND need diplomacy
             float goldIncome = k.income?.Get(ResourceType.Gold) ?? 0f;
 
