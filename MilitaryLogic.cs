@@ -342,6 +342,41 @@ namespace AIOverhaul
         }
     }
 
+    // Prioritize first Barracks placement in provinces with most military districts
+    [HarmonyPatch(typeof(Logic.Castle), "AddBuildOptions", new Type[] { typeof(bool), typeof(Logic.Resource) })]
+    public class BarracksPlacementPatch
+    {
+        static void Postfix(Logic.Castle __instance)
+        {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
+
+            // Get Military district definition
+            Logic.District.Def militaryDistrict = __instance.game?.defs?.Get<Logic.District.Def>("Military");
+            if (militaryDistrict == null) return;
+
+            // Check if this castle already has Barracks (don't boost if it does, as we want to pick the location for the FIRST one)
+            Logic.Building.Def barracksDef = __instance.game?.defs?.Get<Logic.Building.Def>(BuildingNames.Barracks);
+            if (barracksDef != null && __instance.HasBuilding(barracksDef)) return;
+
+            // Find Barracks in build options
+            for (int i = 0; i < Logic.Castle.build_options.Count; i++)
+            {
+                var option = Logic.Castle.build_options[i];
+                if (option.def != null && option.def.id == BuildingNames.Barracks)
+                {
+                    // Boost priority based on military district slots
+                    int slots = militaryDistrict.buildings?.Count ?? 0;
+                    float boost = 1.0f + (slots * 0.25f); // 25% boost per slot
+                    
+                    option.eval *= boost;
+                    Logic.Castle.build_options[i] = option;
+                    
+                    AIOverhaulPlugin.LogMod($" Boosting Barracks evaluation for {__instance.name} (Slots: {slots}, Boost: {boost:F1}x)");
+                }
+            }
+        }
+    }
+
     // Army composition: Prefer 3-4 ranged for every 4-5 melee
     // First two armies: 4 archers, 4 swordsmen
     [HarmonyPatch(typeof(Logic.KingdomAI), "EvalHireUnit")]
@@ -362,9 +397,9 @@ namespace AIOverhaul
                 foreach (var unit in army.units)
                 {
                     if (unit?.def == null) continue;
-                    if (IsRangedUnit(unit.def))
+                    if (unit.def.is_ranged)
                         rangedCount++;
-                    else if (IsMeleeUnit(unit.def))
+                    else if (unit.def.is_infantry)
                         meleeCount++;
                 }
             }
@@ -373,75 +408,60 @@ namespace AIOverhaul
             int totalArmies = kingdom.armies?.Count ?? 0;
             bool isFirstTwoArmies = totalArmies <= 2;
 
-            bool isRanged = IsRangedUnit(udef);
-            bool isMelee = IsMeleeUnit(udef);
+            bool isRanged = udef.is_ranged;
+            bool isMelee = udef.is_infantry;
 
             if (isFirstTwoArmies)
             {
                 // First two armies: 4 archers, 4 swordsmen target
                 if (isRanged && rangedCount >= 4)
                 {
-                    __result *= 0.1f; // Heavily discourage more ranged
+                    __result *= 0.01f; // Strictly discourage more ranged
+                    AIOverhaulPlugin.LogMod($" Blocking extra Ranged for {kingdom.Name} army {totalArmies} (Count: {rangedCount}/4)");
                 }
                 else if (isMelee && meleeCount >= 4)
                 {
-                    __result *= 0.1f; // Heavily discourage more melee
+                    __result *= 0.01f; // Strictly discourage more melee
+                    AIOverhaulPlugin.LogMod($" Blocking extra Melee for {kingdom.Name} army {totalArmies} (Count: {meleeCount}/4)");
                 }
                 else if (isRanged && rangedCount < 4)
                 {
-                    __result *= 1.5f; // Boost ranged priority
+                    __result *= 2.0f; // Strongly boost ranged priority
                 }
                 else if (isMelee && meleeCount < 4)
                 {
-                    __result *= 1.2f; // Slightly boost melee
+                    __result *= 1.5f; // Boost melee
                 }
             }
             else
             {
                 // Late game: 3-4 ranged for 4-5 melee (approximately 3.5:4.5 ratio = 0.778)
-                float currentRatio = meleeCount > 0 ? (float)rangedCount / meleeCount : 999f;
-                float targetRatio = 3.5f / 4.5f; // ~0.778
+                float currentRatio = meleeCount > 0 ? (float)rangedCount / meleeCount : (rangedCount > 0 ? 999f : 0.5f);
+                float targetRatio = 0.8f; // ~4 ranged for 5 melee
 
                 if (isRanged)
                 {
-                    if (currentRatio > targetRatio * 1.2f) // Too many ranged
+                    if (currentRatio > targetRatio * 1.1f) // Too many ranged
                     {
-                        __result *= 0.3f;
+                        __result *= 0.1f;
                     }
-                    else if (currentRatio < targetRatio * 0.8f) // Need more ranged
+                    else if (currentRatio < targetRatio * 0.9f) // Need more ranged
                     {
-                        __result *= 1.8f;
+                        __result *= 2.0f;
                     }
                 }
                 else if (isMelee)
                 {
-                    if (currentRatio < targetRatio * 0.8f) // Need more melee
+                    if (currentRatio < targetRatio * 0.9f) // Need more melee
                     {
-                        __result *= 1.5f;
+                        __result *= 1.8f;
                     }
-                    else if (currentRatio > targetRatio * 1.2f) // Too much melee
+                    else if (currentRatio > targetRatio * 1.1f) // Too much melee
                     {
-                        __result *= 0.5f;
+                        __result *= 0.2f;
                     }
                 }
             }
-        }
-
-        static bool IsRangedUnit(Logic.Unit.Def def)
-        {
-            if (def?.id == null) return false;
-            string id = def.id.ToLower();
-            return id.Contains("archer") || id.Contains("crossbow") || id.Contains("marksman");
-        }
-
-        static bool IsMeleeUnit(Logic.Unit.Def def)
-        {
-            if (def?.id == null) return false;
-            string id = def.id.ToLower();
-            // Melee includes swordsmen, pikemen, spearmen, infantry, etc.
-            return id.Contains("swordsman") || id.Contains("spearman") || id.Contains("pikeman") ||
-                   id.Contains("infantry") || id.Contains("guard") || id.Contains("footman") ||
-                   id.Contains("militia") && !id.Contains("archer");
         }
     }
     // Prioritize fortification upgrades when first two armies are established

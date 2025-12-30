@@ -107,12 +107,13 @@ namespace AIOverhaul
         static bool Prefix(Logic.KingdomAI __instance, ref bool __result)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
-            if (__instance.kingdom.resources[Logic.ResourceType.Gold] > 500 && __instance.kingdom.court.Count < 9)
+            if (__instance.kingdom.resources[Logic.ResourceType.Gold] > 500 && __instance.kingdom.court.Count < Constants.MaxCourtSize)
             {
                 int merchants = 0;
                 foreach (var k in __instance.kingdom.court)
                     if (k != null && k.class_def?.id == CharacterClassNames.Merchant)
                         merchants++;
+                
                 if (merchants < 2)
                 {
                     // USER OVERRIDE: Force 2 Merchants NO MATTER WHAT.
@@ -123,6 +124,17 @@ namespace AIOverhaul
                     Traverse.Create(__instance).Method("HireKnight", new object[] { CharacterClassNames.Merchant }).GetValue();
                     __result = true;
                     return false;
+                }
+                else
+                {
+                    // Strict Commerce Check for 3rd+ Merchant
+                    // Vanilla uses Ceiling(Max/10), which allows hiring when close (e.g. 24 commerce -> 3 merchants).
+                    // We strictly enforce 10 commerce per merchant (e.g. 24 commerce -> max 2 merchants).
+                    float maxCommerce = Traverse.Create(__instance.kingdom).Method("GetMaxCommerce").GetValue<float>();
+                    if ((merchants + 1) * 10f > maxCommerce)
+                    {
+                         return false; // Block hire
+                    }
                 }
             }
 
