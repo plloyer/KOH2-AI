@@ -843,7 +843,6 @@ namespace AIOverhaul
         {
             if (k == null || k.realms == null) return false;
             if (k.realms.Count == 0) return true;
-            // TODO: BuddySystem disabled
             var armies = k?.armies ?? new List<Logic.Army>();
             if (armies.Count == 0) return true;
             float totalStr = 0;
