@@ -47,6 +47,8 @@ namespace AIOverhaul.Constants
         public const float PowerRatioThreatening = 0.75f; // Seek help if neighbors are 75%+ our power
         public const float PowerRatioCombinedThreat = 2.0f; // Defer war if combined threat is 2x stronger
         public const float PowerRatioStrongerEnemy = 1.3f; // Consider peace if enemy 1.3x stronger
+        public const float PowerRatioStrongerNeighbor = 1.2f; // Neighbor is "stronger threat" if 1.2x our power
+        public const int MinStrongerThreatsForDiplomat = 2; // Need 2+ stronger neighbors to hire diplomat
 
         // Diplomacy - Target Selection
         public const float TargetPowerRatioMin = 0.3f;
@@ -68,6 +70,7 @@ namespace AIOverhaul.Constants
         public const int RequiredMerchantCount = 2;
         public const float MinGoldForCourtHiring = 500f;
         public const float MinGoldIncomeForSpies = 500f;
+        public const float MinGoldIncomeForDiplomats = 500f;
         public const float MinGoldIncomeForClerics = 50f;
         public const int CommercePerMerchant = 10;
 

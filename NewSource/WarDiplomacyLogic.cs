@@ -168,12 +168,12 @@ namespace AIOverhaul
             // Diplomats are expensive luxury characters - only hire when we can afford it AND need diplomacy
             float goldIncome = k.income?.Get(ResourceType.Gold) ?? 0f;
 
-            // Need solid income to afford a diplomat (500+ gold income)
-            if (goldIncome < 500f)
+            // Need solid income to afford a diplomat
+            if (goldIncome < GameBalance.MinGoldIncomeForDiplomats)
             {
                 if (k.Name == "England")
                 {
-                    AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: goldIncome too low ({goldIncome} < 500)");
+                    AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: goldIncome too low ({goldIncome} < {GameBalance.MinGoldIncomeForDiplomats})");
                 }
                 return false;
             }
@@ -193,8 +193,8 @@ namespace AIOverhaul
 
                         float neighborPower = GetTotalPower(nk);
 
-                        // Count as threat if they're stronger than us (1.2x power ratio)
-                        if (neighborPower > ownPower * 1.2f)
+                        // Count as threat if they're stronger than us
+                        if (neighborPower > ownPower * GameBalance.PowerRatioStrongerNeighbor)
                         {
                             strongerThreats++;
                         }
@@ -207,8 +207,8 @@ namespace AIOverhaul
                 AIOverhaulPlugin.LogMod($"[ENGLAND] Diplomat check: goldIncome={goldIncome}, ownPower={ownPower}, strongerThreats={strongerThreats}");
             }
 
-            // Hire diplomat if we have 2+ stronger neighbors (need alliances/NAPs to secure flanks)
-            if (strongerThreats >= 2)
+            // Hire diplomat if we have enough stronger neighbors (need alliances/NAPs to secure flanks)
+            if (strongerThreats >= GameBalance.MinStrongerThreatsForDiplomat)
             {
                 if (k.Name == "England")
                 {
@@ -219,7 +219,7 @@ namespace AIOverhaul
 
             if (k.Name == "England")
             {
-                AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: only {strongerThreats} stronger threats (need 2+)");
+                AIOverhaulPlugin.LogMod($"[ENGLAND] BLOCKING diplomat: only {strongerThreats} stronger threats (need {GameBalance.MinStrongerThreatsForDiplomat}+)");
             }
             return false;
         }
