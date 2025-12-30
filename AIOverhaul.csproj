@@ -73,9 +73,11 @@
         <Compile Include="NewSource\Log\EnhancedPerformanceLogger.cs" />
         <Compile Include="NewSource\Log\KingdomBaseline.cs" />
         <Compile Include="NewSource\EconomyLogic.cs" />
+        <Compile Include="NewSource\GovernorLogic.cs" />
         <Compile Include="NewSource\MilitaryLogic.cs" />
         <Compile Include="NewSource\Plugin.cs" />
         <Compile Include="NewSource\RoyalFamilyLogic.cs" />
+        <Compile Include="NewSource\TraditionLogic.cs" />
         <Compile Include="NewSource\TraverseAPI.cs" />
         <Compile Include="NewSource\WarDiplomacyLogic.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>
