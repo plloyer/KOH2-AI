@@ -54,7 +54,6 @@ namespace AIOverhaul
                 if (child.class_def != newClass)
                 {
                     child.SetClass(newClass);
-                    AIOverhaulPlugin.LogMod($" Heir {child.Name} assigned priority class: {newClass.id}");
                 }
             }
         }

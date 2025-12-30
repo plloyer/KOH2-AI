@@ -111,37 +111,28 @@ namespace AIOverhaul
 
         public static bool HasHighThreat(Logic.Kingdom k)
         {
-            if (k == null || k.ai == null) return false;
+            if (k == null || k.realms == null) return false;
 
-            // Access threats via reflection (since it's internal/private in KingdomAI)
-            var threatsField = typeof(KingdomAI).GetField("threats", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
-            if (threatsField != null)
+            // Iterate through all realms in the kingdom and check their threat level
+            foreach (var realm in k.realms)
             {
-                var threats = threatsField.GetValue(k.ai) as IList;
-                if (threats != null)
+                if (realm == null || realm.threat == null) continue;
+                
+                // Level 3 is Level.Attack, 4 is Invaded, 5 is Siege
+                if ((int)realm.threat.level >= GameBalance.KingdomSideAttackLevel) 
                 {
-                    foreach (var t in threats)
-                    {
-                        var levelField = t.GetType().GetField("level");
-                        if (levelField != null)
-                        {
-                            var levelVal = (int)levelField.GetValue(t);
-                            if (levelVal >= 3) // Level.Attack or higher
-                            {
-                                return true;
-                            }
-                        }
-                    }
+                    return true;
                 }
             }
+
             return false;
         }
 
         public static bool WantsInvasionPlan(Logic.Kingdom k)
         {
-            if (k == null || k.ai == null) return false;
+            if (k == null) return false;
 
-            // We want an invasion plan if we have a clear expansion target 
+            // We want an invasion plan if we have a clear expansion target
             // and we are strong enough to consider attacking but would like allies.
             
             // Re-use existing SelectExpansionTarget logic
@@ -152,7 +143,7 @@ namespace AIOverhaul
             float ownPower = GetTotalPower(k);
             float targetPower = GetTotalPower(target);
             
-            if (ownPower > targetPower * 2f) return false; // We can handle it alone
+            if (ownPower > targetPower * GameBalance.PowerRatioSoloCapable) return false; // We can handle it alone
 
             // If we have at least one neighbor who is an ally or high relation, 
             // we might want a diplomat to coordinate.
@@ -160,7 +151,7 @@ namespace AIOverhaul
             {
                 if (neighbor is Logic.Kingdom nk && nk != target && !nk.IsDefeated())
                 {
-                    if (k.IsAlly(nk) || k.GetRelationship(nk) > 200f)
+                    if (k.IsAlly(nk) || k.GetRelationship(nk) > GameBalance.FriendlyRelationshipThreshold)
                     {
                         return true;
                     }
@@ -174,14 +165,46 @@ namespace AIOverhaul
         {
             if (k == null) return false;
 
-            // 1. Defensive Intent: Someone is threatening us
-            if (HasHighThreat(k)) return true;
+            // PREVENT EARLY HIRING: We want a solid economy before luxury characters like diplomats
+            int merchants = KingdomHelper.CountMerchants(k);
+
+            // Allow diplomats if at war regardless of other conditions (defensive need)
+            bool atWar = k.wars != null && k.wars.Count > 0;
+
+            if (!atWar)
+            {
+                // Must have economy established (at least 2 merchants)
+                if (merchants < GameBalance.RequiredMerchantCount) return false;
+            }
+
+            // 1. Defensive Intent: Someone is threatening us (or we are already at war)
+            if (atWar || HasHighThreat(k)) return true;
 
             // 2. Offensive Intent: We are planning to attack someone and want an invasion plan
             if (WantsInvasionPlan(k)) return true;
 
-            // 3. Survival Intent: We are losing a war and need peace (already handled by hire court but good for diplomat)
-            if (GetAverageWarScore(k) < -20f) return true;
+            // 3. Survival Intent: We are losing a war and need peace
+            if (atWar && GetAverageWarScore(k) < GameBalance.WarScoreSurvival) return true;
+
+            return false;
+        }
+
+        public static bool WantsSpy(Logic.Kingdom k)
+        {
+            if (k == null) return false;
+
+            // PREVENT EARLY HIRING: Spies are mid-game luxury characters
+            int merchants = KingdomHelper.CountMerchants(k);
+
+            // Must have economy established (at least 2 merchants)
+            if (merchants < GameBalance.RequiredMerchantCount) return false;
+
+            // Strategic Need: If we are at war, spies can be useful for destabilization
+            if (k.wars != null && k.wars.Count > 0) return true;
+
+            // If we have a lot of gold and nothing better to do? 
+            // For now, let's keep it restricted to war or late-ish game
+            if (k.resources?[ResourceType.Gold] > 10000f) return true;
 
             return false;
         }
@@ -451,7 +474,6 @@ namespace AIOverhaul
             // CRITICAL: Never declare war if we have disorder
             if (WarLogicHelper.HasDisorder(__instance.kingdom))
             {
-                AIOverhaulPlugin.LogMod($" Blocking war on {k.Name} - We have realm(s) in disorder!");
                 __result = false;
                 return false;
             }
@@ -478,7 +500,6 @@ namespace AIOverhaul
             // If combined threats exceed our power by 2x, we're too vulnerable
             if (combinedThreat > ownPower * 2.0f)
             {
-                AIOverhaulPlugin.LogMod($" Blocking war on {k.Name} - Too vulnerable (NeighborThreat: {neighborThreat:F0}, Target: {targetPower:F0}, Us: {ownPower:F0})");
                 __result = false;
                 return false;
             }
@@ -492,19 +513,15 @@ namespace AIOverhaul
                 // Don't attack if enemy is more than 2.5x stronger, even if distracted
                 if (targetPower > ownPower * 2.5f)
                 {
-                    AIOverhaulPlugin.LogMod($" Blocking war on {k.Name} - Target way too strong ({targetPower:F0} vs {ownPower:F0}, ratio {(targetPower/ownPower):F1}x)");
                     __result = false;
                     return false;
                 }
 
                 if (!targetAtWar && !commonEnemy)
                 {
-                    AIOverhaulPlugin.LogMod($" Blocking war on {k.Name} - Target too strong ({targetPower:F0} vs {ownPower:F0}) and not distracted.");
                     __result = false;
                     return false;
                 }
-
-                AIOverhaulPlugin.LogMod($" Proceeding with war on stronger target {k.Name} due to opportunity (AtWar: {targetAtWar}, CommonEnemy: {commonEnemy})");
             }
 
             // NEW: War Preparation - Require 2 Full Armies
@@ -526,7 +543,6 @@ namespace AIOverhaul
 
             if (fullArmies < 2)
             {
-                AIOverhaulPlugin.LogMod($" Blocking war on {k.Name} - Not enough armies prepared ({fullArmies}/2).");
                 __result = false;
                 return false;
             }
@@ -550,7 +566,6 @@ namespace AIOverhaul
             // CRITICAL: If we have disorder and are at war, seek peace immediately
             if (WarLogicHelper.HasDisorder(actor) && actor.wars != null && actor.wars.Count > 0)
             {
-                AIOverhaulPlugin.LogMod($" {actor.Name} has disorder - seeking peace urgently!");
                 // Focus on making peace with ALL enemies
                 if (actor.wars.Count > 0)
                 {
@@ -611,8 +626,6 @@ namespace AIOverhaul
                     targetInfo = " (No expansion target)";
                 }
 
-                AIOverhaulPlugin.LogMod($" {actor.Name} offering NAP to {napTarget.Name} (Rel: {relationship:F0}){targetInfo}");
-
                 __result = RunNonAggressionProposal(__instance, napTarget);
                 return false;
             }
@@ -623,10 +636,6 @@ namespace AIOverhaul
                 Logic.Kingdom pactTarget = WarLogicHelper.FindBestDefensivePactTarget(actor);
                 if (pactTarget != null)
                 {
-                    float gold = actor.resources?[ResourceType.Gold] ?? 0f;
-                    float threat = WarLogicHelper.GetNeighborThreat(actor);
-                    AIOverhaulPlugin.LogMod($" {actor.Name} seeking defensive pact with {pactTarget.Name} (Gold: {gold:F0}, Threat: {threat:F0})");
-
                     __result = RunDefensivePactProposal(__instance, pactTarget);
                     return false;
                 }
@@ -691,33 +700,21 @@ namespace AIOverhaul
         static IEnumerator RunDefensivePactProposal(KingdomAI ai, Logic.Kingdom target)
         {
             // Try to propose a defensive pact
-            if (OfferHelper.TrySendOffer("OfferJoinInDefensivePact", ai, target))
-            {
-                AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} proposing defensive pact to {target.Name}");
-            }
-
+            OfferHelper.TrySendOffer("OfferJoinInDefensivePact", ai, target);
             yield break;
         }
 
         static IEnumerator RunTradeAgreementProposal(KingdomAI ai, Logic.Kingdom target)
         {
             // Try to propose a Trade Agreement (SignTrade)
-            if (OfferHelper.TrySendOffer("SignTrade", ai, target))
-            {
-                AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} RUSHING Trade Agreement with {target.Name}");
-            }
-
+            OfferHelper.TrySendOffer("SignTrade", ai, target);
             yield break;
         }
 
         static IEnumerator RunNonAggressionProposal(KingdomAI ai, Logic.Kingdom target)
         {
             // Offer a FREE non-aggression pact (no gold demanded) to build good relations
-            if (OfferHelper.TrySendOffer("SignNonAggression", ai, target))
-            {
-                AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} offering FREE non-aggression pact to {target.Name}");
-            }
-
+            OfferHelper.TrySendOffer("SignNonAggression", ai, target);
             yield break;
         }
     }
@@ -826,7 +823,6 @@ namespace AIOverhaul
                                 if (expTarget != null && sender == expTarget) return true;
 
                                 __result = 1000f;
-                                AIOverhaulPlugin.LogMod($" {__instance.our_kingdom.Name} FORCE ACCEPTING Trade from {sender.Name}");
                                 return false;
                             }
                         }

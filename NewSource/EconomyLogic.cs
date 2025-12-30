@@ -39,7 +39,6 @@ namespace AIOverhaul
                     {
                         // Block building if no religion district
                         Castle.build_options.RemoveAt(i);
-                        AIOverhaulPlugin.LogMod($" Blocking {option.def.id} in {__instance.name} - no Religion district");
                     }
                     else
                     {
@@ -67,7 +66,6 @@ namespace AIOverhaul
                     {
                         // Block building if no religion district
                         Castle.upgrade_options.RemoveAt(i);
-                        AIOverhaulPlugin.LogMod($" Blocking {option.def.id} upgrade in {__instance.name} - no Religion district");
                     }
                     else
                     {
@@ -118,8 +116,6 @@ namespace AIOverhaul
                     // USER OVERRIDE: Force 2 Merchants NO MATTER WHAT.
                     // Removed checks for Commerce and Busy status for the first 2 slots.
                     // This ensures the AI always has a baseline commercial capacity.
-
-                    AIOverhaulPlugin.LogMod($" FORCE Merchant hire for {__instance.kingdom.Name} (Merchants: {merchants}/{GameBalance.RequiredMerchantCount}, Gold: {gold})");
                     TraverseAPI.HireKnight(__instance, CharacterClassNames.Merchant);
                     __result = true;
                     return false;
@@ -169,9 +165,8 @@ namespace AIOverhaul
             if (KingdomHelper.HasCleric(k)) return true;
 
             // Simplify: Assume court size max is 9 (standard) or check court.Count
-            if (k.court.Count < GameConstants.MaxCourtSize) 
+            if (k.court.Count < GameConstants.MaxCourtSize)
             {
-                 AIOverhaulPlugin.LogMod($" Priority Cleric hire for {k.Name}");
                  TraverseAPI.HireKnight(__instance, CharacterClassNames.Cleric);
                  __result = true;
                  return false;
@@ -367,7 +362,7 @@ namespace AIOverhaul
 
     [HarmonyPatch(typeof(KingdomAI), "ConsiderExpense")]
     [HarmonyPatch(new Type[] { typeof(Logic.KingdomAI.Expense.Type), typeof(BaseObject), typeof(Logic.Object), typeof(KingdomAI.Expense.Category), typeof(Logic.KingdomAI.Expense.Priority), typeof(List<Value>) })]
-    public static class DiplomatHiringPatch
+    public static class CharacterHiringPatch
     {
         static bool Prefix(KingdomAI __instance, BaseObject defParam, Logic.KingdomAI.Expense.Type type)
         {
@@ -378,17 +373,31 @@ namespace AIOverhaul
 
                 if (type == KingdomAI.Expense.Type.HireChacacter && defParam is Logic.CharacterClass.Def cDef)
                 {
-                    if (cDef.id == "Diplomat")
+                    // Logic for Diplomat:
+                    if (cDef.id == CharacterClassNames.Diplomat)
                     {
-                        // Check Income > 150
                         float goldIncome = __instance.kingdom.income.Get(ResourceType.Gold);
                         if (goldIncome <= 150f)
                         {
                             return false; 
                         }
 
-                        // Use the new intent-based logic
                         if (!WarLogicHelper.WantsDiplomat(__instance.kingdom))
+                        {
+                            return false;
+                        }
+                    }
+                    
+                    // Logic for Spy:
+                    if (cDef.id == CharacterClassNames.Spy)
+                    {
+                        float goldIncome = __instance.kingdom.income.Get(ResourceType.Gold);
+                        if (goldIncome <= GameBalance.MinGoldIncomeForSpies)
+                        {
+                            return false;
+                        }
+
+                        if (!WarLogicHelper.WantsSpy(__instance.kingdom))
                         {
                             return false;
                         }
@@ -397,8 +406,9 @@ namespace AIOverhaul
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.LogMod($"Error in DiplomatHiringPatch: {ex}");
+                AIOverhaulPlugin.LogMod($"Error in CharacterHiringPatch: {ex}");
             }
+
             return true;
         }
     }

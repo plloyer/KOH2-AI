@@ -20,7 +20,6 @@ namespace AIOverhaul.Helpers
             string validation = offer.Validate();
             if (validation != "ok")
             {
-                AIOverhaulPlugin.LogMod($" Offer {offerId} to {target.Name} validation failed: {validation}");
                 return false;
             }
 

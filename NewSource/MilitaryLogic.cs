@@ -134,7 +134,6 @@ namespace AIOverhaul
                     float soloWinChance = ownStrength / (ownStrength + enemyStrength);
                     if (soloWinChance < GameBalance.MinBattleWinChance && winChance >= GameBalance.MinBattleWinChance)
                     {
-                        AIOverhaulPlugin.LogMod($" Waiting for buddy before attacking. Combined chance: {winChance:P0}");
                         army.Stop();
                         army.ai_status = "wait_for_buddy";
                         __result = true;
@@ -151,7 +150,6 @@ namespace AIOverhaul
                         {
                             if (castle.army == null || castle.army == army)
                             {
-                                AIOverhaulPlugin.LogMod($" Low win chance ({winChance:P0}) - Retreating army to {castle.name}");
                                 TraverseAPI.SendArmy(__instance, army, castle, "retreat_low_chance", null);
                                 __result = true;
                                 return false;
@@ -159,7 +157,6 @@ namespace AIOverhaul
                         }
                     }
 
-                    AIOverhaulPlugin.LogMod($" Skipping battle: Win chance {winChance:P0} < {GameBalance.MinBattleWinChance:P0}");
                     __result = false;
                     return false;
                 }
@@ -206,8 +203,6 @@ namespace AIOverhaul
                     Logic.MapObject leaderTarget = leader.GetTarget();
                     if (leaderTarget != null && leaderTarget != army.GetTarget())
                     {
-                        string targetName = (leaderTarget is Logic.Castle c) ? c.name : leaderTarget.ToString();
-                        AIOverhaulPlugin.LogMod($" Follower following leader to {targetName}");
                         TraverseAPI.SendArmy(__instance, army, leaderTarget, "follow_buddy", null);
                         return;
                     }
@@ -303,8 +298,6 @@ namespace AIOverhaul
 
                     option.eval *= boost;
                     Logic.Castle.build_options[i] = option;
-
-                    AIOverhaulPlugin.LogMod($" Boosting Barracks evaluation for {__instance.name} (Slots: {slots}, Boost: {boost:F1}x)");
                 }
             }
         }
@@ -350,12 +343,10 @@ namespace AIOverhaul
                 if (isRanged && rangedCount >= GameBalance.EarlyGameRangedCount)
                 {
                     __result *= GameBalance.StrictBlockMultiplier;
-                    AIOverhaulPlugin.LogMod($" Blocking extra Ranged for {kingdom.Name} army {totalArmies} (Count: {rangedCount}/{GameBalance.EarlyGameRangedCount})");
                 }
                 else if (isMelee && meleeCount >= GameBalance.EarlyGameMeleeCount)
                 {
                     __result *= GameBalance.StrictBlockMultiplier;
-                    AIOverhaulPlugin.LogMod($" Blocking extra Melee for {kingdom.Name} army {totalArmies} (Count: {meleeCount}/{GameBalance.EarlyGameMeleeCount})");
                 }
                 else if (isRanged && rangedCount < GameBalance.EarlyGameRangedCount)
                 {
@@ -408,46 +399,39 @@ namespace AIOverhaul
             // Check if first two armies are ready
             bool firstTwoArmiesReady = KingdomHelper.HasTwoReadyArmies(__instance.kingdom);
 
-            // Only boost priority for level 0 -> 1 upgrade when first two armies are ready
-            if (!firstTwoArmiesReady || castle?.fortifications == null || castle.fortifications.level != 0)
-            {
-                return true; // Run original method
-            }
-
-            // Reimplementation with High priority for first fortification level
-            Logic.Realm realm = castle.GetRealm();
+            // If not ready, use default logic (which tends to be low priority)
+            if (!firstTwoArmiesReady) return true;
+            
+            // Reimplementation with URGENT priority for ALL fortification levels if armies are ready
+            Logic.Realm realm = castle?.GetRealm();
             if (realm == null)
             {
                 __result = false;
                 return false;
             }
 
+            // REMOVED SAFE CHECK: We want to upgrade even in peace time if we have the armies ready
             Logic.KingdomAI.Threat threat = realm.threat;
-            if (threat.level == Logic.KingdomAI.Threat.Level.Safe || threat.level >= Logic.KingdomAI.Threat.Level.Invaded)
+            
+            // Still block if invaded as building during siege is usually invalid/risky logic
+            if (threat.level >= Logic.KingdomAI.Threat.Level.Invaded)
             {
                 __result = false;
                 return false;
             }
 
-            // Access categories[1] for Military weight check
-            var categories = TraverseAPI.GetCategories(__instance);
-            if (categories == null || categories.Length < GameBalance.FirstTwoArmiesCount || categories[1].weight <= 0f)
-            {
-                __result = false;
-                return false;
-            }
-
+            // Check affordability
             if (!castle.CanUpgradeFortification() || !castle.CanAffordFortificationsUpgrade())
             {
                 __result = false;
                 return false;
             }
 
-            // Boost to High priority when first two armies are ready
-            Logic.KingdomAI.Expense.Priority priority = Logic.KingdomAI.Expense.Priority.High;
-            AIOverhaulPlugin.LogMod($" First two armies ready - upgrading {castle.name} fortifications to level 1 with HIGH priority");
+            // Boost to URGENT priority
+            // This normally bypasses category weight checks in ConsiderExpense
+            Logic.KingdomAI.Expense.Priority priority = Logic.KingdomAI.Expense.Priority.Urgent;
 
-            // Call ConsiderExpense with High priority
+            // Call ConsiderExpense with Urgent priority
             TraverseAPI.ConsiderExpense(__instance,
                 Logic.KingdomAI.Expense.Type.UpgradeFortifications,
                 null,
@@ -495,8 +479,6 @@ namespace AIOverhaul
                 var action = army.leader?.FindAction("CampArmyAction");
                 if (action != null && action.Validate() == "ok")
                 {
-                    // Fix: army.Name -> army.ToString()
-                    AIOverhaulPlugin.LogMod($" Army {army.ToString()} ({army.GetNid()}) needs heal (InOwn: {inOwnTerritory}). Camping.");
                     action.Execute(null);
                     return false;
                 }
@@ -553,7 +535,6 @@ namespace AIOverhaul
                     }
                     else
                     {
-                        AIOverhaulPlugin.LogMod($" Blocking Assault on secondary castle/fort in {realm.ToString()}");
                         return false;
                     }
                 }
