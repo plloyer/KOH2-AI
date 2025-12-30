@@ -16,4 +16,15 @@ namespace AIOverhaul.Constants
         Governor,     // Governor assignments
         Spectator     // F9 spectator mode toggles
     }
+
+    /// <summary>
+    /// Log verbosity levels for filtering log output
+    /// </summary>
+    public enum LogLevel
+    {
+        Error,        // Critical errors that break functionality
+        Warning,      // Potential issues or unexpected behavior
+        Log,          // Standard important events (always shown)
+        Diagnostic    // Detailed debugging info (filtered, only shown for England)
+    }
 }

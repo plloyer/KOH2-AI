@@ -87,10 +87,17 @@ namespace AIOverhaul
         /// <summary>
         /// Static logging helper that automatically adds the [AI-Mod] prefix, category tag, and kingdom name
         /// </summary>
-        public static void LogMod(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null)
+        public static void LogMod(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null, LogLevel level = LogLevel.Log)
         {
+            // Filter Diagnostic logs - only show for England
+            if (level == LogLevel.Diagnostic && kingdom != null && kingdom.Name != "England")
+            {
+                return; // Skip this log
+            }
+
+            string levelTag = level == LogLevel.Diagnostic ? "[DIAG] " : "";
             string kingdomTag = kingdom != null ? $"[{kingdom.Name}] " : "";
-            Instance?.Log($"{LogPrefix}[{category}]{kingdomTag}{message}");
+            Instance?.Log($"{LogPrefix}[{category}]{kingdomTag}{levelTag}{message}");
         }
 
         // Update() method removed - F9 detection now handled in GameUpdatePatch

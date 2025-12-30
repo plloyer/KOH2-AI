@@ -122,16 +122,10 @@ namespace AIOverhaul
                 return true;
 
             // DIAGNOSTIC: Log every character hiring ConsiderExpense call to verify patch is working
-            AIOverhaulPlugin.LogMod($"[DIAGNOSTIC] ConsiderExpense called: character={cDef.id}", LogCategory.General, __instance.kingdom);
+            bool isEnhanced = AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom);
+            AIOverhaulPlugin.LogMod($"ConsiderExpense called: character={cDef.id}, isEnhancedAI={isEnhanced}", LogCategory.Economy, __instance.kingdom, LogLevel.Diagnostic);
 
-            // Log ALL character hiring attempts for England (before Enhanced AI check)
-            if (__instance.kingdom.Name == "England")
-            {
-                bool isEnhanced = AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom);
-                AIOverhaulPlugin.LogMod($"ConsiderExpense(Expense) called for {cDef.id}, isEnhancedAI={isEnhanced}", LogCategory.Economy, __instance.kingdom);
-            }
-
-            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom))
+            if (!isEnhanced)
                 return true;
 
             // MERCHANT HIRING LOGIC
@@ -141,35 +135,23 @@ namespace AIOverhaul
                 float maxCommerce = TraverseAPI.GetMaxCommerce(__instance.kingdom);
                 int requiredCommerce = (merchants + 1) * GameBalance.CommercePerMerchant;
 
-                if (__instance.kingdom.Name == "England")
-                {
-                    AIOverhaulPlugin.LogMod($"Merchant hiring check: merchants={merchants}, maxCommerce={maxCommerce}, requiredCommerce={requiredCommerce}", LogCategory.Economy, __instance.kingdom);
-                }
+                AIOverhaulPlugin.LogMod($"Merchant hiring check: merchants={merchants}, maxCommerce={maxCommerce}, requiredCommerce={requiredCommerce}", LogCategory.Economy, __instance.kingdom, LogLevel.Diagnostic);
 
                 // Allow first 2 merchants unconditionally
                 if (merchants < GameBalance.RequiredMerchantCount)
                 {
-                    if (__instance.kingdom.Name == "England")
-                    {
-                        AIOverhaulPlugin.LogMod($"ALLOWING merchant #{merchants + 1} (first 2 are guaranteed)", LogCategory.Economy, __instance.kingdom);
-                    }
+                    AIOverhaulPlugin.LogMod($"ALLOWING merchant #{merchants + 1} (first 2 are guaranteed)", LogCategory.Economy, __instance.kingdom, LogLevel.Diagnostic);
                     return true; // Allow vanilla to hire (ConsiderExpense just evaluates, actual hiring happens elsewhere)
                 }
 
                 // For 3rd+ merchant: strict commerce check
                 if (requiredCommerce > maxCommerce)
                 {
-                    if (__instance.kingdom.Name == "England")
-                    {
-                        AIOverhaulPlugin.LogMod($"BLOCKING merchant hire: need {requiredCommerce} but only have {maxCommerce} max commerce", LogCategory.Economy, __instance.kingdom);
-                    }
+                    AIOverhaulPlugin.LogMod($"BLOCKING merchant hire: need {requiredCommerce} but only have {maxCommerce} max commerce", LogCategory.Economy, __instance.kingdom, LogLevel.Diagnostic);
                     return false; // Block hire
                 }
 
-                if (__instance.kingdom.Name == "England")
-                {
-                    AIOverhaulPlugin.LogMod($"ALLOWING merchant hire: {requiredCommerce} <= {maxCommerce}", LogCategory.Economy, __instance.kingdom);
-                }
+                AIOverhaulPlugin.LogMod($"ALLOWING merchant hire: {requiredCommerce} <= {maxCommerce}", LogCategory.Economy, __instance.kingdom, LogLevel.Diagnostic);
                 return true; // Allow hiring (commerce check passed)
             }
 
@@ -181,43 +163,28 @@ namespace AIOverhaul
                 int merchants = KingdomHelper.CountMerchants(__instance.kingdom);
                 bool hasCleric = KingdomHelper.HasCleric(__instance.kingdom);
 
-                if (__instance.kingdom.Name == "England")
-                {
-                    AIOverhaulPlugin.LogMod($"Cleric hiring check: income={income}, merchants={merchants}, hasCleric={hasCleric}", LogCategory.Economy, __instance.kingdom);
-                }
+                AIOverhaulPlugin.LogMod($"Cleric hiring check: income={income}, merchants={merchants}, hasCleric={hasCleric}", LogCategory.Economy, __instance.kingdom, LogLevel.Diagnostic);
 
                 // Prerequisites: 2 merchants first, then 50+ income
                 if (merchants < GameBalance.RequiredMerchantCount)
                 {
-                    if (__instance.kingdom.Name == "England")
-                    {
-                        AIOverhaulPlugin.LogMod($"BLOCKING cleric: need {GameBalance.RequiredMerchantCount} merchants first", LogCategory.Economy, __instance.kingdom);
-                    }
+                    AIOverhaulPlugin.LogMod($"BLOCKING cleric: need {GameBalance.RequiredMerchantCount} merchants first", LogCategory.Economy, __instance.kingdom, LogLevel.Diagnostic);
                     return false;
                 }
 
                 if (income < GameBalance.MinGoldIncomeForClerics)
                 {
-                    if (__instance.kingdom.Name == "England")
-                    {
-                        AIOverhaulPlugin.LogMod($"BLOCKING cleric: income too low ({income} < {GameBalance.MinGoldIncomeForClerics})", LogCategory.Economy, __instance.kingdom);
-                    }
+                    AIOverhaulPlugin.LogMod($"BLOCKING cleric: income too low ({income} < {GameBalance.MinGoldIncomeForClerics})", LogCategory.Economy, __instance.kingdom, LogLevel.Diagnostic);
                     return false;
                 }
 
                 if (hasCleric)
                 {
-                    if (__instance.kingdom.Name == "England")
-                    {
-                        AIOverhaulPlugin.LogMod($"BLOCKING cleric: already have one", LogCategory.Economy, __instance.kingdom);
-                    }
+                    AIOverhaulPlugin.LogMod($"BLOCKING cleric: already have one", LogCategory.Economy, __instance.kingdom, LogLevel.Diagnostic);
                     return false;
                 }
 
-                if (__instance.kingdom.Name == "England")
-                {
-                    AIOverhaulPlugin.LogMod($"ALLOWING cleric hire", LogCategory.Economy, __instance.kingdom);
-                }
+                AIOverhaulPlugin.LogMod($"ALLOWING cleric hire", LogCategory.Economy, __instance.kingdom, LogLevel.Diagnostic);
                 return true;
             }
 
@@ -242,17 +209,11 @@ namespace AIOverhaul
                 bool wants = WarLogicHelper.WantsDiplomat(__instance.kingdom);
                 if (!wants)
                 {
-                    if (__instance.kingdom.Name == "England")
-                    {
-                        AIOverhaulPlugin.LogMod($"BLOCKING diplomat in ConsiderExpense(Expense): WantsDiplomat returned false", LogCategory.Economy, __instance.kingdom);
-                    }
+                    AIOverhaulPlugin.LogMod($"BLOCKING diplomat: WantsDiplomat returned false", LogCategory.Economy, __instance.kingdom, LogLevel.Diagnostic);
                     return false;
                 }
 
-                if (__instance.kingdom.Name == "England")
-                {
-                    AIOverhaulPlugin.LogMod($"ALLOWING diplomat hire in ConsiderExpense(Expense)", LogCategory.Economy, __instance.kingdom);
-                }
+                AIOverhaulPlugin.LogMod($"ALLOWING diplomat hire", LogCategory.Economy, __instance.kingdom, LogLevel.Diagnostic);
             }
 
             return true;
