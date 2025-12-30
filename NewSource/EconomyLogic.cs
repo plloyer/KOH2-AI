@@ -5,6 +5,8 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using AIOverhaul;
+using AIOverhaul.Constants;
+using AIOverhaul.Helpers;
 
 namespace AIOverhaul
 {
@@ -45,7 +47,7 @@ namespace AIOverhaul
                         // Boost priority for castles with religion district
                         // Further boost based on how many religion slots available
                         int religionSlots = CountReligionSlots(__instance, religionDistrict);
-                        float boost = 1.0f + (religionSlots * 0.2f); // 20% boost per slot
+                        float boost = 1.0f + (religionSlots * GameBalance.ReligionBuildingBoostPerSlot);
                         option.eval *= boost;
                         Logic.Castle.build_options[i] = option;
                     }
@@ -72,7 +74,7 @@ namespace AIOverhaul
                     {
                         // Boost priority for castles with religion district
                         int religionSlots = CountReligionSlots(__instance, religionDistrict);
-                        float boost = 1.0f + (religionSlots * 0.2f);
+                        float boost = 1.0f + (religionSlots * GameBalance.ReligionBuildingBoostPerSlot);
                         option.eval *= boost;
                         Logic.Castle.upgrade_options[i] = option;
                     }
@@ -107,20 +109,18 @@ namespace AIOverhaul
         static bool Prefix(Logic.KingdomAI __instance, ref bool __result)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
-            if (__instance.kingdom.resources[Logic.ResourceType.Gold] > 500 && __instance.kingdom.court.Count < Constants.MaxCourtSize)
+            float gold = KingdomHelper.GetGold(__instance.kingdom);
+            if (gold > GameBalance.MinGoldForCourtHiring && __instance.kingdom.court.Count < GameConstants.MaxCourtSize)
             {
-                int merchants = 0;
-                foreach (var k in __instance.kingdom.court)
-                    if (k != null && k.class_def?.id == CharacterClassNames.Merchant)
-                        merchants++;
-                
-                if (merchants < 2)
+                int merchants = KingdomHelper.CountMerchants(__instance.kingdom);
+
+                if (merchants < GameBalance.RequiredMerchantCount)
                 {
                     // USER OVERRIDE: Force 2 Merchants NO MATTER WHAT.
                     // Removed checks for Commerce and Busy status for the first 2 slots.
                     // This ensures the AI always has a baseline commercial capacity.
-                    
-                    AIOverhaulPlugin.LogMod($" FORCE Merchant hire for {__instance.kingdom.Name} (Merchants: {merchants}/2, Gold: {__instance.kingdom.resources[Logic.ResourceType.Gold]})");
+
+                    AIOverhaulPlugin.LogMod($" FORCE Merchant hire for {__instance.kingdom.Name} (Merchants: {merchants}/{GameBalance.RequiredMerchantCount}, Gold: {gold})");
                     TraverseAPI.HireKnight(__instance, CharacterClassNames.Merchant);
                     __result = true;
                     return false;
@@ -131,7 +131,7 @@ namespace AIOverhaul
                     // Vanilla uses Ceiling(Max/10), which allows hiring when close (e.g. 24 commerce -> 3 merchants).
                     // We strictly enforce 10 commerce per merchant (e.g. 24 commerce -> max 2 merchants).
                     float maxCommerce = TraverseAPI.GetMaxCommerce(__instance.kingdom);
-                    if ((merchants + 1) * 10f > maxCommerce)
+                    if ((merchants + 1) * GameBalance.CommercePerMerchant > maxCommerce)
                     {
                          return false; // Block hire
                     }
@@ -151,26 +151,26 @@ namespace AIOverhaul
 
             // Rule: Have at least 1 clergy when positive in Clergy opinion
             // (but only after the first two merchants and at least 50 gold income)
-            
+
             var k = __instance.kingdom;
-            float income = k.income[Logic.ResourceType.Gold];
-            
+            float income = KingdomHelper.GetGoldIncome(k);
+
             // Check prerequisites
-            if (income < 50f) return true; // Let vanilla decide if poor
-            
-            
+            if (income < GameBalance.MinGoldIncomeForClerics) return true; // Let vanilla decide if poor
+
+
             // Count merchants
-            int merchants = k.court.Count(c => c != null && c.IsMerchant());
-            if (merchants < 2) return true;
+            int merchants = KingdomHelper.CountMerchants(k);
+            if (merchants < GameBalance.RequiredMerchantCount) return true;
 
             // Simplify: Remove Opinion logic for now to fix build (requires finding SocialGroup enum)
             // if (k.opinions.GetOpinion(Logic.Kingdom.SocialGroup.Clergy) <= 0) return true;
 
             // Check if we already have a cleric
-            if (k.court.Any(c => c != null && c.IsCleric())) return true;
+            if (KingdomHelper.HasCleric(k)) return true;
 
             // Simplify: Assume court size max is 9 (standard) or check court.Count
-            if (k.court.Count < Constants.MaxCourtSize) 
+            if (k.court.Count < GameConstants.MaxCourtSize) 
             {
                  AIOverhaulPlugin.LogMod($" Priority Cleric hire for {k.Name}");
                  TraverseAPI.HireKnight(__instance, CharacterClassNames.Cleric);
@@ -195,8 +195,8 @@ namespace AIOverhaul
                 if (expense.defParam is Logic.CharacterClass.Def cDef && cDef.name == "Spy")
                 {
                     // Rule: No spies until the AI has 500 gold income
-                    float income = __instance.kingdom.income[Logic.ResourceType.Gold];
-                    if (income < 500f)
+                    float income = KingdomHelper.GetGoldIncome(__instance.kingdom);
+                    if (income < GameBalance.MinGoldIncomeForSpies)
                     {
                         return false; // Block this expense from being considered
                     }

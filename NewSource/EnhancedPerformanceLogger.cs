@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Logic;
 using IOPath = System.IO.Path;
+using AIOverhaul.Helpers;
+using AIOverhaul.Constants;
 
 namespace AIOverhaul
 {
@@ -23,20 +25,7 @@ namespace AIOverhaul
 
         static Dictionary<int, KingdomBaseline> kingdomBaselines = new Dictionary<int, KingdomBaseline>();
         static int logCounter = 0;
-        static readonly int AGGREGATE_LOG_INTERVAL = 50; // Log aggregate stats every 50 cycles
-
-        /// <summary>
-        /// Escapes a string for CSV output by wrapping in quotes and escaping internal quotes
-        /// </summary>
-        static string EscapeCsv(string value)
-        {
-            if (string.IsNullOrEmpty(value)) return "";
-            if (value.Contains(",") || value.Contains("\"") || value.Contains("\n"))
-            {
-                return "\"" + value.Replace("\"", "\"\"") + "\"";
-            }
-            return value;
-        }
+        static readonly int AGGREGATE_LOG_INTERVAL = GameBalance.AggregateLogInterval;
 
         static EnhancedPerformanceLogger()
         {
@@ -179,11 +168,11 @@ namespace AIOverhaul
                 int kingWritingSkill = k.royalFamily?.Sovereign?.GetSkillRank(SkillNames.Writing) ?? 0;
                 string kingClass = k.royalFamily?.Sovereign?.class_name ?? "None";
 
-                string line = $"{timestamp},{currentYear:F1},{EscapeCsv(k.Name)},{aiType}," +
+                string line = $"{timestamp},{currentYear:F1},{CsvHelper.Escape(k.Name)},{aiType}," +
                              $"{currentRealms},{currentGold:F0},{currentArmies},{currentStrength:F0},{currentWars},{currentTraditions},{currentBooks},{currentVassals},{currentAllies}," +
                              $"{realmsGrowthRate:F2},{goldGrowthRate:F0},{strengthGrowthRate:F0},{traditionsGrowthRate:F2},{booksGrowthRate:F2}," +
                              $"{realmsRatio:F2},{strengthRatio:F2},{goldPerRealm:F0},{strengthPerRealm:F0}," +
-                             $"{kingWritingSkill},{EscapeCsv(kingClass)},{yearsElapsed:F1}," +
+                             $"{kingWritingSkill},{CsvHelper.Escape(kingClass)},{yearsElapsed:F1}," +
                              $"False,";
 
                 lines.Add(line);
@@ -228,7 +217,7 @@ namespace AIOverhaul
                     baseline.MarkDefeated(currentYear);
 
                     string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                    string line = $"{timestamp},{currentYear:F1},{EscapeCsv(k.Name)},{aiType}," +
+                    string line = $"{timestamp},{currentYear:F1},{CsvHelper.Escape(k.Name)},{aiType}," +
                                  $"0,0,0,0,0,0,0,0,0," + // All current metrics zero
                                  $"0,0,0,0,0," + // Growth rates zero
                                  $"0,0,0,0," + // Ratios zero

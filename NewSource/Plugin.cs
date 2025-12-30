@@ -3,6 +3,7 @@ using HarmonyLib;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using AIOverhaul.Constants;
 
 namespace AIOverhaul
 {
@@ -119,7 +120,7 @@ namespace AIOverhaul
             List<Logic.Kingdom> aiKingdoms = game.kingdoms.Where(k => k != null && !k.is_player && !k.IsDefeated()).ToList();
 
             // Increased to 30% for better statistical validity
-            int targetCount = Mathf.Max(1, Mathf.RoundToInt(aiKingdoms.Count * 0.30f));
+            int targetCount = Mathf.Max(1, Mathf.RoundToInt(aiKingdoms.Count * GameBalance.EnhancedAISelectionPercentage));
 
             // Randomize selection
             System.Random rand = new System.Random();

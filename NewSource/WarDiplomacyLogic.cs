@@ -3,6 +3,8 @@ using Logic;
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using AIOverhaul.Constants;
+using AIOverhaul.Helpers;
 
 namespace AIOverhaul
 {
@@ -630,12 +632,12 @@ namespace AIOverhaul
                 }
             }
 
-            if (score < -15f || actor.wars.Count >= 2)
+            if (score < GameBalance.WarScorePeaceSeeking || actor.wars.Count >= GameBalance.MaxWarsCount)
             {
                 Logic.Kingdom target = null;
 
                 // Priority 1: Strongest enemy for peace
-                if (score < -20f)
+                if (score < GameBalance.WarScoreSurvival)
                 {
                     float worst = 0;
                     foreach (var war in actor.wars)
@@ -689,27 +691,9 @@ namespace AIOverhaul
         static IEnumerator RunDefensivePactProposal(Logic.KingdomAI ai, Logic.Kingdom target)
         {
             // Try to propose a defensive pact
-            Logic.Offer pactOffer = Logic.Offer.GetCachedOffer("OfferJoinInDefensivePact", (Logic.Object)ai.kingdom, (Logic.Object)target);
-
-            if (pactOffer != null)
+            if (OfferHelper.TrySendOffer("OfferJoinInDefensivePact", ai, target))
             {
-                string validation = pactOffer.Validate();
-                if (validation == "ok")
-                {
-                    AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} proposing defensive pact to {target.Name}");
-                    pactOffer.AI = true;
-                    pactOffer.Send();
-
-                    if (target.is_player)
-                    {
-                        ai.SetLastOfferTimeToKingdom(target, pactOffer);
-                        target.t_last_ai_offer_time = ai.game.time;
-                    }
-                }
-                else
-                {
-                    AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} pact offer to {target.Name} invalid: {validation}");
-                }
+                AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} proposing defensive pact to {target.Name}");
             }
 
             yield break;
@@ -718,23 +702,9 @@ namespace AIOverhaul
         static IEnumerator RunTradeAgreementProposal(Logic.KingdomAI ai, Logic.Kingdom target)
         {
             // Try to propose a Trade Agreement (SignTrade)
-            Logic.Offer tradeOffer = Logic.Offer.GetCachedOffer("SignTrade", (Logic.Object)ai.kingdom, (Logic.Object)target);
-
-            if (tradeOffer != null)
+            if (OfferHelper.TrySendOffer("SignTrade", ai, target))
             {
-                string validation = tradeOffer.Validate();
-                if (validation == "ok")
-                {
-                    AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} RUSHING Trade Agreement with {target.Name}");
-                    tradeOffer.AI = true;
-                    tradeOffer.Send();
-
-                    if (target.is_player)
-                    {
-                        ai.SetLastOfferTimeToKingdom(target, tradeOffer);
-                        target.t_last_ai_offer_time = ai.game.time;
-                    }
-                }
+                AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} RUSHING Trade Agreement with {target.Name}");
             }
 
             yield break;
@@ -743,27 +713,9 @@ namespace AIOverhaul
         static IEnumerator RunNonAggressionProposal(Logic.KingdomAI ai, Logic.Kingdom target)
         {
             // Offer a FREE non-aggression pact (no gold demanded) to build good relations
-            Logic.Offer napOffer = Logic.Offer.GetCachedOffer("SignNonAggression", (Logic.Object)ai.kingdom, (Logic.Object)target);
-
-            if (napOffer != null)
+            if (OfferHelper.TrySendOffer("SignNonAggression", ai, target))
             {
-                string validation = napOffer.Validate();
-                if (validation == "ok")
-                {
-                    AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} offering FREE non-aggression pact to {target.Name}");
-                    napOffer.AI = true;
-                    napOffer.Send();
-
-                    if (target.is_player)
-                    {
-                        ai.SetLastOfferTimeToKingdom(target, napOffer);
-                        target.t_last_ai_offer_time = ai.game.time;
-                    }
-                }
-                else
-                {
-                    AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} NAP offer to {target.Name} invalid: {validation}");
-                }
+                AIOverhaulPlugin.LogMod($" {ai.kingdom.Name} offering FREE non-aggression pact to {target.Name}");
             }
 
             yield break;
@@ -785,19 +737,13 @@ namespace AIOverhaul
                 float myStr = WarLogicHelper.GetTotalPower(actor);
                 float theirStr = WarLogicHelper.GetTotalPower(k);
                 float kScore = WarLogicHelper.GetAverageWarScore(k);
-                if (myStr > theirStr * 1.3f || k.wars.Count > 2 || kScore < -30f)
+                if (myStr > theirStr * GameBalance.PowerRatioStrongerEnemy ||
+                    k.wars.Count > GameBalance.MaxWarsCount ||
+                    kScore < GameBalance.WarScoreIndependence)
                 {
-                    Logic.Offer indep = Logic.Offer.GetCachedOffer("ClaimIndependence", (Logic.Object)actor, (Logic.Object)k);
-                    if (indep != null && indep.Validate() == "ok")
+                    if (OfferHelper.TrySendOffer("ClaimIndependence", __instance, k))
                     {
                         AIOverhaulPlugin.LogMod($" {actor.Name} claiming independence from {k.Name}");
-                        indep.Send();
-                        if (k.is_player)
-                        {
-                            __instance.SetLastOfferTimeToKingdom(k, indep);
-                            k.t_last_ai_offer_time = __instance.game.time;
-                        }
-
                         __result = true;
                         return false;
                     }
@@ -808,7 +754,7 @@ namespace AIOverhaul
             if (actor.IsEnemy(k))
             {
                 float score = WarLogicHelper.GetAverageWarScore(actor);
-                if (score < -40f || (score < -10f && SurvivalLogic.IsDesperate(actor)))
+                if (score < GameBalance.WarScoreSurrender || (score < GameBalance.WarScoreDesperateIndependence && SurvivalLogic.IsDesperate(actor)))
                 {
                     Logic.Offer peace = Logic.Offer.GetCachedOffer("PeaceOfferTribute", (Logic.Object)actor, (Logic.Object)k);
                     Logic.Offer vassal = Logic.Offer.GetCachedOffer("OfferVassalage", (Logic.Object)actor, (Logic.Object)k);

@@ -3,6 +3,8 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using AIOverhaul.Constants;
+using AIOverhaul.Helpers;
 
 namespace AIOverhaul
 {
@@ -130,7 +132,7 @@ namespace AIOverhaul
                 if (buddy != null && !buddyPresent && enemyStrength > 0)
                 {
                     float soloWinChance = ownStrength / (ownStrength + enemyStrength);
-                    if (soloWinChance < 0.45f && winChance >= 0.45f)
+                    if (soloWinChance < GameBalance.MinBattleWinChance && winChance >= GameBalance.MinBattleWinChance)
                     {
                         AIOverhaulPlugin.LogMod($" Waiting for buddy before attacking. Combined chance: {winChance:P0}");
                         army.Stop();
@@ -140,7 +142,7 @@ namespace AIOverhaul
                     }
                 }
 
-                if (winChance < 0.45f)
+                if (winChance < GameBalance.MinBattleWinChance)
                 {
                     if (realmIn.kingdom_id == __instance.kingdom.id && army.castle == null)
                     {
@@ -157,7 +159,7 @@ namespace AIOverhaul
                         }
                     }
 
-                    AIOverhaulPlugin.LogMod($" Skipping battle: Win chance {winChance:P0} < 45%");
+                    AIOverhaulPlugin.LogMod($" Skipping battle: Win chance {winChance:P0} < {GameBalance.MinBattleWinChance:P0}");
                     __result = false;
                     return false;
                 }
@@ -253,7 +255,7 @@ namespace AIOverhaul
                     if (option.def.id == "Fletcher_Barracks")
                     {
                         // Significantly boost Fletcher evaluation
-                        option.eval *= 2.0f;
+                        option.eval *= GameBalance.StrongBoostMultiplier;
                         Logic.Castle.upgrade_options[i] = option;
                     }
                     else if (option.def.id == "Swordsmith")
@@ -264,7 +266,7 @@ namespace AIOverhaul
                         if (!hasFletcherBarracks)
                         {
                             // Drastically reduce Swordsmith priority until Fletcher is built
-                            option.eval *= 0.1f;
+                            option.eval *= GameBalance.StrongPenaltyMultiplier;
                             Logic.Castle.upgrade_options[i] = option;
                         }
                     }
@@ -297,11 +299,11 @@ namespace AIOverhaul
                 {
                     // Boost priority based on military district slots
                     int slots = militaryDistrict.buildings?.Count ?? 0;
-                    float boost = 1.0f + (slots * 0.25f); // 25% boost per slot
-                    
+                    float boost = 1.0f + (slots * GameBalance.BarracksSlotBoostPerSlot);
+
                     option.eval *= boost;
                     Logic.Castle.build_options[i] = option;
-                    
+
                     AIOverhaulPlugin.LogMod($" Boosting Barracks evaluation for {__instance.name} (Slots: {slots}, Boost: {boost:F1}x)");
                 }
             }
@@ -337,7 +339,7 @@ namespace AIOverhaul
 
             // Count total armies to determine if this is one of the first two
             int totalArmies = kingdom.armies?.Count ?? 0;
-            bool isFirstTwoArmies = totalArmies <= 2;
+            bool isFirstTwoArmies = totalArmies <= GameBalance.FirstTwoArmiesCount;
 
             bool isRanged = udef.is_ranged;
             bool isMelee = udef.is_infantry;
@@ -345,51 +347,51 @@ namespace AIOverhaul
             if (isFirstTwoArmies)
             {
                 // First two armies: 4 archers, 4 swordsmen target
-                if (isRanged && rangedCount >= 4)
+                if (isRanged && rangedCount >= GameBalance.EarlyGameRangedCount)
                 {
-                    __result *= 0.01f; // Strictly discourage more ranged
-                    AIOverhaulPlugin.LogMod($" Blocking extra Ranged for {kingdom.Name} army {totalArmies} (Count: {rangedCount}/4)");
+                    __result *= GameBalance.StrictBlockMultiplier;
+                    AIOverhaulPlugin.LogMod($" Blocking extra Ranged for {kingdom.Name} army {totalArmies} (Count: {rangedCount}/{GameBalance.EarlyGameRangedCount})");
                 }
-                else if (isMelee && meleeCount >= 4)
+                else if (isMelee && meleeCount >= GameBalance.EarlyGameMeleeCount)
                 {
-                    __result *= 0.01f; // Strictly discourage more melee
-                    AIOverhaulPlugin.LogMod($" Blocking extra Melee for {kingdom.Name} army {totalArmies} (Count: {meleeCount}/4)");
+                    __result *= GameBalance.StrictBlockMultiplier;
+                    AIOverhaulPlugin.LogMod($" Blocking extra Melee for {kingdom.Name} army {totalArmies} (Count: {meleeCount}/{GameBalance.EarlyGameMeleeCount})");
                 }
-                else if (isRanged && rangedCount < 4)
+                else if (isRanged && rangedCount < GameBalance.EarlyGameRangedCount)
                 {
-                    __result *= 2.0f; // Strongly boost ranged priority
+                    __result *= GameBalance.StrongBoostMultiplier;
                 }
-                else if (isMelee && meleeCount < 4)
+                else if (isMelee && meleeCount < GameBalance.EarlyGameMeleeCount)
                 {
-                    __result *= 1.5f; // Boost melee
+                    __result *= GameBalance.MediumBoostMultiplier;
                 }
             }
             else
             {
                 // Late game: 3-4 ranged for 4-5 melee (approximately 3.5:4.5 ratio = 0.778)
                 float currentRatio = meleeCount > 0 ? (float)rangedCount / meleeCount : (rangedCount > 0 ? 999f : 0.5f);
-                float targetRatio = 0.8f; // ~4 ranged for 5 melee
+                float targetRatio = GameBalance.LateGameRangedMeleeRatio;
 
                 if (isRanged)
                 {
                     if (currentRatio > targetRatio * 1.1f) // Too many ranged
                     {
-                        __result *= 0.1f;
+                        __result *= GameBalance.StrongPenaltyMultiplier;
                     }
-                    else if (currentRatio < targetRatio * 0.9f) // Need more ranged
+                    else if (currentRatio < targetRatio * GameBalance.RatioToleranceLow) // Need more ranged
                     {
-                        __result *= 2.0f;
+                        __result *= GameBalance.StrongBoostMultiplier;
                     }
                 }
                 else if (isMelee)
                 {
-                    if (currentRatio < targetRatio * 0.9f) // Need more melee
+                    if (currentRatio < targetRatio * GameBalance.RatioToleranceLow) // Need more melee
                     {
                         __result *= 1.8f;
                     }
                     else if (currentRatio > targetRatio * 1.1f) // Too much melee
                     {
-                        __result *= 0.2f;
+                        __result *= GameBalance.MediumPenaltyMultiplier;
                     }
                 }
             }
@@ -404,7 +406,7 @@ namespace AIOverhaul
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
             // Check if first two armies are ready
-            bool firstTwoArmiesReady = AreFirstTwoArmiesReady(__instance.kingdom);
+            bool firstTwoArmiesReady = KingdomHelper.HasTwoReadyArmies(__instance.kingdom);
 
             // Only boost priority for level 0 -> 1 upgrade when first two armies are ready
             if (!firstTwoArmiesReady || castle?.fortifications == null || castle.fortifications.level != 0)
@@ -429,7 +431,7 @@ namespace AIOverhaul
 
             // Access categories[1] for Military weight check
             var categories = TraverseAPI.GetCategories(__instance);
-            if (categories == null || categories.Length < 2 || categories[1].weight <= 0f)
+            if (categories == null || categories.Length < GameBalance.FirstTwoArmiesCount || categories[1].weight <= 0f)
             {
                 __result = false;
                 return false;
@@ -457,32 +459,6 @@ namespace AIOverhaul
             __result = true;
             return false; // Skip original method
         }
-
-        static bool AreFirstTwoArmiesReady(Logic.Kingdom kingdom)
-        {
-            if (kingdom?.armies == null || kingdom.armies.Count < 2) return false;
-
-            int readyArmies = 0;
-            for (int i = 0; i < Math.Min(2, kingdom.armies.Count); i++)
-            {
-                var army = kingdom.armies[i];
-                if (army == null || army.units == null) continue;
-
-                // Check if army is full (8 units)
-                bool isFull = army.units.Count >= 8;
-
-                // Check if army has at least 250 strength
-                int strength = army.EvalStrength();
-                bool hasStrength = strength >= 250;
-
-                if (isFull && hasStrength)
-                {
-                    readyArmies++;
-                }
-            }
-
-            return readyArmies >= 2;
-        }
     }
 
     [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkArmy")]
@@ -508,7 +484,7 @@ namespace AIOverhaul
             else
             {
                 float healthPerc = GetArmyHealthPercentage(army);
-                if (healthPerc < 0.7f)
+                if (healthPerc < GameBalance.HealthRetreatThreshold)
                 {
                     needsHeal = true;
                 }

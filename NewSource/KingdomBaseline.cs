@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Logic;
+using AIOverhaul.Helpers;
+using AIOverhaul.Constants;
 
 namespace AIOverhaul
 {
@@ -9,18 +11,6 @@ namespace AIOverhaul
     /// </summary>
     public class KingdomBaseline
     {
-        /// <summary>
-        /// Escapes a string for CSV output by wrapping in quotes and escaping internal quotes
-        /// </summary>
-        static string EscapeCsv(string value)
-        {
-            if (string.IsNullOrEmpty(value)) return "";
-            if (value.Contains(",") || value.Contains("\"") || value.Contains("\n"))
-            {
-                return "\"" + value.Replace("\"", "\"\"") + "\"";
-            }
-            return value;
-        }
         public int KingdomId { get; set; }
         public string KingdomName { get; set; }
         public DateTime RecordedAt { get; set; }
@@ -126,7 +116,7 @@ namespace AIOverhaul
         {
             if (game == null) return 0f;
             float hours = game.session_time.hours;
-            return hours / 24f / 365f; // Convert hours to years
+            return hours / GameBalance.HoursPerDay / GameBalance.DaysPerYear;
         }
 
         public string ToCsvHeader()
@@ -138,10 +128,10 @@ namespace AIOverhaul
 
         public string ToCsvLine()
         {
-            return $"{KingdomId},{EscapeCsv(KingdomName)},{RecordedAt:yyyy-MM-dd HH:mm:ss},{GameYear:F1}," +
+            return $"{KingdomId},{CsvHelper.Escape(KingdomName)},{RecordedAt:yyyy-MM-dd HH:mm:ss},{GameYear:F1}," +
                    $"{InitialRealms},{InitialGold:F0},{InitialArmies},{InitialTotalStrength:F0}," +
                    $"{InitialWars},{InitialTraditions},{InitialBooks},{InitialVassals},{InitialAllies}," +
-                   $"{NeighborCount},{NeighborAvgStrength:F0},{IsIsland},{EscapeCsv(Religion)}," +
+                   $"{NeighborCount},{NeighborAvgStrength:F0},{IsIsland},{CsvHelper.Escape(Religion)}," +
                    $"{IsDefeated},{(DefeatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "")},{(SurvivalYears?.ToString("F1") ?? "")}";
         }
     }
