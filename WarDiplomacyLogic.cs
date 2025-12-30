@@ -26,9 +26,8 @@ namespace AIOverhaul
 
                 try
                 {
-                    // TODO: USE CONSTANTS FOR METHOD NAME IN A STATIC CLASS. ALSO ALL INVOCATIONS SHOULD BE DONE THROUGH THAT STATIC CLASS.
-                    int side = Traverse.Create(war).Method("GetSide", new object[] { k }).GetValue<int>();
-                    float warScore = Traverse.Create(war).Method("GetWarScore", new object[] { side }).GetValue<float>();
+                    int side = TraverseAPI.GetWarSide(war, k);
+                    float warScore = TraverseAPI.GetWarScore(war, side);
                     totalScore += warScore;
                     validWars++;
                 }
@@ -106,6 +105,83 @@ namespace AIOverhaul
             }
 
             return totalThreat;
+        }
+
+        public static bool HasHighThreat(Logic.Kingdom k)
+        {
+            if (k == null || k.ai == null) return false;
+
+            // Access threats via reflection (since it's internal/private in KingdomAI)
+            var threatsField = typeof(Logic.KingdomAI).GetField("threats", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+            if (threatsField != null)
+            {
+                var threats = threatsField.GetValue(k.ai) as System.Collections.IList;
+                if (threats != null)
+                {
+                    foreach (var t in threats)
+                    {
+                        var levelField = t.GetType().GetField("level");
+                        if (levelField != null)
+                        {
+                            var levelVal = (int)levelField.GetValue(t);
+                            if (levelVal >= 3) // Level.Attack or higher
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        public static bool WantsInvasionPlan(Logic.Kingdom k)
+        {
+            if (k == null || k.ai == null) return false;
+
+            // We want an invasion plan if we have a clear expansion target 
+            // and we are strong enough to consider attacking but would like allies.
+            
+            // Re-use existing SelectExpansionTarget logic
+            Logic.Kingdom target = SelectExpansionTarget(k);
+            if (target == null) return false;
+
+            // If we are significantly stronger than the target, we might not need a plan
+            float ownPower = GetTotalPower(k);
+            float targetPower = GetTotalPower(target);
+            
+            if (ownPower > targetPower * 2f) return false; // We can handle it alone
+
+            // If we have at least one neighbor who is an ally or high relation, 
+            // we might want a diplomat to coordinate.
+            foreach (var neighbor in k.neighbors)
+            {
+                if (neighbor is Logic.Kingdom nk && nk != target && !nk.IsDefeated())
+                {
+                    if (k.IsAlly(nk) || k.GetRelationship(nk) > 200f)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        public static bool WantsDiplomat(Logic.Kingdom k)
+        {
+            if (k == null) return false;
+
+            // 1. Defensive Intent: Someone is threatening us
+            if (HasHighThreat(k)) return true;
+
+            // 2. Offensive Intent: We are planning to attack someone and want an invasion plan
+            if (WantsInvasionPlan(k)) return true;
+
+            // 3. Survival Intent: We are losing a war and need peace (already handled by hire court but good for diplomat)
+            if (GetAverageWarScore(k) < -20f) return true;
+
+            return false;
         }
 
         public static bool ShouldSeekDefensivePact(Logic.Kingdom k)
@@ -564,8 +640,8 @@ namespace AIOverhaul
                     float worst = 0;
                     foreach (var war in actor.wars)
                     {
-                        int side = Traverse.Create(war).Method("GetSide", new object[] { actor }).GetValue<int>();
-                        float s = Traverse.Create(war).Method("GetWarScore", new object[] { side }).GetValue<float>();
+                        int side = TraverseAPI.GetWarSide(war, actor);
+                        float s = TraverseAPI.GetWarScore(war, side);
                         if (s < worst)
                         {
                             worst = s;
@@ -607,7 +683,7 @@ namespace AIOverhaul
 
         static IEnumerator RunDiplomacyWithTarget(Logic.KingdomAI ai, Logic.Kingdom target)
         {
-            yield return (object)CoopThread.Call("ThinkProposeOffer", (IEnumerator)Traverse.Create(ai).Method("ThinkProposeOfferThread", new object[] { target, "neutral" }).GetValue());
+            yield return (object)CoopThread.Call("ThinkProposeOffer", TraverseAPI.ThinkProposeOfferThread(ai, target, "neutral"));
         }
 
         static IEnumerator RunDefensivePactProposal(Logic.KingdomAI ai, Logic.Kingdom target)

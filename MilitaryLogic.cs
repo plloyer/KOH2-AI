@@ -219,7 +219,7 @@ namespace AIOverhaul
                             if (castle.army == null || castle.army == army)
                             {
                                 AIOverhaulPlugin.LogMod($" Low win chance ({winChance:P0}) - Retreating army to {castle.name}");
-                                Traverse.Create(__instance).Method("Send", new object[] { army, castle, "retreat_low_chance", null }).GetValue();
+                                TraverseAPI.SendArmy(__instance, army, castle, "retreat_low_chance", null);
                                 __result = true;
                                 return false;
                             }
@@ -275,7 +275,7 @@ namespace AIOverhaul
                     {
                         string targetName = (leaderTarget is Logic.Castle c) ? c.name : leaderTarget.ToString();
                         AIOverhaulPlugin.LogMod($" Follower following leader to {targetName}");
-                        Traverse.Create(__instance).Method("Send", new object[] { army, leaderTarget, "follow_buddy", null }).GetValue();
+                        TraverseAPI.SendArmy(__instance, army, leaderTarget, "follow_buddy", null);
                         return;
                     }
                 }
@@ -283,11 +283,11 @@ namespace AIOverhaul
 
             if (status == "idle" && army.castle == null)
             {
-                Logic.Castle nearest = (Logic.Castle)Traverse.Create(__instance).Method("FindNearestOwnCastle", new object[] { army, true }).GetValue();
+                Logic.Castle nearest = TraverseAPI.FindNearestOwnCastle(__instance, army, true);
                 if (nearest != null)
                 {
                     AIOverhaulPlugin.LogMod($" Idle Knight - Returning to garrison at {nearest.name}");
-                    Traverse.Create(__instance).Method("Send", new object[] { army, nearest, "go_inside", null }).GetValue();
+                    TraverseAPI.SendArmy(__instance, army, nearest, "go_inside", null);
                 }
             }
         }
@@ -497,7 +497,7 @@ namespace AIOverhaul
             }
 
             // Access categories[1] for Military weight check
-            var categories = Traverse.Create(__instance).Field("categories").GetValue<Logic.KingdomAI.CategoryData[]>();
+            var categories = TraverseAPI.GetCategories(__instance);
             if (categories == null || categories.Length < 2 || categories[1].weight <= 0f)
             {
                 __result = false;
@@ -515,15 +515,13 @@ namespace AIOverhaul
             AIOverhaulPlugin.LogMod($" First two armies ready - upgrading {castle.name} fortifications to level 1 with HIGH priority");
 
             // Call ConsiderExpense with High priority
-            Traverse.Create(__instance).Method("ConsiderExpense",
-                new object[] {
-                    Logic.KingdomAI.Expense.Type.UpgradeFortifications,
-                    null,
-                    castle,
-                    Logic.KingdomAI.Expense.Category.Military,
-                    priority,
-                    null
-                }).GetValue();
+            TraverseAPI.ConsiderExpense(__instance,
+                Logic.KingdomAI.Expense.Type.UpgradeFortifications,
+                null,
+                castle,
+                Logic.KingdomAI.Expense.Category.Military,
+                priority,
+                null);
 
             __result = true;
             return false; // Skip original method

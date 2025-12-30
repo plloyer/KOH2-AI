@@ -121,7 +121,7 @@ namespace AIOverhaul
                     // This ensures the AI always has a baseline commercial capacity.
                     
                     AIOverhaulPlugin.LogMod($" FORCE Merchant hire for {__instance.kingdom.Name} (Merchants: {merchants}/2, Gold: {__instance.kingdom.resources[Logic.ResourceType.Gold]})");
-                    Traverse.Create(__instance).Method("HireKnight", new object[] { CharacterClassNames.Merchant }).GetValue();
+                    TraverseAPI.HireKnight(__instance, CharacterClassNames.Merchant);
                     __result = true;
                     return false;
                 }
@@ -130,7 +130,7 @@ namespace AIOverhaul
                     // Strict Commerce Check for 3rd+ Merchant
                     // Vanilla uses Ceiling(Max/10), which allows hiring when close (e.g. 24 commerce -> 3 merchants).
                     // We strictly enforce 10 commerce per merchant (e.g. 24 commerce -> max 2 merchants).
-                    float maxCommerce = Traverse.Create(__instance.kingdom).Method("GetMaxCommerce").GetValue<float>();
+                    float maxCommerce = TraverseAPI.GetMaxCommerce(__instance.kingdom);
                     if ((merchants + 1) * 10f > maxCommerce)
                     {
                          return false; // Block hire
@@ -173,7 +173,7 @@ namespace AIOverhaul
             if (k.court.Count < Constants.MaxCourtSize) 
             {
                  AIOverhaulPlugin.LogMod($" Priority Cleric hire for {k.Name}");
-                 Traverse.Create(__instance).Method("HireKnight", new object[] { CharacterClassNames.Cleric }).GetValue();
+                 TraverseAPI.HireKnight(__instance, CharacterClassNames.Cleric);
                  __result = true;
                  return false;
             }
@@ -289,14 +289,13 @@ namespace AIOverhaul
                     Logic.Resource cost = preferredTradition.GetAdoptCost(__instance.kingdom);
                     if (__instance.kingdom.resources.CanAfford(cost, 1f))
                     {
-                        Traverse.Create(__instance).Method("ConsiderExpense",
+                        TraverseAPI.ConsiderExpense(__instance,
                             Logic.KingdomAI.Expense.Type.AdoptTradition,
-                            (Logic.BaseObject)preferredTradition,
-                            (UnityEngine.Object)null,
+                            preferredTradition,
+                            null,
                             Logic.KingdomAI.Expense.Category.Economy,
-                            Logic.KingdomAI.Expense.Priority.Urgent, // URGENT for rush
-                            null
-                        ).GetValue();
+                            Logic.KingdomAI.Expense.Priority.Urgent,
+                            null);
 
                         __result = true;
                         return false; 
@@ -313,14 +312,13 @@ namespace AIOverhaul
                 {
                     if (__instance.kingdom.resources.CanAfford(preferredTradition.GetAdoptCost(__instance.kingdom)))
                     {
-                        Traverse.Create(__instance).Method("ConsiderExpense",
+                        TraverseAPI.ConsiderExpense(__instance,
                             Logic.KingdomAI.Expense.Type.AdoptTradition,
-                            (Logic.BaseObject)preferredTradition,
-                            (UnityEngine.Object)null,
+                            preferredTradition,
+                            null,
                             Logic.KingdomAI.Expense.Category.Economy,
                             Logic.KingdomAI.Expense.Priority.High,
-                            null 
-                        ).GetValue();
+                            null);
 
                         __result = true;
                         return false; 
@@ -412,7 +410,7 @@ namespace AIOverhaul
         {
             if (__instance.IsKing() && AIOverhaulPlugin.EnhancedKingdomIds.Contains(__instance.GetKingdom().id))
             {
-                var skillsRef = Traverse.Create(__instance).Field("skills").GetValue<List<Logic.Skill>>();
+                var skillsRef = TraverseAPI.GetSkills(__instance);
                 if (skillsRef != null)
                 {
                     var writingSkill = skillsRef.Find(s => s != null && s.def != null && s.def.id == SkillNames.Writing + "Skill");
@@ -426,7 +424,7 @@ namespace AIOverhaul
                                 var upgradeCost = writingSkill.def.GetUpgardeCost(__instance);
                                 if (!kingdom.resources.CanAfford(upgradeCost, 1f)) return false;
 
-                                var expenseCategory = (Logic.KingdomAI.Expense.Category)Traverse.Create(__instance).Method("GetExpenseCategory").GetValue();
+                                var expenseCategory = TraverseAPI.GetExpenseCategory(__instance);
                                 Logic.Kingdom.in_AI_spend = true;
                                 kingdom.SubResources(expenseCategory, upgradeCost);
                                 Logic.Kingdom.in_AI_spend = false;
@@ -466,29 +464,10 @@ namespace AIOverhaul
                             return false; 
                         }
 
-                        // Check Threat Level
-                        var threatsField = typeof(Logic.KingdomAI).GetField("threats", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
-                        if (threatsField != null)
+                        // Use the new intent-based logic
+                        if (!WarLogicHelper.WantsDiplomat(__instance.kingdom))
                         {
-                            var threats = threatsField.GetValue(__instance) as System.Collections.IList;
-                            if (threats != null)
-                            {
-                                bool highThreat = false;
-                                foreach (var t in threats)
-                                {
-                                    var levelField = t.GetType().GetField("level");
-                                    if (levelField != null)
-                                    {
-                                         var levelVal = (int)levelField.GetValue(t);
-                                         if (levelVal >= 3) 
-                                         {
-                                             highThreat = true;
-                                             break;
-                                         }
-                                    }
-                                }
-                                if (!highThreat) return false;
-                            }
+                            return false;
                         }
                     }
                 }
