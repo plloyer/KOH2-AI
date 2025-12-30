@@ -19,7 +19,7 @@ namespace AIOverhaul
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
 
             // Get Religion district definition
-            Logic.District.Def religionDistrict = __instance.game?.defs?.Get<Logic.District.Def>("Religion");
+            Logic.District.Def religionDistrict = DistrictHelper.GetDistrict(__instance.game, DistrictNames.Religion);
             if (religionDistrict == null) return;
 
             // Check if this castle has the Religion district

@@ -64,12 +64,14 @@
         <Compile Include="NewSource\Constants\BuildingNames.cs" />
         <Compile Include="NewSource\Constants\CharacterClassNames.cs" />
         <Compile Include="NewSource\Constants\Constants.cs" />
+        <Compile Include="NewSource\Constants\DistrictNames.cs" />
         <Compile Include="NewSource\Constants\GameBalance.cs" />
         <Compile Include="NewSource\Constants\LogCategory.cs" />
         <Compile Include="NewSource\Constants\SkillNames.cs" />
         <Compile Include="NewSource\Constants\KingdomNames.cs" />
         <Compile Include="NewSource\Constants\TraditionNames.cs" />
         <Compile Include="NewSource\Helpers\CsvHelper.cs" />
+        <Compile Include="NewSource\Helpers\DistrictHelper.cs" />
         <Compile Include="NewSource\Helpers\KingdomHelper.cs" />
         <Compile Include="NewSource\Helpers\ModLog.cs" />
         <Compile Include="NewSource\Helpers\OfferHelper.cs" />
