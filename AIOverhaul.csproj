@@ -63,6 +63,7 @@
         <Compile Include="BattleTacticNames.cs" />
         <Compile Include="BuildingNames.cs" />
         <Compile Include="CharacterClassNames.cs" />
+        <Compile Include="Constants.cs" />
         <Compile Include="EconomyLogic.cs" />
         <Compile Include="NewSource\EnhancedPerformanceLogger.cs" />
         <Compile Include="NewSource\KingdomBaseline.cs" />

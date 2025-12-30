@@ -133,8 +133,6 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderHireCleric")]
     public class ClericHiringPatch
     {
-        private const int MaxCourtSize = 9;
-
         static bool Prefix(Logic.KingdomAI __instance, ref bool __result)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
@@ -160,7 +158,7 @@ namespace AIOverhaul
             if (k.court.Any(c => c != null && c.IsCleric())) return true;
 
             // Simplify: Assume court size max is 9 (standard) or check court.Count
-            if (k.court.Count < MaxCourtSize) 
+            if (k.court.Count < Constants.MaxCourtSize) 
             {
                  AIOverhaulPlugin.LogMod($" Priority Cleric hire for {k.Name}");
                  Traverse.Create(__instance).Method("HireKnight", new object[] { CharacterClassNames.Cleric }).GetValue();
