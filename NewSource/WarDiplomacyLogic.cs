@@ -167,6 +167,17 @@ namespace AIOverhaul
 
             AIOverhaulPlugin.LogDiagnostic($"WantsDiplomat() called - starting diplomat check", LogCategory.Diplomacy, k);
 
+            // EARLY GAME TIME BLOCK: No diplomats within first month of game (nobody has armies yet)
+            if (k.game?.session_time != null)
+            {
+                float gameHours = k.game.session_time.hours;
+                if (gameHours < GameBalance.MinGameHoursForDiplomat)
+                {
+                    AIOverhaulPlugin.LogDiagnostic($"BLOCKING diplomat: too early in game (hours={gameHours:F0}, need {GameBalance.MinGameHoursForDiplomat})", LogCategory.Diplomacy, k);
+                    return false;
+                }
+            }
+
             // EARLY GAME PREVENTION: Must have baseline economy established first
             // 1. Must have 2 merchants (baseline commercial capacity)
             int merchants = KingdomHelper.CountMerchants(k);

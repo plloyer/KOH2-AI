@@ -83,6 +83,7 @@ namespace AIOverhaul.Constants
         public const float MinGoldIncomeForDiplomats = 500f;
         public const float MinGoldIncomeForClerics = 50f;
         public const int CommercePerMerchant = 10;
+        public const float MinGameHoursForDiplomat = 720f; // 1 in-game month (30 days) before considering diplomats
 
         // Economy - Resource Thresholds
         public const float MinBooksForFirstTradition = 400f;
