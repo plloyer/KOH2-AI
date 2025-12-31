@@ -111,7 +111,11 @@ namespace AIOverhaul
     {
         static bool Prefix(KingdomAI __instance, KingdomAI.Expense expense)
         {
-            if (__instance.kingdom == null || __instance.kingdom.is_player)
+            if (__instance.kingdom == null)
+                return true;
+
+            // Skip player kingdoms UNLESS in spectator mode (then treat as enhanced AI)
+            if (__instance.kingdom.is_player && !AIOverhaulPlugin.SpectatorMode)
                 return true;
 
             // Check if this is a hiring expense
