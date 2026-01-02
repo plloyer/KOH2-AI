@@ -34,7 +34,6 @@ namespace AIOverhaul
 
             // DIAGNOSTIC: Log every character hiring ConsiderExpense call to verify patch is working
             bool isEnhanced = AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom);
-            AIOverhaulPlugin.LogDiagnostic($"ConsiderExpense called: character={cDef.id}, isEnhancedAI={isEnhanced}", LogCategory.Economy, __instance.kingdom);
 
             if (!isEnhanced)
                 return true;
@@ -45,9 +44,7 @@ namespace AIOverhaul
                 int merchants = KingdomHelper.CountMerchants(__instance.kingdom);
                 float maxCommerce = TraverseAPI.GetMaxCommerce(__instance.kingdom);
                 int requiredCommerce = (merchants + 1) * GameBalance.CommercePerMerchant;
-
-                AIOverhaulPlugin.LogDiagnostic($"Merchant hiring check: merchants={merchants}, maxCommerce={maxCommerce}, requiredCommerce={requiredCommerce}", LogCategory.Economy, __instance.kingdom);
-
+                
                 // Allow first 2 merchants unconditionally
                 if (merchants < GameBalance.RequiredMerchantCount)
                 {
@@ -57,45 +54,35 @@ namespace AIOverhaul
 
                 // For 3rd+ merchant: strict commerce check
                 if (requiredCommerce > maxCommerce)
-                {
-                    AIOverhaulPlugin.LogDiagnostic($"BLOCKING merchant hire: need {requiredCommerce} but only have {maxCommerce} max commerce", LogCategory.Economy, __instance.kingdom);
                     return false; // Block hire
-                }
 
-                AIOverhaulPlugin.LogDiagnostic($"ALLOWING merchant hire: {requiredCommerce} <= {maxCommerce}", LogCategory.Economy, __instance.kingdom);
+                AIOverhaulPlugin.LogDiagnostic($"ALLOWING merchant hire: {requiredCommerce} <= {maxCommerce} (Merchants: {merchants})", LogCategory.Economy, __instance.kingdom);
                 return true; // Allow hiring (commerce check passed)
             }
+            
+            // Gate: Require 2 Merchants before hiring any other class (Clerics, Spies, Diplomats, Marshals)
+            int currentMerchants = KingdomHelper.CountMerchants(__instance.kingdom);
+            if (currentMerchants < GameBalance.RequiredMerchantCount)
+            {
+                // Strict rule: No non-merchant characters until we have 2 merchants
+                return false;
+            }
+            
 
             // CLERIC HIRING LOGIC
             if (cDef.id == CharacterClassNames.Cleric)
             {
                 // Rule: Hire 1 cleric after 2 merchants and 50+ gold income
                 float income = KingdomHelper.GetGoldIncome(__instance.kingdom);
-                int merchants = KingdomHelper.CountMerchants(__instance.kingdom);
                 bool hasCleric = KingdomHelper.HasCleric(__instance.kingdom);
-
-                AIOverhaulPlugin.LogDiagnostic($"Cleric hiring check: income={income}, merchants={merchants}, hasCleric={hasCleric}", LogCategory.Economy, __instance.kingdom);
-
-                // Prerequisites: 2 merchants first, then 50+ income
-                if (merchants < GameBalance.RequiredMerchantCount)
-                {
-                    AIOverhaulPlugin.LogDiagnostic($"BLOCKING cleric: need {GameBalance.RequiredMerchantCount} merchants first", LogCategory.Economy, __instance.kingdom);
-                    return false;
-                }
-
+                
                 if (income < GameBalance.MinGoldIncomeForClerics)
-                {
-                    AIOverhaulPlugin.LogDiagnostic($"BLOCKING cleric: income too low ({income} < {GameBalance.MinGoldIncomeForClerics})", LogCategory.Economy, __instance.kingdom);
                     return false;
-                }
 
                 if (hasCleric)
-                {
-                    AIOverhaulPlugin.LogDiagnostic("BLOCKING cleric: already have one", LogCategory.Economy, __instance.kingdom);
                     return false;
-                }
 
-                AIOverhaulPlugin.LogDiagnostic("ALLOWING cleric hire", LogCategory.Economy, __instance.kingdom);
+                AIOverhaulPlugin.LogDiagnostic($"ALLOWING cleric hire (Income: {income:F1} >= {GameBalance.MinGoldIncomeForClerics}, HasCleric: {hasCleric})", LogCategory.Economy, __instance.kingdom);
                 return true;
             }
 
@@ -112,6 +99,9 @@ namespace AIOverhaul
                 {
                     return false;
                 }
+
+                AIOverhaulPlugin.LogDiagnostic($"ALLOWING spy hire (Income: {income:F1} >= {GameBalance.MinGoldIncomeForSpies}, WantsSpy: True)", LogCategory.Economy, __instance.kingdom);
+                return true;
             }
 
             // DIPLOMAT HIRING LOGIC
@@ -120,11 +110,10 @@ namespace AIOverhaul
                 bool wants = WarLogicHelper.WantsDiplomat(__instance.kingdom);
                 if (!wants)
                 {
-                    AIOverhaulPlugin.LogDiagnostic("BLOCKING diplomat: WantsDiplomat returned false", LogCategory.Economy, __instance.kingdom);
                     return false;
                 }
 
-                AIOverhaulPlugin.LogDiagnostic("ALLOWING diplomat hire", LogCategory.Economy, __instance.kingdom);
+                AIOverhaulPlugin.LogDiagnostic("ALLOWING diplomat hire (WantsDiplomat: True)", LogCategory.Economy, __instance.kingdom);
             }
 
             return true;
@@ -141,7 +130,7 @@ namespace AIOverhaul
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return;
             if (expense.category == KingdomAI.Expense.Category.Diplomacy)
             {
-                if (expense.defParam is Logic.Action action && action.def.id == "TradeAction")
+                if (expense.defParam is Logic.Action action && action.def.id == ActionNames.Trade)
                 {
                     expense.eval *= 0.7f; // Lower eval = higher priority
                 }

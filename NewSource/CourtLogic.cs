@@ -23,6 +23,8 @@ namespace AIOverhaul
             
             // Only logs if it's the player to avoid spam, or debug level
             bool isPlayer = __instance.kingdom.is_player;
+
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return;
             
             KingdomHelper.OrganizeCourt(__instance.kingdom);
 

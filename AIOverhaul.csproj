@@ -62,7 +62,8 @@
     <ItemGroup>
         <Compile Include="NewSource\Constants\BattleTacticNames.cs" />
         <Compile Include="NewSource\Constants\BuildingNames.cs" />
-        <Compile Include="NewSource\Constants\BuildingUpgradeNames.cs" />
+        <Compile Include="NewSource\Constants\ActionNames.cs" />
+    <Compile Include="NewSource\Constants\BuildingUpgradeNames.cs" />
         <Compile Include="NewSource\Constants\CharacterClassNames.cs" />
         <Compile Include="NewSource\Constants\Constants.cs" />
         <Compile Include="NewSource\Constants\DistrictNames.cs" />

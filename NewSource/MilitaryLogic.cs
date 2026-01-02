@@ -252,7 +252,7 @@ namespace AIOverhaul
 
             if (needsHeal)
             {
-                var action = army.leader?.FindAction("CampArmyAction");
+                var action = army.leader?.FindAction(ActionNames.CampArmy);
                 if (action != null && action.Validate() == "ok")
                 {
                     action.Execute(null);
