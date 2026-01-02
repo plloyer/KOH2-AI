@@ -137,6 +137,10 @@ namespace AIOverhaul
         public static bool IsEnhancedAI(Logic.Kingdom k)
         {
             if (k == null) return false;
+            
+            // Allow if strictly enhanced OR if it's the player in spectator mode
+            if (k.is_player && SpectatorMode) return true;
+
             return EnhancedKingdomIds.Contains(k.id);
         }
 

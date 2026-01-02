@@ -21,9 +21,7 @@ namespace AIOverhaul
             if (__instance.kingdom == null)
                 return true;
 
-            // Skip player kingdoms UNLESS in spectator mode (then treat as enhanced AI)
-            if (__instance.kingdom.is_player && !AIOverhaulPlugin.SpectatorMode)
-                return true;
+
 
             // Check if this is a hiring expense
             if (expense.type != KingdomAI.Expense.Type.HireChacacter)
