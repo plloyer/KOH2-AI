@@ -74,10 +74,7 @@ namespace AIOverhaul
                 float income = KingdomHelper.GetGoldIncome(__instance.kingdom);
                 bool hasCleric = KingdomHelper.HasCleric(__instance.kingdom);
                 
-                if (income < GameBalance.MinGoldIncomeForClerics)
-                    return false;
-
-                if (hasCleric)
+                if (hasCleric || income < GameBalance.MinGoldIncomeForClerics)
                     return false;
 
                 AIOverhaulPlugin.LogDiagnostic($"ALLOWING cleric hire (Income: {income:F1} >= {GameBalance.MinGoldIncomeForClerics}, HasCleric: {hasCleric})", LogCategory.Economy, __instance.kingdom);
@@ -89,14 +86,10 @@ namespace AIOverhaul
             {
                 float income = KingdomHelper.GetGoldIncome(__instance.kingdom);
                 if (income < GameBalance.MinGoldIncomeForSpies)
-                {
                     return false; // Block this expense from being considered
-                }
 
                 if (!WarLogicHelper.WantsSpy(__instance.kingdom))
-                {
                     return false;
-                }
 
                 AIOverhaulPlugin.LogDiagnostic($"ALLOWING spy hire (Income: {income:F1} >= {GameBalance.MinGoldIncomeForSpies}, WantsSpy: True)", LogCategory.Economy, __instance.kingdom);
                 return true;
@@ -107,9 +100,7 @@ namespace AIOverhaul
             {
                 bool wants = WarLogicHelper.WantsDiplomat(__instance.kingdom);
                 if (!wants)
-                {
                     return false;
-                }
 
                 AIOverhaulPlugin.LogDiagnostic("ALLOWING diplomat hire (WantsDiplomat: True)", LogCategory.Economy, __instance.kingdom);
             }
@@ -130,7 +121,7 @@ namespace AIOverhaul
             {
                 if (expense.defParam is Logic.Action action && action.def.id == ActionNames.Trade)
                 {
-                    expense.eval *= 0.7f; // Lower eval = higher priority
+                    expense.eval *= GameBalance.TradeActionPriorityMultiplier; // Lower eval = higher priority
                 }
             }
         }
@@ -146,7 +137,7 @@ namespace AIOverhaul
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
             if (def.id.Contains(BuildingNames.MarketSquare) || def.id.Contains("Farm") || def.id.Contains(CharacterClassNames.Merchant))
             {
-                __result *= 1.3f;
+                __result *= GameBalance.EconomyBuildingPriorityMultiplier;
             }
         }
     }
@@ -165,7 +156,7 @@ namespace AIOverhaul
             {
                 if (__instance.castle.buildings.Any(b => b.def.id.Contains(BuildingNames.MarketSquare)))
                 {
-                    __result += 20f;
+                    __result += GameBalance.MerchantGovernorMarketBonus;
                 }
             }
         }
@@ -194,7 +185,7 @@ namespace AIOverhaul
                  float books = __instance.kingdom.resources.Get(ResourceType.Books);
                  float gold = __instance.kingdom.resources.Get(ResourceType.Gold);
 
-                 if (books >= 350f && gold < 2000f) // Thresholds
+                 if (books >= GameBalance.HighBooksThreshold && gold < GameBalance.LowGoldThreshold) // Thresholds
                  {
                      __result = false;
                      return false; // Block CA

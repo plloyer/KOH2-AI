@@ -31,6 +31,7 @@ namespace AIOverhaul.Constants
         public const float StrongPenaltyMultiplier = 0.1f;
         public const float MediumPenaltyMultiplier = 0.2f;
         public const float HighPriorityMultiplier = 0.7f; // Lower eval = higher priority
+        public const float TradeActionPriorityMultiplier = 0.7f; // Lower eval = higher priority
         public const float StrictBlockMultiplier = 0.01f;
 
         // War Score Thresholds (negative = losing)
@@ -90,6 +91,8 @@ namespace AIOverhaul.Constants
         public const float HighBooksThreshold = 350f;
         public const float LowGoldThreshold = 2000f;
         public const float HighBuildingEvalBoost = 20f;
+        public const float MerchantGovernorMarketBonus = 20f; // Bonus for merchant governor in town with market
+        public const float EconomyBuildingPriorityMultiplier = 1.3f; // Priority multiplier for economy buildings
 
         // Kingdom Selection
         public const float EnhancedAISelectionPercentage = 0.30f;
