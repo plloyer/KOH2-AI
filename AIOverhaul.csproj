@@ -77,6 +77,7 @@
         <Compile Include="NewSource\Helpers\OfferHelper.cs" />
         <Compile Include="NewSource\Log\EnhancedPerformanceLogger.cs" />
         <Compile Include="NewSource\Log\KingdomBaseline.cs" />
+        <Compile Include="NewSource\BuildingLogic.cs" />
         <Compile Include="NewSource\EconomyLogic.cs" />
         <Compile Include="NewSource\GovernorLogic.cs" />
         <Compile Include="NewSource\MilitaryLogic.cs" />
