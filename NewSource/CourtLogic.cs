@@ -4,6 +4,7 @@ using AIOverhaul.Helpers;
 namespace AIOverhaul
 {
     // Patch to automatically organize the court when a new knight is hired
+    // Intent: HireKnightPatch (Court Organization)
     [HarmonyPatch(typeof(Logic.KingdomAI), "HireKnight")]
     public class HireKnightPatch
     {

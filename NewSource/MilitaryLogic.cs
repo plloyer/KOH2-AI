@@ -73,8 +73,9 @@ namespace AIOverhaul
     }
 
     // "ThinkFight" controls whether an army should engage in battle or retreat.
+    // Intent: BattleEngagementPatch
     [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkFight")]
-    public class BattleEngagementPatch
+    public class ThinkFightPatch
     {
         static bool Prefix(Logic.KingdomAI __instance, Logic.Army army, ref bool __result)
         {
@@ -168,8 +169,9 @@ namespace AIOverhaul
     }
 
     // "ThinkArmy" handles general army tick logic including movement and actions.
+    // Intent: ThinkArmy patches (IdleArmyPatch + HealingLogicPatch)
     [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkArmy")]
-    public class IdleArmyPatch
+    public class ThinkArmyPatch
     {
         static void Postfix(Logic.KingdomAI __instance, Logic.Army army)
         {
@@ -221,11 +223,70 @@ namespace AIOverhaul
                 }
             }
         }
+
+        static bool Prefix(Logic.KingdomAI __instance, Logic.Army army)
+        {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+            // Removed is_alive, used IsValid() which is standard.
+            if (army == null || !army.IsValid()) return true;
+            if (army.battle != null) return true;
+
+            // 1. In Own Territory
+            // Fix: Realm.kingdom -> Realm.GetKingdom()
+            var realm = army.realm_in;
+            bool inOwnTerritory = realm != null && realm.GetKingdom() == __instance.kingdom;
+            
+            bool needsHeal = false;
+            if (inOwnTerritory)
+            {
+                needsHeal = IsDamaged(army);
+            }
+            else
+            {
+                float healthPerc = GetArmyHealthPercentage(army);
+                if (healthPerc < GameBalance.HealthRetreatThreshold)
+                {
+                    needsHeal = true;
+                }
+            }
+
+            if (needsHeal)
+            {
+                var action = army.leader?.FindAction("CampArmyAction");
+                if (action != null && action.Validate() == "ok")
+                {
+                    action.Execute(null);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        static bool IsDamaged(Logic.Army army)
+        {
+            if (army.units == null) return false;
+            foreach (var u in army.units)
+            {
+                if (u.damage > 0) return true;
+            }
+            return false;
+        }
+
+        static float GetArmyHealthPercentage(Logic.Army army)
+        {
+            if (army.units == null || army.units.Count == 0) return 0;
+            float max = 0;
+            foreach(var u in army.units) max += u.def.strength_eval;
+            float current = army.EvalStrength();
+            return max > 0 ? (current / max) : 0;
+        }
     }
 
     // "EvalHireUnits" determines if militia/peasants should be raised in a castle.
+    // Intent: PeasantRecruitmentBlockPatch
     [HarmonyPatch(typeof(Logic.Castle), "EvalHireUnits")]
-    public class PeasantRecruitmentBlockPatch
+    public class EvalHireUnitsPatch
     {
         static void Prefix(Logic.Castle __instance, ref bool allow_militia)
         {
@@ -236,135 +297,14 @@ namespace AIOverhaul
         }
     }
 
-    // Prioritize Swordsmith upgrade before Fletcher in barracks
-    // Swordsmith = melee units (swordsmen), Fletcher = ranged units (archers)
-    // We need melee first for balanced armies (4 melee + 4 ranged)
-    // "AddBuildOptions" generates the list of available buildings and upgrades for a castle.
-    [HarmonyPatch(typeof(Logic.Castle), "AddBuildOptions", new Type[] { typeof(bool), typeof(Logic.Resource) })]
-    public class SwordsmithPriorityPatch
-    {
-        static void Postfix(Logic.Castle __instance)
-        {
-            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
 
-            // Boost Swordsmith evaluation, reduce Fletcher evaluation
-            for (int i = 0; i < Logic.Castle.upgrade_options.Count; i++)
-            {
-                var option = Logic.Castle.upgrade_options[i];
-                if (option.def != null)
-                {
-                    if (option.def.id == "Swordsmith")
-                    {
-                        // Significantly boost Swordsmith evaluation (need melee units first)
-                        option.eval *= GameBalance.StrongBoostMultiplier;
-                        Logic.Castle.upgrade_options[i] = option;
-                    }
-                    else if (option.def.id == "Fletcher_Barracks")
-                    {
-                        // Check if Swordsmith is not yet built
-                        bool hasSwordsmith = false;
-                        if (__instance.buildings != null)
-                        {
-                            foreach (var building in __instance.buildings)
-                            {
-                                if (building?.def?.id == "Swordsmith")
-                                {
-                                    hasSwordsmith = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!hasSwordsmith)
-                        {
-                            // Drastically reduce Fletcher priority until Swordsmith is built
-                            option.eval *= GameBalance.StrongPenaltyMultiplier;
-                            Logic.Castle.upgrade_options[i] = option;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // Prioritize first Barracks placement in provinces with most military districts
-    // "AddBuildOptions" generates the list of available buildings and upgrades for a castle.
-    [HarmonyPatch(typeof(Logic.Castle), "AddBuildOptions", new Type[] { typeof(bool), typeof(Logic.Resource) })]
-    public class BarracksPlacementPatch
-    {
-        static void Postfix(Logic.Castle __instance)
-        {
-            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
-
-            // Get Castle district definition (Barracks goes in Castle district)
-            Logic.District.Def castleDistrict = DistrictHelper.GetDistrict(__instance.game, DistrictNames.Castle);
-            if (castleDistrict == null) return;
-
-            // Check if this castle HAS the Castle district
-            bool hasCastleDistrict = __instance.HasDistrict(castleDistrict);
-
-            // Check if kingdom already has any barracks (across all provinces)
-            bool kingdomHasBarracks = false;
-            Logic.Building.Def barracksDef = __instance.game?.defs?.Get<Logic.Building.Def>(BuildingNames.Barracks);
-            if (barracksDef != null)
-            {
-                var kingdom = __instance.GetKingdom();
-                if (kingdom?.realms != null)
-                {
-                    foreach (var realm in kingdom.realms)
-                    {
-                        if (realm?.castle != null && realm.castle.HasBuilding(barracksDef))
-                        {
-                            kingdomHasBarracks = true;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // Find Barracks in build options
-            for (int i = Logic.Castle.build_options.Count - 1; i >= 0; i--)
-            {
-                var option = Logic.Castle.build_options[i];
-                if (option.def != null && option.def.id == BuildingNames.Barracks)
-                {
-                    if (!kingdomHasBarracks)
-                    {
-                        // FIRST barracks - allow anywhere, but boost Castle districts
-                        if (hasCastleDistrict)
-                        {
-                            // Boost based on Castle district slots
-                            int slots = castleDistrict.buildings?.Count ?? 0;
-                            float boost = 1.0f + (slots * GameBalance.BarracksSlotBoostPerSlot);
-
-                            option.eval *= boost;
-                            Logic.Castle.build_options[i] = option;
-
-                            AIOverhaulPlugin.LogDiagnostic($"BOOSTING first Barracks in {__instance.name} (Slots: {slots}, Boost: {boost:F1}x)", LogCategory.Military, __instance.GetKingdom());
-                        }
-                        // else: no boost but still allow (fallback if no Castle district exists)
-                    }
-                    else
-                    {
-                        // Kingdom already has barracks - ONLY allow in Castle districts
-                        if (!hasCastleDistrict)
-                        {
-                            // BLOCK second+ barracks if no Castle district
-                            Logic.Castle.build_options.RemoveAt(i);
-
-                            AIOverhaulPlugin.LogDiagnostic($"BLOCKING second Barracks in {__instance.name} - requires Castle district", LogCategory.Military, __instance.GetKingdom());
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     // Army composition: Prefer 3-4 ranged for every 4-5 melee
     // First two armies: 4 archers, 4 swordsmen
     // "EvalHireUnit" evaluates the desirability of hiring a specific unit type for an army.
+    // Intent: ArmyCompositionPatch
     [HarmonyPatch(typeof(Logic.KingdomAI), "EvalHireUnit")]
-    public class ArmyCompositionPatch
+    public class EvalHireUnitPatch
     {
         static void Postfix(Logic.Unit.Def udef, Logic.Army army, ref float __result)
         {
@@ -484,8 +424,9 @@ namespace AIOverhaul
     }
     // Prioritize fortification upgrades when first two armies are established
     // "ConsiderUpgradeFortifications" decides if castle walls and defenses should be upgraded.
+    // Intent: FortificationPriorityPatch
     [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderUpgradeFortifications")]
-    public class FortificationPriorityPatch
+    public class ConsiderUpgradeFortificationsPatch
     {
         static bool Prefix(Logic.KingdomAI __instance, Logic.Castle castle, ref bool __result)
         {
@@ -540,72 +481,12 @@ namespace AIOverhaul
         }
     }
 
-    // "ThinkArmy" handles general army tick logic including movement and actions.
-    [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkArmy")]
-    public class HealingLogicPatch
-    {
-        static bool Prefix(Logic.KingdomAI __instance, Logic.Army army)
-        {
-            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
-            // Removed is_alive, used IsValid() which is standard.
-            if (army == null || !army.IsValid()) return true;
-            if (army.battle != null) return true;
 
-            // 1. In Own Territory
-            // Fix: Realm.kingdom -> Realm.GetKingdom()
-            var realm = army.realm_in;
-            bool inOwnTerritory = realm != null && realm.GetKingdom() == __instance.kingdom;
-            
-            bool needsHeal = false;
-            if (inOwnTerritory)
-            {
-                needsHeal = IsDamaged(army);
-            }
-            else
-            {
-                float healthPerc = GetArmyHealthPercentage(army);
-                if (healthPerc < GameBalance.HealthRetreatThreshold)
-                {
-                    needsHeal = true;
-                }
-            }
-
-            if (needsHeal)
-            {
-                var action = army.leader?.FindAction("CampArmyAction");
-                if (action != null && action.Validate() == "ok")
-                {
-                    action.Execute(null);
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        static bool IsDamaged(Logic.Army army)
-        {
-            if (army.units == null) return false;
-            foreach (var u in army.units)
-            {
-                if (u.damage > 0) return true;
-            }
-            return false;
-        }
-
-        static float GetArmyHealthPercentage(Logic.Army army)
-        {
-            if (army.units == null || army.units.Count == 0) return 0;
-            float max = 0;
-            foreach(var u in army.units) max += u.def.strength_eval;
-            float current = army.EvalStrength();
-            return max > 0 ? (current / max) : 0;
-        }
-    }
 
     // "ThinkAssaultSiege" decides whether a besieging army should launch an assault on the castle.
+    // Intent: AssaultLogicPatch
     [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkAssaultSiege")]
-    public class AssaultLogicPatch
+    public class ThinkAssaultSiegePatch
     {
         static bool Prefix(Logic.KingdomAI __instance, Logic.Army a)
         {

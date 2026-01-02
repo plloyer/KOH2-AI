@@ -568,8 +568,9 @@ namespace AIOverhaul
     }
 
     // "ThinkDeclareWar" evaluates kingdom relations and power to decide if war should be declared.
+    // Intent: WarDeclarationPatch
     [HarmonyPatch(typeof(KingdomAI), "ThinkDeclareWar")]
-    public class WarDeclarationPatch
+    public class ThinkDeclareWarPatch
     {
         static bool Prefix(KingdomAI __instance, Logic.Kingdom k, ref bool __result)
         {
@@ -732,8 +733,9 @@ namespace AIOverhaul
     }
 
     // "ThinkDiplomacy" handles diplomatic actions like proposing alliances, pacts, or peace treaties.
+    // Intent: SurvivalDiplomacyPatch
     [HarmonyPatch(typeof(KingdomAI), "ThinkDiplomacy")]
-    public class SurvivalDiplomacyPatch
+    public class ThinkDiplomacyPatch
     {
         static bool Prefix(KingdomAI __instance, ref IEnumerator __result)
         {

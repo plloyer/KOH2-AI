@@ -9,105 +9,12 @@ using AIOverhaul.Helpers;
 
 namespace AIOverhaul
 {
-    // Prevent building churches in settlements without religion districts
-    // Prioritize provinces with the most religion district slots
-    // "AddBuildOptions" generates the list of available buildings and upgrades for a castle.
-    [HarmonyPatch(typeof(Castle), "AddBuildOptions", new Type[] { typeof(bool), typeof(Resource) })]
-    public class ReligiousBuildingPatch
-    {
-        static void Postfix(Castle __instance)
-        {
-            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
 
-            // Get Religion district definition
-            Logic.District.Def religionDistrict = DistrictHelper.GetDistrict(__instance.game, DistrictNames.Religion);
-            if (religionDistrict == null) return;
-
-            // Check if this castle has the Religion district
-            bool hasReligionDistrict = __instance.HasDistrict(religionDistrict);
-
-            // Find all religious buildings in build options
-            for (int i = Castle.build_options.Count - 1; i >= 0; i--)
-            {
-                var option = Castle.build_options[i];
-                if (option.def == null) continue;
-
-                bool isReligiousBuilding = IsReligiousBuilding(option.def.id);
-
-                if (isReligiousBuilding)
-                {
-                    if (!hasReligionDistrict)
-                    {
-                        // Block building if no religion district
-                        Castle.build_options.RemoveAt(i);
-                    }
-                    else
-                    {
-                        // Boost priority for castles with religion district
-                        // Further boost based on how many religion slots available
-                        int religionSlots = CountReligionSlots(__instance, religionDistrict);
-                        float boost = 1.0f + (religionSlots * GameBalance.ReligionBuildingBoostPerSlot);
-                        option.eval *= boost;
-                        Castle.build_options[i] = option;
-                    }
-                }
-            }
-
-            // Do the same for upgrade options
-            for (int i = Castle.upgrade_options.Count - 1; i >= 0; i--)
-            {
-                var option = Castle.upgrade_options[i];
-                if (option.def == null) continue;
-
-                bool isReligiousBuilding = IsReligiousBuilding(option.def.id);
-
-                if (isReligiousBuilding)
-                {
-                    if (!hasReligionDistrict)
-                    {
-                        // Block building if no religion district
-                        Castle.upgrade_options.RemoveAt(i);
-                    }
-                    else
-                    {
-                        // Boost priority for castles with religion district
-                        int religionSlots = CountReligionSlots(__instance, religionDistrict);
-                        float boost = 1.0f + (religionSlots * GameBalance.ReligionBuildingBoostPerSlot);
-                        option.eval *= boost;
-                        Castle.upgrade_options[i] = option;
-                    }
-                }
-            }
-        }
-
-        static bool IsReligiousBuilding(string buildingId)
-        {
-            if (string.IsNullOrEmpty(buildingId)) return false;
-
-            // Religious buildings include Church, Masjid, Temple, Cathedral, GreatMosque
-            return buildingId == BuildingNames.Church ||
-                   buildingId == BuildingNames.Masjid ||
-                   buildingId == BuildingNames.Temple ||
-                   buildingId == BuildingNames.Cathedral ||
-                   buildingId == BuildingNames.GreatMosque;
-        }
-
-        static int CountReligionSlots(Castle castle, Logic.District.Def religionDistrict)
-        {
-            if (religionDistrict?.buildings == null) return 0;
-
-            // Count how many religion building slots exist in this district definition
-            return religionDistrict.buildings.Count;
-        }
-    }
-
-    // OBSOLETE: ConsiderHireMerchant and ConsiderHireCleric methods don't exist
-    // All character hiring goes through ConsiderExpense(KingdomAI.Expense)
-    // See CharacterHiringControlPatch below
 
     // "ConsiderExpense" evaluates a specific expense (hiring, building, bribing) to decide if the AI should pay for it.
-    [HarmonyPatch(typeof(KingdomAI), "ConsiderExpense", new Type[] { typeof(KingdomAI.Expense) })]
-    public class CharacterHiringControlPatch
+    // Intent: ConsiderExpense
+    [HarmonyPatch(typeof(KingdomAI), "ConsiderExpense", typeof(KingdomAI.Expense))]
+    public class ConsiderExpensePatch
     {
         static bool Prefix(KingdomAI __instance, KingdomAI.Expense expense)
         {
@@ -122,7 +29,7 @@ namespace AIOverhaul
             if (expense.type != KingdomAI.Expense.Type.HireChacacter)
                 return true;
 
-            if (!(expense.defParam is Logic.CharacterClass.Def cDef))
+            if (!(expense.defParam is CharacterClass.Def cDef))
                 return true;
 
             // DIAGNOSTIC: Log every character hiring ConsiderExpense call to verify patch is working
@@ -184,11 +91,11 @@ namespace AIOverhaul
 
                 if (hasCleric)
                 {
-                    AIOverhaulPlugin.LogDiagnostic($"BLOCKING cleric: already have one", LogCategory.Economy, __instance.kingdom);
+                    AIOverhaulPlugin.LogDiagnostic("BLOCKING cleric: already have one", LogCategory.Economy, __instance.kingdom);
                     return false;
                 }
 
-                AIOverhaulPlugin.LogDiagnostic($"ALLOWING cleric hire", LogCategory.Economy, __instance.kingdom);
+                AIOverhaulPlugin.LogDiagnostic("ALLOWING cleric hire", LogCategory.Economy, __instance.kingdom);
                 return true;
             }
 
@@ -213,11 +120,11 @@ namespace AIOverhaul
                 bool wants = WarLogicHelper.WantsDiplomat(__instance.kingdom);
                 if (!wants)
                 {
-                    AIOverhaulPlugin.LogDiagnostic($"BLOCKING diplomat: WantsDiplomat returned false", LogCategory.Economy, __instance.kingdom);
+                    AIOverhaulPlugin.LogDiagnostic("BLOCKING diplomat: WantsDiplomat returned false", LogCategory.Economy, __instance.kingdom);
                     return false;
                 }
 
-                AIOverhaulPlugin.LogDiagnostic($"ALLOWING diplomat hire", LogCategory.Economy, __instance.kingdom);
+                AIOverhaulPlugin.LogDiagnostic("ALLOWING diplomat hire", LogCategory.Economy, __instance.kingdom);
             }
 
             return true;
@@ -225,8 +132,9 @@ namespace AIOverhaul
     }
 
     // "AddExpense" adds a potential expense option to the AI's consideration list.
+    // Intent: TradeActionPriorityPatch
     [HarmonyPatch(typeof(KingdomAI), "AddExpense", new Type[] { typeof(WeightedRandom<KingdomAI.Expense>), typeof(KingdomAI.Expense) })]
-    public class TradeActionPriorityPatch
+    public class AddExpensePatch
     {
         static void Prefix(KingdomAI __instance, object expenses, KingdomAI.Expense expense)
         {
@@ -242,8 +150,9 @@ namespace AIOverhaul
     }
 
     // "EvalBuild" evaluates the priority/desirability of constructing a specific building definition.
+    // Intent: BuildingPrioritizationPatch
     [HarmonyPatch(typeof(Castle), "EvalBuild")]
-    public class BuildingPrioritizationPatch
+    public class EvalBuildPatch
     {
         static void Postfix(Castle __instance, Logic.Building.Def def, Resource production_weights, ref float __result)
         {
@@ -256,8 +165,9 @@ namespace AIOverhaul
     }
 
     // "Eval" (GovernOption) scores how suitable a specific character is for governing a specific town.
+    // Intent: KnightAssignmentPatch
     [HarmonyPatch(typeof(KingdomAI.GovernOption), "Eval")]
-    public class KnightAssignmentPatch
+    public class EvalPatch_2
     {
         static void Postfix(ref KingdomAI.GovernOption __instance, ref float __result)
         {
@@ -275,8 +185,9 @@ namespace AIOverhaul
     }
 
     // "ConsiderIncreaseCrownAuthority" decides if the kingdom should spend resources to increase crown authority.
+    // Intent: SpendingPriorityPatch
     [HarmonyPatch(typeof(KingdomAI), "ConsiderIncreaseCrownAuthority")]
-    public static class SpendingPriorityPatch
+    public static class ConsiderIncreaseCrownAuthorityPatch
     {
         [HarmonyPrefix]
         public static bool Prefix(KingdomAI __instance, ref bool __result)
@@ -328,6 +239,7 @@ namespace AIOverhaul
     }
 
     // "ChooseNewSkill" picks a new skill for a character when they gain a level or slot.
+    // Intent: ChooseNewSkill (Writing Tradition Logic)
     [HarmonyPatch(typeof(Logic.Character), "ChooseNewSkill")]
     public static class ChooseNewSkillPatch
     {
@@ -349,6 +261,7 @@ namespace AIOverhaul
     }
 
     // "ThinkUpgradeSkill" decides whether to upgrade an existing skill to the next rank.
+    // Intent: ThinkUpgradeSkill (Writing Upgrade Logic)
     [HarmonyPatch(typeof(Logic.Character), "ThinkUpgradeSkill")]
     public static class ThinkUpgradeSkillPatch
     {

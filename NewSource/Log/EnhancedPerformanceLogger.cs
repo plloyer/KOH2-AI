@@ -310,8 +310,9 @@ namespace AIOverhaul
         }
     }
 
+    // Intent: EnhancedLoggingPatch
     [HarmonyPatch(typeof(KingdomAI), "ThinkGeneral")]
-    public class EnhancedLoggingPatch
+    public class ThinkGeneralPatch
     {
         static void Postfix(KingdomAI __instance)
         {

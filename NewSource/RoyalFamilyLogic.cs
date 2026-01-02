@@ -5,8 +5,9 @@ using UnityEngine;
 namespace AIOverhaul
 {
     // "AddChild" is called when a new prince/princess is born or added to the family tree.
+    // Intent: HeirClassSelectionPatch
     [HarmonyPatch(typeof(Logic.RoyalFamily), "AddChild")]
-    public class HeirClassSelectionPatch
+    public class AddChildPatch
     {
         static void Postfix(Logic.RoyalFamily __instance, Logic.Character child)
         {

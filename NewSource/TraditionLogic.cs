@@ -9,8 +9,9 @@ namespace AIOverhaul
     /// AI logic for tradition adoption and selection
     /// </summary>
     // "ConsiderAdoptTradition" decides which new kingdom tradition (e.g. "Writing") to adopt if slots are available.
+    // Intent: TraditionSelectionPatch
     [HarmonyPatch(typeof(KingdomAI), "ConsiderAdoptTradition")]
-    public static class TraditionSelectionPatch
+    public static class ConsiderAdoptTraditionPatch
     {
         [HarmonyPrefix]
         public static bool Prefix(KingdomAI __instance, ref bool __result)
