@@ -39,7 +39,7 @@ namespace AIOverhaul
         public static void ConsiderExpense(Logic.KingdomAI ai, Logic.KingdomAI.Expense.Type type, object defParam, object objectParam, Logic.KingdomAI.Expense.Category category, Logic.KingdomAI.Expense.Priority priority, List<Logic.Value> args = null)
         {
             Traverse.Create(ai).Method(METHOD_CONSIDER_EXPENSE,
-                new object[] { type, defParam, objectParam, category, priority, args }).GetValue();
+                new[] { type, defParam, objectParam, category, priority, args }).GetValue();
         }
 
         public static Logic.KingdomAI.Expense.Category GetExpenseCategory(object instance)
@@ -49,7 +49,7 @@ namespace AIOverhaul
 
         public static void SendArmy(Logic.KingdomAI ai, Logic.Army army, object target, string aiStatus, object extraParam = null)
         {
-            Traverse.Create(ai).Method(METHOD_SEND, new object[] { army, target, aiStatus, extraParam }).GetValue();
+            Traverse.Create(ai).Method(METHOD_SEND, new[] { army, target, aiStatus, extraParam }).GetValue();
         }
 
         public static Logic.Castle FindNearestOwnCastle(Logic.KingdomAI ai, Logic.Army army, bool allowGarrisoned)

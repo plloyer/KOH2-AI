@@ -133,7 +133,7 @@ namespace AIOverhaul
 
     // "AddExpense" adds a potential expense option to the AI's consideration list.
     // Intent: TradeActionPriorityPatch
-    [HarmonyPatch(typeof(KingdomAI), "AddExpense", new Type[] { typeof(WeightedRandom<KingdomAI.Expense>), typeof(KingdomAI.Expense) })]
+    [HarmonyPatch(typeof(KingdomAI), "AddExpense", new[] { typeof(WeightedRandom<KingdomAI.Expense>), typeof(KingdomAI.Expense) })]
     public class AddExpensePatch
     {
         static void Prefix(KingdomAI __instance, object expenses, KingdomAI.Expense expense)

@@ -1,7 +1,4 @@
 using HarmonyLib;
-using Logic;
-using System.Collections.Generic;
-using AIOverhaul.Helpers;
 
 namespace AIOverhaul
 {
@@ -45,7 +42,7 @@ namespace AIOverhaul
             }
         }
 
-        private static float CalcMilitaryPotential(Logic.Realm realm)
+        static float CalcMilitaryPotential(Logic.Realm realm)
         {
             if (realm == null) return 0f;
             float score = 0f;

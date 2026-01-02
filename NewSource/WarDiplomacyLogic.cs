@@ -976,7 +976,7 @@ namespace AIOverhaul
     }
 
     [HarmonyPatch(typeof(ProsAndCons), "Eval")]
-    [HarmonyPatch(new System.Type[] { typeof(string) })]
+    [HarmonyPatch(new[] { typeof(string) })]
     public static class TradeAcceptancePatch
     {
         static bool Prefix(ProsAndCons __instance, string threshold_name, ref float __result)

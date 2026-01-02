@@ -1,11 +1,9 @@
+using System;
+using AIOverhaul.Constants;
+using AIOverhaul.Helpers;
 using HarmonyLib;
 using Logic;
 using UnityEngine;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using AIOverhaul.Constants;
-using AIOverhaul.Helpers;
 
 namespace AIOverhaul
 {
@@ -15,10 +13,10 @@ namespace AIOverhaul
     // 1. Swordsmith Priority (Military)
     // 2. Barracks Placement (Military)
     // 3. Religion Building Logic (Economy)
-    [HarmonyPatch(typeof(Logic.Castle), "AddBuildOptions", new Type[] { typeof(bool), typeof(Logic.Resource) })]
+    [HarmonyPatch(typeof(Castle), "AddBuildOptions", typeof(bool), typeof(Resource))]
     public class AddBuildOptionsPatch
     {
-        static void Postfix(Logic.Castle __instance)
+        static void Postfix(Castle __instance)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
 
@@ -29,21 +27,21 @@ namespace AIOverhaul
 
         // --- Logic Blocks ---
 
-        private static void ApplySwordsmithLogic(Logic.Castle castle)
+        static void ApplySwordsmithLogic(Castle castle)
         {
             // Boost Swordsmith evaluation, reduce Fletcher evaluation
-            for (int i = 0; i < Logic.Castle.upgrade_options.Count; i++)
+            for (int i = 0; i < Castle.upgrade_options.Count; i++)
             {
-                var option = Logic.Castle.upgrade_options[i];
+                var option = Castle.upgrade_options[i];
                 if (option.def != null)
                 {
-                    if (option.def.id == "Swordsmith")
+                    if (option.def.id == BuildingUpgradeNames.Swordsmith)
                     {
                         // Significantly boost Swordsmith evaluation (need melee units first)
                         option.eval *= GameBalance.StrongBoostMultiplier;
-                        Logic.Castle.upgrade_options[i] = option;
+                        Castle.upgrade_options[i] = option;
                     }
-                    else if (option.def.id == "Fletcher_Barracks")
+                    else if (option.def.id == BuildingUpgradeNames.Fletcher_Barracks)
                     {
                         // Check if Swordsmith is not yet built
                         bool hasSwordsmith = false;
@@ -51,7 +49,7 @@ namespace AIOverhaul
                         {
                             foreach (var building in castle.buildings)
                             {
-                                if (building?.def?.id == "Swordsmith")
+                                if (building?.def?.id == BuildingUpgradeNames.Swordsmith)
                                 {
                                     hasSwordsmith = true;
                                     break;
@@ -63,17 +61,17 @@ namespace AIOverhaul
                         {
                             // Drastically reduce Fletcher priority until Swordsmith is built
                             option.eval *= GameBalance.StrongPenaltyMultiplier;
-                            Logic.Castle.upgrade_options[i] = option;
+                            Castle.upgrade_options[i] = option;
                         }
                     }
                 }
             }
         }
 
-        private static void ApplyBarracksLogic(Logic.Castle castle)
+        static void ApplyBarracksLogic(Castle castle)
         {
             // Get Castle district definition (Barracks goes in Castle district)
-            Logic.District.Def castleDistrict = DistrictHelper.GetDistrict(castle.game, DistrictNames.Castle);
+            District.Def castleDistrict = DistrictHelper.GetDistrict(castle.game, DistrictNames.Castle);
             if (castleDistrict == null) return;
 
             // Check if this castle HAS the Castle district
@@ -81,7 +79,7 @@ namespace AIOverhaul
 
             // Check if kingdom already has any barracks (across all provinces)
             bool kingdomHasBarracks = false;
-            Logic.Building.Def barracksDef = castle.game?.defs?.Get<Logic.Building.Def>(BuildingNames.Barracks);
+            Building.Def barracksDef = castle.game?.defs?.Get<Building.Def>(BuildingNames.Barracks);
             if (barracksDef != null)
             {
                 var kingdom = castle.GetKingdom();
@@ -99,9 +97,9 @@ namespace AIOverhaul
             }
 
             // Find Barracks in build options
-            for (int i = Logic.Castle.build_options.Count - 1; i >= 0; i--)
+            for (int i = Castle.build_options.Count - 1; i >= 0; i--)
             {
-                var option = Logic.Castle.build_options[i];
+                var option = Castle.build_options[i];
                 if (option.def != null && option.def.id == BuildingNames.Barracks)
                 {
                     if (!kingdomHasBarracks)
@@ -114,7 +112,7 @@ namespace AIOverhaul
                             float boost = 1.0f + (slots * GameBalance.BarracksSlotBoostPerSlot);
 
                             option.eval *= boost;
-                            Logic.Castle.build_options[i] = option;
+                            Castle.build_options[i] = option;
 
                             AIOverhaulPlugin.LogDiagnostic($"BOOSTING first Barracks in {castle.name} (Slots: {slots}, Boost: {boost:F1}x)", LogCategory.Military, castle.GetKingdom());
                         }
@@ -126,7 +124,7 @@ namespace AIOverhaul
                         if (!hasCastleDistrict)
                         {
                             // BLOCK second+ barracks if no Castle district
-                            Logic.Castle.build_options.RemoveAt(i);
+                            Castle.build_options.RemoveAt(i);
 
                             AIOverhaulPlugin.LogDiagnostic($"BLOCKING second Barracks in {castle.name} - requires Castle district", LogCategory.Military, castle.GetKingdom());
                         }
@@ -135,10 +133,10 @@ namespace AIOverhaul
             }
         }
 
-        private static void ApplyReligionLogic(Logic.Castle castle)
+        static void ApplyReligionLogic(Castle castle)
         {
             // Get Religion district definition
-            Logic.District.Def religionDistrict = DistrictHelper.GetDistrict(castle.game, DistrictNames.Religion);
+            District.Def religionDistrict = DistrictHelper.GetDistrict(castle.game, DistrictNames.Religion);
             if (religionDistrict == null) return;
 
             // Check if this castle has the Religion district
@@ -212,7 +210,7 @@ namespace AIOverhaul
                    buildingId == BuildingNames.GreatMosque;
         }
 
-        static int CountReligionSlots(Castle castle, Logic.District.Def religionDistrict)
+        static int CountReligionSlots(Castle castle, District.Def religionDistrict)
         {
             if (religionDistrict?.buildings == null) return 0;
 

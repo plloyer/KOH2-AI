@@ -241,7 +241,7 @@ namespace AIOverhaul
     // Mortal Enemy System: Detect when someone declares war on an Enhanced AI kingdom
     // "Logic.War" constructor is called when a new war is declared between two kingdoms.
     // Intent: WarDeclarationDetectionPatch
-    [HarmonyPatch(typeof(Logic.War), MethodType.Constructor, new System.Type[] {
+    [HarmonyPatch(typeof(Logic.War), MethodType.Constructor, new[] {
         typeof(Logic.Kingdom),
         typeof(Logic.Kingdom),
         typeof(Logic.War.InvolvementReason),
