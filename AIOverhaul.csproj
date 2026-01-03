@@ -97,6 +97,7 @@
     </ItemGroup>
     <ItemGroup>
         <None Include="TODO.md" />
+        <None Include="GAME_CONCEPTS.md" />
         <None Include="Sources\**\*.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
