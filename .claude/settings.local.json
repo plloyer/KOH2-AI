@@ -15,7 +15,9 @@
       "Bash(cd:*)",
       "Bash(git mv:*)",
       "Bash(find:*)",
-      "Bash(start Sovereign.exe)"
+      "Bash(start Sovereign.exe)",
+      "Bash(mkdir:*)",
+      "Bash(git restore:*)"
     ]
   }
 }
