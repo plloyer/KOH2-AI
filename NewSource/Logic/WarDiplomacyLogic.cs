@@ -570,7 +570,7 @@ namespace AIOverhaul
     // "ThinkDeclareWar" evaluates kingdom relations and power to decide if war should be declared.
     // Intent: WarDeclarationPatch
     [HarmonyPatch(typeof(KingdomAI), "ThinkDeclareWar")]
-    public class ThinkDeclareWarPatch
+    public class KingdomAI_ThinkDeclareWar
     {
         static bool Prefix(KingdomAI __instance, Logic.Kingdom k, ref bool __result)
         {
@@ -735,7 +735,7 @@ namespace AIOverhaul
     // "ThinkDiplomacy" handles diplomatic actions like proposing alliances, pacts, or peace treaties.
     // Intent: SurvivalDiplomacyPatch
     [HarmonyPatch(typeof(KingdomAI), "ThinkDiplomacy")]
-    public class ThinkDiplomacyPatch
+    public class KingdomAI_ThinkDiplomacy
     {
         static bool Prefix(KingdomAI __instance, ref IEnumerator __result)
         {
@@ -901,7 +901,7 @@ namespace AIOverhaul
     }
 
     [HarmonyPatch(typeof(KingdomAI), "ThinkWhitePeace")]
-    public class SurvivalPeacePatch
+    public class KingdomAI_ThinkWhitePeace
     {
         static bool Prefix(KingdomAI __instance, Logic.Kingdom k, ref bool __result)
         {
@@ -977,7 +977,7 @@ namespace AIOverhaul
 
     [HarmonyPatch(typeof(ProsAndCons), "Eval")]
     [HarmonyPatch(new[] { typeof(string) })]
-    public static class TradeAcceptancePatch
+    public static class ProsAndCons_Eval
     {
         static bool Prefix(ProsAndCons __instance, string threshold_name, ref float __result)
         {

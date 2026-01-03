@@ -11,7 +11,7 @@ namespace AIOverhaul
     // "ConsiderAdoptTradition" decides which new kingdom tradition (e.g. "Writing") to adopt if slots are available.
     // Intent: TraditionSelectionPatch
     [HarmonyPatch(typeof(KingdomAI), "ConsiderAdoptTradition")]
-    public static class ConsiderAdoptTraditionPatch
+    public static class KingdomAI_ConsiderAdoptTradition
     {
         [HarmonyPrefix]
         public static bool Prefix(KingdomAI __instance, ref bool __result)

@@ -7,7 +7,7 @@ namespace AIOverhaul
     // "AddChild" is called when a new prince/princess is born or added to the family tree.
     // Intent: HeirClassSelectionPatch
     [HarmonyPatch(typeof(Logic.RoyalFamily), "AddChild")]
-    public class AddChildPatch
+    public class RoyalFamily_AddChild
     {
         static void Postfix(Logic.RoyalFamily __instance, Logic.Character child)
         {

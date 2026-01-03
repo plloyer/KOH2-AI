@@ -14,7 +14,7 @@ namespace AIOverhaul
     // 2. Barracks Placement (Military)
     // 3. Religion Building Logic (Economy)
     [HarmonyPatch(typeof(Castle), "AddBuildOptions", typeof(bool), typeof(Resource))]
-    public class AddBuildOptionsPatch
+    public class Castle_AddBuildOptions
     {
         static void Postfix(Castle __instance)
         {

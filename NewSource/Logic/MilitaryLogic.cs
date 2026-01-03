@@ -75,7 +75,7 @@ namespace AIOverhaul
     // "ThinkFight" controls whether an army should engage in battle or retreat.
     // Intent: BattleEngagementPatch
     [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkFight")]
-    public class ThinkFightPatch
+    public class KingdomAI_ThinkFight
     {
         static bool Prefix(Logic.KingdomAI __instance, Logic.Army army, ref bool __result)
         {
@@ -171,7 +171,7 @@ namespace AIOverhaul
     // "ThinkArmy" handles general army tick logic including movement and actions.
     // Intent: ThinkArmy patches (IdleArmyPatch + HealingLogicPatch)
     [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkArmy")]
-    public class ThinkArmyPatch
+    public class KingdomAI_ThinkArmy
     {
         static void Postfix(Logic.KingdomAI __instance, Logic.Army army)
         {
@@ -286,7 +286,7 @@ namespace AIOverhaul
     // "EvalHireUnits" determines if militia/peasants should be raised in a castle.
     // Intent: PeasantRecruitmentBlockPatch
     [HarmonyPatch(typeof(Logic.Castle), "EvalHireUnits")]
-    public class EvalHireUnitsPatch
+    public class Castle_EvalHireUnits
     {
         static void Prefix(Logic.Castle __instance, ref bool allow_militia)
         {
@@ -304,7 +304,7 @@ namespace AIOverhaul
     // "EvalHireUnit" evaluates the desirability of hiring a specific unit type for an army.
     // Intent: ArmyCompositionPatch
     [HarmonyPatch(typeof(Logic.KingdomAI), "EvalHireUnit")]
-    public class EvalHireUnitPatch
+    public class KingdomAI_EvalHireUnit
     {
         static void Postfix(Logic.Unit.Def udef, Logic.Army army, ref float __result)
         {
@@ -426,7 +426,7 @@ namespace AIOverhaul
     // "ConsiderUpgradeFortifications" decides if castle walls and defenses should be upgraded.
     // Intent: FortificationPriorityPatch
     [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderUpgradeFortifications")]
-    public class ConsiderUpgradeFortificationsPatch
+    public class KingdomAI_ConsiderUpgradeFortifications
     {
         static bool Prefix(Logic.KingdomAI __instance, Logic.Castle castle, ref bool __result)
         {
@@ -486,7 +486,7 @@ namespace AIOverhaul
     // "ThinkAssaultSiege" decides whether a besieging army should launch an assault on the castle.
     // Intent: AssaultLogicPatch
     [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkAssaultSiege")]
-    public class ThinkAssaultSiegePatch
+    public class KingdomAI_ThinkAssaultSiege
     {
         static bool Prefix(Logic.KingdomAI __instance, Logic.Army a)
         {
