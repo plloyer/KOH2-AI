@@ -3,7 +3,6 @@ using HarmonyLib;
 using Logic;
 using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
 using AIOverhaul.Constants;
 using AIOverhaul.Helpers;
 
@@ -18,9 +17,7 @@ namespace AIOverhaul
         {
             if (__instance.kingdom == null)
                 return true;
-
-
-
+            
             // Check if this is a hiring expense
             if (expense.type != KingdomAI.Expense.Type.HireChacacter)
                 return true;

@@ -5,21 +5,24 @@ using AIOverhaul.Constants;
 namespace AIOverhaul
 {
     // "Eval" (GovernOption) scores how suitable a specific character is for governing a specific town.
-    // Intent: EarlyGameGovernorPatch
     [HarmonyPatch(typeof(Logic.KingdomAI.GovernOption), "Eval")]
-    public class GovernOption_Eval_EarlyGameMarshal
+    public class GovernOption_Eval
     {
         static void Postfix(ref Logic.KingdomAI.GovernOption __instance, ref float __result)
         {
-            Logic.Character governor = __instance.governor;
-            Logic.Castle castle = __instance.castle;
-            if (governor == null || castle == null) return;
-
-            Logic.Kingdom kingdom = governor.GetKingdom();
+            if (__instance.governor == null || __instance.castle == null) return;
+            
+            Logic.Kingdom kingdom = __instance.castle.GetKingdom();
             if (kingdom == null || !AIOverhaulPlugin.IsEnhancedAI(kingdom)) return;
 
+            ApplyEarlyGameMarshalLogic(__instance, kingdom, ref __result);
+            ApplyMerchantMarketBonus(__instance, ref __result);
+        }
+
+        static void ApplyEarlyGameMarshalLogic(Logic.KingdomAI.GovernOption option, Logic.Kingdom kingdom, ref float score)
+        {
             // Rule: Early game (2-3 provinces), Marshals should govern the castle with most districts (military potential)
-            if (kingdom.realms.Count >= 2 && kingdom.realms.Count <= 3 && governor.IsMarshal())
+            if (kingdom.realms.Count >= 2 && kingdom.realms.Count <= 3 && option.governor.IsMarshal())
             {
                 // Find the best military province in the kingdom
                 Logic.Realm bestMilitaryRealm = null;
@@ -36,10 +39,21 @@ namespace AIOverhaul
                     }
                 }
 
-                if (bestMilitaryRealm != null && bestMilitaryRealm.castle == castle)
+                if (bestMilitaryRealm != null && bestMilitaryRealm.castle == option.castle)
                 {
                     // Give a massive boost to ensure Marshal chooses this castle
-                    __result += 10000f;
+                    score += 10000f;
+                }
+            }
+        }
+
+        static void ApplyMerchantMarketBonus(Logic.KingdomAI.GovernOption option, ref float score)
+        {
+            if (option.governor.class_def?.id == CharacterClassNames.Merchant)
+            {
+                if (option.castle.buildings.Any(b => b.def.id.Contains(BuildingNames.MarketSquare)))
+                {
+                    score += GameBalance.MerchantGovernorMarketBonus;
                 }
             }
         }
@@ -75,26 +89,6 @@ namespace AIOverhaul
             }
 
             return score;
-        }
-    }
-
-    // "Eval" (GovernOption) scores how suitable a specific character is for governing a specific town.
-    // Intent: MerchantGovernorBonus
-    [HarmonyPatch(typeof(Logic.KingdomAI.GovernOption), "Eval")]
-    public class GovernOption_Eval_MerchantBonus
-    {
-        static void Postfix(ref Logic.KingdomAI.GovernOption __instance, ref float __result)
-        {
-            if (__instance.governor == null || __instance.castle == null) return;
-            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.castle.GetKingdom())) return;
-
-            if (__instance.governor.class_def?.id == CharacterClassNames.Merchant)
-            {
-                if (__instance.castle.buildings.Any(b => b.def.id.Contains(BuildingNames.MarketSquare)))
-                {
-                    __result += GameBalance.MerchantGovernorMarketBonus;
-                }
-            }
         }
     }
 }
