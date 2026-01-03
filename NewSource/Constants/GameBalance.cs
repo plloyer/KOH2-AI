@@ -31,7 +31,6 @@ namespace AIOverhaul.Constants
         public const float StrongPenaltyMultiplier = 0.1f;
         public const float MediumPenaltyMultiplier = 0.2f;
         public const float HighPriorityMultiplier = 0.7f; // Lower eval = higher priority
-        public const float TradeActionPriorityMultiplier = 0.7f; // Lower eval = higher priority
         public const float StrictBlockMultiplier = 0.01f;
 
         // War Score Thresholds (negative = losing)

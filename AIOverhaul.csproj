@@ -90,6 +90,9 @@
         <Compile Include="NewSource\WarDiplomacyLogic.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>
     </ItemGroup>
+    <ItemGroup>
+        <None Include="TODO.md" />
+    </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
         <Exec Command="copy /Y &quot;$(TargetDir)$(TargetName).dll&quot; &quot;..\BepInEx\plugins\$(TargetName).dll&quot;" />

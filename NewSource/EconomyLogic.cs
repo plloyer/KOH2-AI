@@ -121,7 +121,7 @@ namespace AIOverhaul
             {
                 if (expense.defParam is Logic.Action action && action.def.id == ActionNames.Trade)
                 {
-                    expense.eval *= GameBalance.TradeActionPriorityMultiplier; // Lower eval = higher priority
+                    expense.eval *= GameBalance.HighPriorityMultiplier; // Lower eval = higher priority
                 }
             }
         }
