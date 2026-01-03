@@ -135,7 +135,7 @@ namespace AIOverhaul
         static void Postfix(Castle __instance, Logic.Building.Def def, Resource production_weights, ref float __result)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
-            if (def.id.Contains(BuildingNames.MarketSquare) || def.id.Contains("Farm") || def.id.Contains(CharacterClassNames.Merchant))
+            if (def.id.Contains(BuildingNames.MarketSquare) || def.id.Contains(CharacterClassNames.Merchant))
             {
                 __result *= GameBalance.EconomyBuildingPriorityMultiplier;
             }
