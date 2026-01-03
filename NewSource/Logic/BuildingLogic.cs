@@ -156,7 +156,7 @@ namespace AIOverhaul
                     {
                         // Boost priority for castles with religion district
                         // Further boost based on how many religion slots available
-                        int religionSlots = CountReligionSlots(castle, religionDistrict);
+                        int religionSlots = BuildingHelper.CountReligionSlots(castle, religionDistrict);
                         float boost = 1.0f + (religionSlots * GameBalance.ReligionBuildingBoostPerSlot);
                         option.eval *= boost;
                         Castle.build_options[i] = option;
@@ -182,23 +182,13 @@ namespace AIOverhaul
                     else
                     {
                         // Boost priority for castles with religion district
-                        int religionSlots = CountReligionSlots(castle, religionDistrict);
+                        int religionSlots = BuildingHelper.CountReligionSlots(castle, religionDistrict);
                         float boost = 1.0f + (religionSlots * GameBalance.ReligionBuildingBoostPerSlot);
                         option.eval *= boost;
                         Castle.upgrade_options[i] = option;
                     }
                 }
             }
-        }
-
-        // --- Helpers ---
-
-        static int CountReligionSlots(Castle castle, District.Def religionDistrict)
-        {
-            if (religionDistrict?.buildings == null) return 0;
-
-            // Count how many religion building slots exist in this district definition
-            return religionDistrict.buildings.Count;
         }
     }
 }

@@ -21,5 +21,16 @@ namespace AIOverhaul.Helpers
                    buildingId == BuildingNames.Cathedral ||
                    buildingId == BuildingNames.GreatMosque;
         }
+
+        /// <summary>
+        /// Count how many religion building slots exist in a district definition
+        /// </summary>
+        public static int CountReligionSlots(Logic.Castle castle, Logic.District.Def religionDistrict)
+        {
+            if (religionDistrict?.buildings == null) return 0;
+
+            // Count how many religion building slots exist in this district definition
+            return religionDistrict.buildings.Count;
+        }
     }
 }
