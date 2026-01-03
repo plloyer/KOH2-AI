@@ -122,12 +122,7 @@ namespace AIOverhaul
                     {
                         // Kingdom already has barracks - ONLY allow in Castle districts
                         if (!hasCastleDistrict)
-                        {
-                            // BLOCK second+ barracks if no Castle district
                             Castle.build_options.RemoveAt(i);
-
-                            AIOverhaulPlugin.LogDiagnostic($"BLOCKING second Barracks in {castle.name} - requires Castle district", LogCategory.Military, castle.GetKingdom());
-                        }
                     }
                 }
             }
@@ -148,7 +143,7 @@ namespace AIOverhaul
                 var option = Castle.build_options[i];
                 if (option.def == null) continue;
 
-                bool isReligiousBuilding = IsReligiousBuilding(option.def.id);
+                bool isReligiousBuilding = BuildingHelper.IsReligiousBuilding(option.def.id);
 
                 if (isReligiousBuilding)
                 {
@@ -175,7 +170,7 @@ namespace AIOverhaul
                 var option = Castle.upgrade_options[i];
                 if (option.def == null) continue;
 
-                bool isReligiousBuilding = IsReligiousBuilding(option.def.id);
+                bool isReligiousBuilding = BuildingHelper.IsReligiousBuilding(option.def.id);
 
                 if (isReligiousBuilding)
                 {
@@ -197,18 +192,6 @@ namespace AIOverhaul
         }
 
         // --- Helpers ---
-
-        static bool IsReligiousBuilding(string buildingId)
-        {
-            if (string.IsNullOrEmpty(buildingId)) return false;
-
-            // Religious buildings include Church, Masjid, Temple, Cathedral, GreatMosque
-            return buildingId == BuildingNames.Church ||
-                   buildingId == BuildingNames.Masjid ||
-                   buildingId == BuildingNames.Temple ||
-                   buildingId == BuildingNames.Cathedral ||
-                   buildingId == BuildingNames.GreatMosque;
-        }
 
         static int CountReligionSlots(Castle castle, District.Def religionDistrict)
         {
