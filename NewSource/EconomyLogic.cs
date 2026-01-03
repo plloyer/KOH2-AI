@@ -9,12 +9,10 @@ using AIOverhaul.Helpers;
 
 namespace AIOverhaul
 {
-
-
     // "ConsiderExpense" evaluates a specific expense (hiring, building, bribing) to decide if the AI should pay for it.
     // Intent: ConsiderExpense
     [HarmonyPatch(typeof(KingdomAI), "ConsiderExpense", typeof(KingdomAI.Expense))]
-    public class ConsiderExpensePatch
+    public class KingdomAI_ConsiderExpense
     {
         static bool Prefix(KingdomAI __instance, KingdomAI.Expense expense)
         {
@@ -111,7 +109,7 @@ namespace AIOverhaul
 
     // "AddExpense" adds a potential expense option to the AI's consideration list.
     [HarmonyPatch(typeof(KingdomAI), "AddExpense", new[] { typeof(WeightedRandom<KingdomAI.Expense>), typeof(KingdomAI.Expense) })]
-    public class AddExpensePatch
+    public class KingdomAI_AddExpense
     {
         static void Prefix(KingdomAI __instance, object expenses, KingdomAI.Expense expense)
         {
@@ -128,7 +126,7 @@ namespace AIOverhaul
     // "EvalBuild" evaluates the priority/desirability of constructing a specific building definition.
     // Intent: BuildingPrioritizationPatch
     [HarmonyPatch(typeof(Castle), "EvalBuild")]
-    public class EvalBuildPatch
+    public class Castle_EvalBuild
     {
         static void Postfix(Castle __instance, Logic.Building.Def def, Resource production_weights, ref float __result)
         {
@@ -139,7 +137,7 @@ namespace AIOverhaul
     // "Eval" (GovernOption) scores how suitable a specific character is for governing a specific town.
     // Intent: KnightAssignmentPatch
     [HarmonyPatch(typeof(KingdomAI.GovernOption), "Eval")]
-    public class EvalPatch_2
+    public class GovernOption_Eval
     {
         static void Postfix(ref KingdomAI.GovernOption __instance, ref float __result)
         {
@@ -159,7 +157,7 @@ namespace AIOverhaul
     // "ConsiderIncreaseCrownAuthority" decides if the kingdom should spend resources to increase crown authority.
     // Intent: SpendingPriorityPatch
     [HarmonyPatch(typeof(KingdomAI), "ConsiderIncreaseCrownAuthority")]
-    public static class ConsiderIncreaseCrownAuthorityPatch
+    public static class KingdomAI_ConsiderIncreaseCrownAuthority
     {
         [HarmonyPrefix]
         public static bool Prefix(KingdomAI __instance, ref bool __result)
@@ -213,7 +211,7 @@ namespace AIOverhaul
     // "ChooseNewSkill" picks a new skill for a character when they gain a level or slot.
     // Intent: ChooseNewSkill (Writing Tradition Logic)
     [HarmonyPatch(typeof(Logic.Character), "ChooseNewSkill")]
-    public static class ChooseNewSkillPatch
+    public static class Character_ChooseNewSkill
     {
         [HarmonyPrefix]
         public static bool Prefix(Logic.Character __instance, List<Logic.Skill.Def> skills, ref Logic.Skill.Def __result)
@@ -235,7 +233,7 @@ namespace AIOverhaul
     // "ThinkUpgradeSkill" decides whether to upgrade an existing skill to the next rank.
     // Intent: ThinkUpgradeSkill (Writing Upgrade Logic)
     [HarmonyPatch(typeof(Logic.Character), "ThinkUpgradeSkill")]
-    public static class ThinkUpgradeSkillPatch
+    public static class Character_ThinkUpgradeSkill
     {
         [HarmonyPrefix]
         public static bool Prefix(Logic.Character __instance, bool for_free, ref bool __result)
