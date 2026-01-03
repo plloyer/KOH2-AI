@@ -110,7 +110,6 @@ namespace AIOverhaul
     }
 
     // "AddExpense" adds a potential expense option to the AI's consideration list.
-    // Intent: TradeActionPriorityPatch
     [HarmonyPatch(typeof(KingdomAI), "AddExpense", new[] { typeof(WeightedRandom<KingdomAI.Expense>), typeof(KingdomAI.Expense) })]
     public class AddExpensePatch
     {
@@ -119,10 +118,9 @@ namespace AIOverhaul
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return;
             if (expense.category == KingdomAI.Expense.Category.Diplomacy)
             {
+                // Trade is free, but lowering eval ensures it's prioritized over other free diplomatic actions
                 if (expense.defParam is Logic.Action action && action.def.id == ActionNames.Trade)
-                {
                     expense.eval *= GameBalance.HighPriorityMultiplier; // Lower eval = higher priority
-                }
             }
         }
     }
@@ -135,10 +133,6 @@ namespace AIOverhaul
         static void Postfix(Castle __instance, Logic.Building.Def def, Resource production_weights, ref float __result)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
-            if (def.id.Contains(BuildingNames.MarketSquare) || def.id.Contains(CharacterClassNames.Merchant))
-            {
-                __result *= GameBalance.EconomyBuildingPriorityMultiplier;
-            }
         }
     }
 
