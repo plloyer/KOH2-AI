@@ -7,6 +7,17 @@ using UnityEngine;
 
 namespace AIOverhaul
 {
+    // "EvalBuild" evaluates the priority/desirability of constructing a specific building definition.
+    // Intent: BuildingPrioritizationPatch
+    [HarmonyPatch(typeof(Castle), "EvalBuild")]
+    public class Castle_EvalBuild
+    {
+        static void Postfix(Castle __instance, Logic.Building.Def def, Resource production_weights, ref float __result)
+        {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
+        }
+    }
+    
     // "AddBuildOptions" generates the list of available buildings and upgrades for a castle.
     // Intent: Consolidated AddBuildOptionsPatch
     // Merges logic for:

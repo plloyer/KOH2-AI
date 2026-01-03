@@ -8,21 +8,23 @@ using AIOverhaul.Helpers;
 
 namespace AIOverhaul
 {
+
+
     // "ConsiderExpense" evaluates a specific expense (hiring, building, bribing) to decide if the AI should pay for it.
     // Intent: ConsiderExpense
-    [HarmonyPatch(typeof(KingdomAI), "ConsiderExpense", typeof(KingdomAI.Expense))]
+    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderExpense", typeof(Logic.KingdomAI.Expense))]
     public class KingdomAI_ConsiderExpense
     {
-        static bool Prefix(KingdomAI __instance, KingdomAI.Expense expense)
+        static bool Prefix(Logic.KingdomAI __instance, Logic.KingdomAI.Expense expense)
         {
             if (__instance.kingdom == null)
                 return true;
             
             // Check if this is a hiring expense
-            if (expense.type != KingdomAI.Expense.Type.HireChacacter)
+            if (expense.type != Logic.KingdomAI.Expense.Type.HireChacacter)
                 return true;
 
-            if (!(expense.defParam is CharacterClass.Def cDef))
+            if (!(expense.defParam is Logic.CharacterClass.Def cDef))
                 return true;
 
             // DIAGNOSTIC: Log every character hiring ConsiderExpense call to verify patch is working
@@ -104,7 +106,71 @@ namespace AIOverhaul
         }
     }
 
-    // "AddExpense" adds a potential expense option to the AI's consideration list.
+    // "ChooseNewSkill" picks a new skill for a character when they gain a level or slot.
+    // Intent: ChooseNewSkill (Writing Tradition Logic)
+    [HarmonyPatch(typeof(Logic.Character), "ChooseNewSkill")]
+    public static class Character_ChooseNewSkill
+    {
+        [HarmonyPrefix]
+        public static bool Prefix(Logic.Character __instance, System.Collections.Generic.List<Logic.Skill.Def> skills, ref Logic.Skill.Def __result)
+        {
+            if (__instance.IsKing() && AIOverhaulPlugin.EnhancedKingdomIds.Contains(__instance.GetKingdom().id))
+            {
+                var writingSkill = skills.Find(s => s != null && s.id == SkillNames.Writing + "Skill");
+                if (writingSkill != null)
+                {
+                    __result = writingSkill;
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+
+    // "ThinkUpgradeSkill" decides whether to upgrade an existing skill to the next rank.
+    // Intent: ThinkUpgradeSkill (Writing Upgrade Logic)
+    [HarmonyPatch(typeof(Logic.Character), "ThinkUpgradeSkill")]
+    public static class Character_ThinkUpgradeSkill
+    {
+        [HarmonyPrefix]
+        public static bool Prefix(Logic.Character __instance, bool for_free, ref bool __result)
+        {
+            if (__instance.IsKing() && AIOverhaulPlugin.EnhancedKingdomIds.Contains(__instance.GetKingdom().id))
+            {
+                var skillsRef = TraverseAPI.GetSkills(__instance);
+                if (skillsRef != null)
+                {
+                    var writingSkill = skillsRef.Find(s => s != null && s.def != null && s.def.id == SkillNames.Writing + "Skill");
+                    if (writingSkill != null && __instance.CanAddSkillRank(writingSkill))
+                    {
+                        if (!for_free)
+                        {
+                            var kingdom = __instance.GetKingdom();
+                            if (kingdom != null)
+                            {
+                                var upgradeCost = writingSkill.def.GetUpgardeCost(__instance);
+                                if (!kingdom.resources.CanAfford(upgradeCost, 1f)) return false;
+
+                                var expenseCategory = TraverseAPI.GetExpenseCategory(__instance);
+                                Logic.Kingdom.in_AI_spend = true;
+                                kingdom.SubResources(expenseCategory, upgradeCost);
+                                Logic.Kingdom.in_AI_spend = false;
+                            }
+                        }
+
+                        __instance.AddSkillRank(writingSkill);
+                        __result = true;
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+    }
+
+
     [HarmonyPatch(typeof(KingdomAI), "AddExpense", new[] { typeof(WeightedRandom<KingdomAI.Expense>), typeof(KingdomAI.Expense) })]
     public class KingdomAI_AddExpense
     {
@@ -117,17 +183,6 @@ namespace AIOverhaul
                 if (expense.defParam is Logic.Action action && action.def.id == ActionNames.Trade)
                     expense.eval *= GameBalance.HighPriorityMultiplier; // Lower eval = higher priority
             }
-        }
-    }
-
-    // "EvalBuild" evaluates the priority/desirability of constructing a specific building definition.
-    // Intent: BuildingPrioritizationPatch
-    [HarmonyPatch(typeof(Castle), "EvalBuild")]
-    public class Castle_EvalBuild
-    {
-        static void Postfix(Castle __instance, Logic.Building.Def def, Resource production_weights, ref float __result)
-        {
-            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
         }
     }
 
@@ -185,69 +240,7 @@ namespace AIOverhaul
         }
     }
 
-    // "ChooseNewSkill" picks a new skill for a character when they gain a level or slot.
-    // Intent: ChooseNewSkill (Writing Tradition Logic)
-    [HarmonyPatch(typeof(Logic.Character), "ChooseNewSkill")]
-    public static class Character_ChooseNewSkill
-    {
-        [HarmonyPrefix]
-        public static bool Prefix(Logic.Character __instance, List<Logic.Skill.Def> skills, ref Logic.Skill.Def __result)
-        {
-            if (__instance.IsKing() && AIOverhaulPlugin.EnhancedKingdomIds.Contains(__instance.GetKingdom().id))
-            {
-                var writingSkill = skills.Find(s => s != null && s.id == SkillNames.Writing + "Skill");
-                if (writingSkill != null)
-                {
-                    __result = writingSkill;
-                    return false;
-                }
-            }
 
-            return true;
-        }
-    }
-
-    // "ThinkUpgradeSkill" decides whether to upgrade an existing skill to the next rank.
-    // Intent: ThinkUpgradeSkill (Writing Upgrade Logic)
-    [HarmonyPatch(typeof(Logic.Character), "ThinkUpgradeSkill")]
-    public static class Character_ThinkUpgradeSkill
-    {
-        [HarmonyPrefix]
-        public static bool Prefix(Logic.Character __instance, bool for_free, ref bool __result)
-        {
-            if (__instance.IsKing() && AIOverhaulPlugin.EnhancedKingdomIds.Contains(__instance.GetKingdom().id))
-            {
-                var skillsRef = TraverseAPI.GetSkills(__instance);
-                if (skillsRef != null)
-                {
-                    var writingSkill = skillsRef.Find(s => s != null && s.def != null && s.def.id == SkillNames.Writing + "Skill");
-                    if (writingSkill != null && __instance.CanAddSkillRank(writingSkill))
-                    {
-                        if (!for_free)
-                        {
-                            var kingdom = __instance.GetKingdom();
-                            if (kingdom != null)
-                            {
-                                var upgradeCost = writingSkill.def.GetUpgardeCost(__instance);
-                                if (!kingdom.resources.CanAfford(upgradeCost, 1f)) return false;
-
-                                var expenseCategory = TraverseAPI.GetExpenseCategory(__instance);
-                                Logic.Kingdom.in_AI_spend = true;
-                                kingdom.SubResources(expenseCategory, upgradeCost);
-                                Logic.Kingdom.in_AI_spend = false;
-                            }
-                        }
-
-                        __instance.AddSkillRank(writingSkill);
-                        __result = true;
-                        return false;
-                    }
-                }
-            }
-
-            return true;
-        }
-    }
 
     // OBSOLETE: ConsiderExpense overload with complex parameters doesn't exist
     // All character hiring goes through ConsiderExpense(KingdomAI.Expense)

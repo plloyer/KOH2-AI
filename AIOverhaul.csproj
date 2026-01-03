@@ -69,6 +69,8 @@
         <Compile Include="NewSource\Constants\DistrictNames.cs" />
         <Compile Include="NewSource\Constants\GameBalance.cs" />
         <Compile Include="NewSource\Constants\GoodsNames.cs" />
+    <Compile Include="NewSource\Constants\FeatureNames.cs" />
+    <Compile Include="NewSource\Helpers\FeatureHelper.cs" />
         <Compile Include="NewSource\Constants\LogCategory.cs" />
         <Compile Include="NewSource\Constants\SkillNames.cs" />
         <Compile Include="NewSource\Constants\KingdomNames.cs" />

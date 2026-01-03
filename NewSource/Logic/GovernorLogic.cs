@@ -42,7 +42,7 @@ namespace AIOverhaul
                 if (bestMilitaryRealm != null && bestMilitaryRealm.castle == option.castle)
                 {
                     // Give a massive boost to ensure Marshal chooses this castle
-                    score += 10000f;
+                    score += GameBalance.MarshalEarlyGameBoost;
                 }
             }
         }
@@ -76,16 +76,16 @@ namespace AIOverhaul
             }
 
             // 2. Iron Ore Bonus (Same as vanilla specialization logic)
-            if (realm.features != null && realm.features.Contains("IronOre"))
+            if (realm.features != null && realm.features.Contains(FeatureNames.IronOre))
             {
-                score += 15f;
+                score += GameBalance.IronOreMilitaryBonus;
             }
 
             // 3. Castle Slots (Districts)
             if (realm.castle != null)
             {
                 // Unlocked slots represent "Castle Districts" development
-                score += (float)realm.castle.AvailableBuildingSlots() * 2f; 
+                score += (float)realm.castle.AvailableBuildingSlots() * GameBalance.DistrictMilitaryMultiplier; 
             }
 
             return score;

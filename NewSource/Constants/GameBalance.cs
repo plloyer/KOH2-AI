@@ -90,11 +90,16 @@ namespace AIOverhaul.Constants
         public const float HighBooksThreshold = 350f;
         public const float LowGoldThreshold = 2000f;
         public const float HighBuildingEvalBoost = 20f;
-        public const float MerchantGovernorMarketBonus = 20f; // Bonus for merchant governor in town with market
         public const float EconomyBuildingPriorityMultiplier = 1.3f; // Priority multiplier for economy buildings
 
         // Kingdom Selection
         public const float EnhancedAISelectionPercentage = 0.30f;
+
+        // Governor Logic
+        public const float MerchantGovernorMarketBonus = 20f; // Bonus for merchant governor in town with market
+        public const float MarshalEarlyGameBoost = 10000f; // Massive boost for Marshals in best military province
+        public const float IronOreMilitaryBonus = 15f; // Bonus for Iron Ore in military potential calc
+        public const float DistrictMilitaryMultiplier = 2f; // Multiplier for available slots in military potential calc
 
         // Building Bonuses
         public const float ReligionBuildingBoostPerSlot = 0.2f; // 20% per religion slot
