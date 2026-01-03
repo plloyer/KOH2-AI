@@ -1,11 +1,13 @@
 using HarmonyLib;
+using System.Linq;
+using AIOverhaul.Constants;
 
 namespace AIOverhaul
 {
     // "Eval" (GovernOption) scores how suitable a specific character is for governing a specific town.
     // Intent: EarlyGameGovernorPatch
     [HarmonyPatch(typeof(Logic.KingdomAI.GovernOption), "Eval")]
-    public class EvalPatch
+    public class GovernOption_Eval_EarlyGameMarshal
     {
         static void Postfix(ref Logic.KingdomAI.GovernOption __instance, ref float __result)
         {
@@ -73,6 +75,26 @@ namespace AIOverhaul
             }
 
             return score;
+        }
+    }
+
+    // "Eval" (GovernOption) scores how suitable a specific character is for governing a specific town.
+    // Intent: MerchantGovernorBonus
+    [HarmonyPatch(typeof(Logic.KingdomAI.GovernOption), "Eval")]
+    public class GovernOption_Eval_MerchantBonus
+    {
+        static void Postfix(ref Logic.KingdomAI.GovernOption __instance, ref float __result)
+        {
+            if (__instance.governor == null || __instance.castle == null) return;
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.castle.GetKingdom())) return;
+
+            if (__instance.governor.class_def?.id == CharacterClassNames.Merchant)
+            {
+                if (__instance.castle.buildings.Any(b => b.def.id.Contains(BuildingNames.MarketSquare)))
+                {
+                    __result += GameBalance.MerchantGovernorMarketBonus;
+                }
+            }
         }
     }
 }

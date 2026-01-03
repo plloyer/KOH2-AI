@@ -79,15 +79,16 @@
         <Compile Include="NewSource\Helpers\OfferHelper.cs" />
         <Compile Include="NewSource\Log\EnhancedPerformanceLogger.cs" />
         <Compile Include="NewSource\Log\KingdomBaseline.cs" />
-        <Compile Include="NewSource\BuildingLogic.cs" />
-        <Compile Include="NewSource\EconomyLogic.cs" />
-        <Compile Include="NewSource\GovernorLogic.cs" />
-        <Compile Include="NewSource\MilitaryLogic.cs" />
+        <Compile Include="NewSource\Logic\BuildingLogic.cs" />
+        <Compile Include="NewSource\Logic\CourtLogic.cs" />
+        <Compile Include="NewSource\Logic\EconomyLogic.cs" />
+        <Compile Include="NewSource\Logic\GovernorLogic.cs" />
+        <Compile Include="NewSource\Logic\MilitaryLogic.cs" />
+        <Compile Include="NewSource\Logic\RoyalFamilyLogic.cs" />
+        <Compile Include="NewSource\Logic\TraditionLogic.cs" />
+        <Compile Include="NewSource\Logic\WarDiplomacyLogic.cs" />
         <Compile Include="NewSource\Plugin.cs" />
-        <Compile Include="NewSource\RoyalFamilyLogic.cs" />
-        <Compile Include="NewSource\TraditionLogic.cs" />
         <Compile Include="NewSource\TraverseAPI.cs" />
-        <Compile Include="NewSource\WarDiplomacyLogic.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>
     </ItemGroup>
     <ItemGroup>

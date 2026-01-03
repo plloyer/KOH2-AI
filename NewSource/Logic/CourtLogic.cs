@@ -1,4 +1,5 @@
 using HarmonyLib;
+using AIOverhaul.Constants;
 using AIOverhaul.Helpers;
 
 namespace AIOverhaul
@@ -30,7 +31,7 @@ namespace AIOverhaul
 
             if (isPlayer)
             {
-                 AIOverhaulPlugin.LogMod($"[CourtLogic] Auto-organized court for player kingdom {__instance.kingdom.Name}", AIOverhaulPlugin.LogCategory.General);
+                 AIOverhaulPlugin.LogMod($"[CourtLogic] Auto-organized court for player kingdom {__instance.kingdom.Name}", LogCategory.General);
             }
         }
     }

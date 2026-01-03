@@ -134,26 +134,6 @@ namespace AIOverhaul
         }
     }
 
-    // "Eval" (GovernOption) scores how suitable a specific character is for governing a specific town.
-    // Intent: KnightAssignmentPatch
-    [HarmonyPatch(typeof(KingdomAI.GovernOption), "Eval")]
-    public class GovernOption_Eval
-    {
-        static void Postfix(ref KingdomAI.GovernOption __instance, ref float __result)
-        {
-            if (__instance.governor == null || __instance.castle == null) return;
-            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.castle.GetKingdom())) return;
-
-            if (__instance.governor.class_def?.id == CharacterClassNames.Merchant)
-            {
-                if (__instance.castle.buildings.Any(b => b.def.id.Contains(BuildingNames.MarketSquare)))
-                {
-                    __result += GameBalance.MerchantGovernorMarketBonus;
-                }
-            }
-        }
-    }
-
     // "ConsiderIncreaseCrownAuthority" decides if the kingdom should spend resources to increase crown authority.
     // Intent: SpendingPriorityPatch
     [HarmonyPatch(typeof(KingdomAI), "ConsiderIncreaseCrownAuthority")]
