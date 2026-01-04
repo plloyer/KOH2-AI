@@ -3,7 +3,7 @@
 // Total skills: 28
 // Source: C:\Program Files (x86)\Steam\steamapps\common\Knights of Honor II\Defs\Characters\Skills
 
-namespace AIOverhaul
+namespace AIOverhaul.Constants
 {
     /// <summary>
     /// Constants for all skill names in Knights of Honor II

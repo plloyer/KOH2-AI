@@ -72,6 +72,7 @@
     <Compile Include="NewSource\Constants\FeatureNames.cs" />
     <Compile Include="NewSource\Helpers\FeatureHelper.cs" />
     <Compile Include="NewSource\Helpers\MilitaryHelper.cs" />
+    <Compile Include="NewSource\Helpers\SkillHelper.cs" />
     <Compile Include="NewSource\Helpers\TraditionHelper.cs" />
         <Compile Include="NewSource\Constants\LogCategory.cs" />
         <Compile Include="NewSource\Constants\SkillNames.cs" />
@@ -86,7 +87,8 @@
         <Compile Include="NewSource\Log\EnhancedPerformanceLogger.cs" />
         <Compile Include="NewSource\Log\KingdomBaseline.cs" />
         <Compile Include="NewSource\Logic\BuildingLogic.cs" />
-        <Compile Include="NewSource\Logic\CourtLogic.cs" />
+    <Compile Include="NewSource\Logic\CharacterSkillLogic.cs" />
+    <Compile Include="NewSource\Logic\CourtLogic.cs" />
         <Compile Include="NewSource\Logic\EconomyLogic.cs" />
         <Compile Include="NewSource\Logic\GovernorLogic.cs" />
         <Compile Include="NewSource\Logic\MilitaryLogic.cs" />

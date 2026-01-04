@@ -18,6 +18,16 @@ This document describes all the behavioral changes made to the enhanced AI.
 - Trade agreements have high priority (lower eval = higher priority in AI expense system)
 - Free diplomatic action but prioritized over other free actions
 
+## Royal Family
+
+### King Skill Priority
+- **Goal**: Ensure "Writing Tradition" is accessible as early as possible.
+- **Behavior**:
+    - When the King learns a new skill, priority is strictly given to:
+        1. **Writing** (LiteracySkill)
+        2. **Learning** (LearningSkill)
+    - Applies only if these skills are available options.
+
 ## Military
 
 ### Army Composition

@@ -20,10 +20,20 @@ namespace AIOverhaul
         public const string METHOD_GET_SIDE = "GetSide";
         public const string METHOD_GET_WAR_SCORE = "GetWarScore";
         public const string METHOD_THINK_PROPOSE_OFFER_THREAD = "ThinkProposeOfferThread";
+        public const string METHOD_CHOOSE_NEW_SKILL = "ChooseNewSkill";
 
-        // Field name constants
+        // Value constants
+        public const string CONST_TITLE_KING = "King";
+
         public const string FIELD_SKILLS = "skills";
         public const string FIELD_CATEGORIES = "categories";
+
+        // Character Methods/Fields (using ReflectionNames constants where possible to avoid dupes, or just defining here)
+        // Since ReflectionNames exists, let's use it implicitly or duplicate the string if we want TraverseAPI self-contained.
+        // User asked for "Traverse.* in Traverse API".
+        public const string METHOD_IS_KING = "IsKing";
+        public const string METHOD_GET_KINGDOM = "GetKingdom";
+        public const string FIELD_TITLE = "title";
 
         // KingdomAI Methods
         public static void HireKnight(Logic.KingdomAI ai, string knightClass)
@@ -82,6 +92,21 @@ namespace AIOverhaul
         public static Logic.KingdomAI.CategoryData[] GetCategories(Logic.KingdomAI ai)
         {
             return Traverse.Create(ai).Field(FIELD_CATEGORIES).GetValue<Logic.KingdomAI.CategoryData[]>();
+        }
+        // Character Accessors
+        public static bool GetCharacterIsKing(Logic.Character character)
+        {
+            return Traverse.Create(character).Method(METHOD_IS_KING).GetValue<bool>();
+        }
+
+        public static string GetCharacterTitle(Logic.Character character)
+        {
+            return Traverse.Create(character).Field(FIELD_TITLE).GetValue<string>();
+        }
+
+        public static Logic.Kingdom GetCharacterKingdom(Logic.Character character)
+        {
+            return Traverse.Create(character).Method(METHOD_GET_KINGDOM).GetValue<Logic.Kingdom>();
         }
     }
 }
