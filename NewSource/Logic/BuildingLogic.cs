@@ -50,6 +50,7 @@ namespace AIOverhaul
             }
 
             ApplySwordsmithLogic(__instance);
+            ApplyFletcherLogic(__instance);
             ApplyBarracksLogic(__instance);
             ApplyReligionLogic(__instance);
         }
@@ -62,9 +63,8 @@ namespace AIOverhaul
             if (kingdom == null) return;
 
             bool hasSwordsmith = BuildingHelper.HasBuildingUpgrade(kingdom, BuildingUpgradeNames.Swordsmith);
-            bool hasFletcher = BuildingHelper.HasBuildingUpgrade(kingdom, BuildingUpgradeNames.Fletcher_Barracks);
 
-            // Boost Swordsmith evaluation, reduce Fletcher evaluation
+            // Boost Swordsmith evaluation
             for (int i = 0; i < Castle.upgrade_options.Count; i++)
             {
                 var option = Castle.upgrade_options[i];
@@ -79,17 +79,64 @@ namespace AIOverhaul
                         Castle.upgrade_options[i] = option;
                     }
                 }
-                else if (option.def.id == BuildingUpgradeNames.Fletcher_Barracks)
+            }
+        }
+
+        static void ApplyFletcherLogic(Castle castle)
+        {
+            var kingdom = castle.GetKingdom();
+            if (kingdom == null) return;
+
+            bool hasSwordsmith = BuildingHelper.HasBuildingUpgrade(kingdom, BuildingUpgradeNames.Swordsmith);
+            bool hasFletcher = BuildingHelper.HasBuildingUpgrade(kingdom, BuildingUpgradeNames.Fletcher_Barracks);
+
+            // After Swordsmith is built, Fletcher becomes critical priority
+            if (hasSwordsmith && !hasFletcher)
+            {
+                // 1. Boost Fletcher upgrade if it appears in options
+                bool fletcherOptionFound = false;
+                for (int i = 0; i < Castle.upgrade_options.Count; i++)
                 {
-                    if (hasSwordsmith && !hasFletcher)
+                    var option = Castle.upgrade_options[i];
+                    if (option.def == null) continue;
+
+                    if (option.def.id == BuildingUpgradeNames.Fletcher_Barracks)
                     {
-                        // Very high priority for Fletcher after Swordsmith
+                        // VERY high priority for Fletcher after Swordsmith
                         option.eval *= GameBalance.FletcherBoost;
                         Castle.upgrade_options[i] = option;
+                        fletcherOptionFound = true;
+                        AIOverhaulPlugin.LogDebug($"BOOSTING Fletcher upgrade in {castle.name} (eval: {option.eval:F2})", LogCategory.Military, kingdom);
                     }
-                    else if (!hasSwordsmith)
+                }
+
+                // 2. If no Fletcher option found, boost Barracks buildings to create opportunities
+                if (!fletcherOptionFound)
+                {
+                    for (int i = 0; i < Castle.build_options.Count; i++)
                     {
-                        // Block Fletcher until Swordsmith is built
+                        var option = Castle.build_options[i];
+                        if (option.def == null) continue;
+
+                        if (option.def.id == BuildingNames.Barracks)
+                        {
+                            option.eval *= GameBalance.BarracksForFletcherBoost;
+                            Castle.build_options[i] = option;
+                            AIOverhaulPlugin.LogDebug($"BOOSTING Barracks in {castle.name} to enable Fletcher upgrade", LogCategory.Military, kingdom);
+                        }
+                    }
+                }
+            }
+            else if (!hasSwordsmith)
+            {
+                // Block Fletcher until Swordsmith is built
+                for (int i = 0; i < Castle.upgrade_options.Count; i++)
+                {
+                    var option = Castle.upgrade_options[i];
+                    if (option.def == null) continue;
+
+                    if (option.def.id == BuildingUpgradeNames.Fletcher_Barracks)
+                    {
                         option.eval *= GameBalance.StrongPenaltyMultiplier;
                         Castle.upgrade_options[i] = option;
                     }

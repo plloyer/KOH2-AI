@@ -65,3 +65,34 @@ A mobile military force on the map.
 | **City/Fort** | `Logic.Castle` | The command center of a realm |
 | **Resource/Tag** | `string` (in `realm.features`) | "IronOre", "Cattle" (use `FeatureNames`) |
 | **Trade Good** | `string` (in `GoodsNames`) | "Iron", "Meat", "Dyes" |
+
+
+## AI Architecture & Logic
+
+### Core Components
+*   **KingdomAI**: Central brain for kingdom-level decisions (Economy, Diplomacy, War declaration).
+*   **ArmyAI**: Tactical brain for individual armies (Movement, Battle, Sieges).
+*   **EstateAI**: Management of individual towns/castles (Buildings, Production).
+
+### Main Loop Analysis (KingdomAI)
+*   **Structure**: `KingdomAI` does NOT have a standard `Update` loop. Instead, it contains many "Think" coroutines.
+*   **Orchestration (`Logic/AI.cs`)**:
+    *   `AI` class initializes several `CoopThread`s (General, Build, Military, Governors, Diplomacy, Director).
+    *   These threads run infinite loops (coroutines) that iterate over all valid kingdoms.
+    *   Inside the loop, it calls `KingdomAI.ThinkX()` for each kingdom (e.g., `KingdomAI.ThinkBuild()`).
+    *   **Throttling**: `AI.cs` implements load balancing (modulo checks `thinks_tries % N`) and yields frames based on `game.speed`.
+
+### Logic Hierarchy
+1.  **AI Manager (`Logic/AI.cs`)**:
+    *   Initializes and manages threads (`ThinkGeneral`, `ThinkBuild`, `ThinkMilitary`, etc.).
+    *   Iterates over all kingdoms and calls their respective `Think` methods.
+2.  **Strategic AI (`Logic/KingdomAI.cs`)**:
+    *   **Economy**: `ThinkBuild` (Buildings), `ConsiderExpense` (Hiring, Upgrades).
+    *   **Diplomacy**: `ThinkDiplomacy` (Offers, Wars).
+    *   **Military**: 
+        *   `ThinkMilitary` -> calls `ThinkArmies`.
+        *   `ThinkArmies` -> calls `ThinkArmy` for each army.
+        *   `ThinkArmy`: Strategic movement (Attack/Defend Realm), Resupply, Rebel suppression.
+3.  **Tactical AI (`Logic/BattleAI.cs`)**:
+    *   Handles behavior *inside* a battle (squad movement, targeting, formations).
+    *   Uses a state machine (`Preparing`, `CalculatingPriorities`, `ExecutingCommands`).

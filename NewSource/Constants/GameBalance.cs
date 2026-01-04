@@ -107,8 +107,9 @@ namespace AIOverhaul.Constants
         public const float ReligionBuildingBoostPerSlot = 0.2f; // 20% per religion slot
         public const float BarracksSlotBoostPerSlot = 0.25f; // 25% per barracks slot
         public const float BarracksBoost = 50f; // Priority boost for first barracks in kingdom
+        public const float BarracksForFletcherBoost = 20f; // Boost for additional barracks when we need Fletcher
         public const float SwordsmithBoost = 30f; // Priority boost for swordsmith upgrade
-        public const float FletcherBoost = 30f; // Priority boost for fletcher upgrade
+        public const float FletcherBoost = 100f; // Priority boost for fletcher upgrade (very high to ensure it's built)
 
         // Island Detection
         public const int IslandMaxNeighbors = 1;

@@ -67,10 +67,10 @@ namespace AIOverhaul
         public static void SendArmy(Logic.KingdomAI ai, Logic.Army army, object target, string aiStatus, object extraParam = null)
         {
             // Vanilla "Send" method has 3 arguments: Send(Army army, Object target, string status)
-            // Use Traverse.Method which is more flexible with parameter matching
+            // Cast target to Logic.Object to match the exact method signature
             try
             {
-                Traverse.Create(ai).Method(METHOD_SEND, new object[] { army, target, aiStatus }).GetValue();
+                Traverse.Create(ai).Method(METHOD_SEND, army, (Logic.Object)target, aiStatus).GetValue();
             }
             catch (System.Exception ex)
             {
