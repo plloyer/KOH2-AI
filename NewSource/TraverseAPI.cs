@@ -55,7 +55,7 @@ namespace AIOverhaul
             }
             else
             {
-                AIOverhaulPlugin.LogInfo($"[Error] Could not find method {METHOD_CONSIDER_EXPENSE} with 6 params", LogCategory.General);
+                AIOverhaulPlugin.LogWarning($"Could not find method {METHOD_CONSIDER_EXPENSE} with 6 params", LogCategory.General);
             }
         }
 
@@ -67,12 +67,8 @@ namespace AIOverhaul
         public static void SendArmy(Logic.KingdomAI ai, Logic.Army army, object target, string aiStatus, object extraParam = null)
         {
             // Vanilla "Send" method has 3 arguments: Send(Army army, Object target, string status)
-            // It does not accept a 4th argument.
-            var method = AccessTools.Method(typeof(Logic.KingdomAI), METHOD_SEND, new[] { typeof(Logic.Army), typeof(UnityEngine.Object), typeof(string) });
-            
-            // If Object doesn't work, try BaseObject or just loose matching
-            if (method == null)
-                 method = AccessTools.FirstMethod(typeof(Logic.KingdomAI), m => m.Name == METHOD_SEND && m.GetParameters().Length == 3);
+            // Use loose matching to avoid AccessTools warnings about parameter type mismatches
+            var method = AccessTools.FirstMethod(typeof(Logic.KingdomAI), m => m.Name == METHOD_SEND && m.GetParameters().Length == 3);
 
             if (method != null)
             {
@@ -80,7 +76,7 @@ namespace AIOverhaul
             }
             else
             {
-                 AIOverhaulPlugin.LogInfo($"[Error] Could not find method {METHOD_SEND} with 3 params", LogCategory.General);
+                 AIOverhaulPlugin.LogWarning($"Could not find method {METHOD_SEND} with 3 params", LogCategory.General);
             }
         }
 
