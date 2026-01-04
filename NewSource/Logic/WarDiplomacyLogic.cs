@@ -975,46 +975,60 @@ namespace AIOverhaul
         }
     }
 
-    [HarmonyPatch(typeof(ProsAndCons), "Eval")]
-    [HarmonyPatch(new[] { typeof(string) })]
-    public static class ProsAndCons_Eval
+    // "DecideAIAnswer" determines how the AI responds to an offer.
+    // Intent: DiplomacyAcceptancePatch
+    [HarmonyPatch(typeof(Logic.Offer), "DecideAIAnswer")]
+    public class Offer_DecideAIAnswer
     {
-        static bool Prefix(ProsAndCons __instance, string threshold_name, ref float __result)
+        static bool Prefix(Logic.Offer __instance, ref string __result)
         {
-            try
+            // Only intervene if the receiver is a Kingdom
+            if (!(__instance.to is Logic.Kingdom receiver)) return true;
+
+            // Only intervene for Enhanced AI
+            if (!AIOverhaulPlugin.IsEnhancedAI(receiver)) return true;
+
+            // Check if the Offer is Trade or Non-Aggression
+            // Using string comparison on the definition key
+            string offerType = __instance.def.field.key;
+            bool isTrade = offerType == "SignTrade";
+            bool isNAP = offerType == "SignNonAggression";
+
+            if (!isTrade && !isNAP) return true;
+
+            // Get the Sender
+            if (!(__instance.from is Logic.Kingdom sender)) return true;
+
+            // LOGIC: Accept unless it's a target or mortal enemy
+
+            // 1. Check Mortal Enemy (Never accept friendly pacts with them)
+            if (WarLogicHelper.IsMortalEnemy(receiver, sender))
             {
-                if (__instance.our_kingdom != null && !__instance.our_kingdom.is_player && AIOverhaulPlugin.IsEnhancedAI(__instance.our_kingdom))
-                {
-                    if (threshold_name == "accept")
-                    {
-                        if (__instance.def.id.EndsWith("SignTrade"))
-                        {
-                            Offer offer = __instance.offer;
-                            if (offer != null && offer.from is Logic.Kingdom sender)
-                            {
-                                if (__instance.our_kingdom.IsEnemy(sender)) return true;
-
-                                var expTargetField = typeof(KingdomAI).GetField("expansionTarget", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
-                                Logic.Kingdom expTarget = null;
-                                if (expTargetField != null)
-                                {
-                                    expTarget = expTargetField.GetValue(__instance.our_kingdom.ai) as Logic.Kingdom;
-                                }
-
-                                if (expTarget != null && sender == expTarget) return true;
-
-                                __result = 1000f;
-                                return false;
-                            }
-                        }
-                    }
-                }
+                AIOverhaulPlugin.LogInfo($"REFUSING {offerType} from MORTAL ENEMY {sender.Name}", LogCategory.Diplomacy, receiver);
+                // Let default logic handle rejection (likely low opinion -> decline)
+                return true; 
             }
-            catch (System.Exception ex)
+
+            // 2. Check Expansion Target (Don't tie our hands if we plan to attack)
+            Logic.Kingdom expansionTarget = WarLogicHelper.SelectExpansionTarget(receiver);
+            if (expansionTarget == sender)
             {
-                AIOverhaulPlugin.LogInfo($"Error in TradeAcceptancePatch: {ex}", LogCategory.General);
+                AIOverhaulPlugin.LogInfo($"REFUSING {offerType} from EXPANSION TARGET {sender.Name}", LogCategory.Diplomacy, receiver);
+                return true; 
             }
-            return true;
+
+             // 3. New behavior for Enhanced AI: Always accept Trade/NAP from non-targets
+            // Default AI is very picky based on "ProsAndCons". We want to be opportunistic.
+            
+            // Trade: Always good unless we hate them (which is covered by Mortal/Expansion checks generally)
+            // NAP: Secure flanks. Good unless we want to attack them.
+
+            // Sanity check: Don't accept if we are already at war (Action validation should prevent this offer actually, but safe to check)
+            if (receiver.IsEnemy(sender)) return true;
+
+            AIOverhaulPlugin.LogInfo($"AUTO-ACCEPTING {offerType} from {sender.Name} (Secure Flank/Trade Opportunism)", LogCategory.Diplomacy, receiver);
+            __result = "accept";
+            return false; // Skip original method
         }
     }
 }

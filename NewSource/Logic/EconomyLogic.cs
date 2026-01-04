@@ -24,7 +24,6 @@ namespace AIOverhaul
             if (!(expense.defParam is Logic.CharacterClass.Def cDef))
                 return true;
 
-            // DIAGNOSTIC: Log every character hiring ConsiderExpense call to verify patch is working
             bool isEnhanced = AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom);
 
             if (!isEnhanced)
@@ -56,11 +55,21 @@ namespace AIOverhaul
             int currentMerchants = KingdomHelper.CountMerchants(__instance.kingdom);
             if (currentMerchants < GameBalance.RequiredMerchantCount)
             {
-                // Strict rule: No non-merchant characters until we have 2 merchants
+                // Allow 1st Marshal even if merchants are low
+                if (cDef.id == CharacterClassNames.Marshal)
+                {
+                   int currentMarshals = KingdomHelper.CountCourtMembers(__instance.kingdom, CharacterClassNames.Marshal);
+                   if (currentMarshals == 0) 
+                   {
+                        AIOverhaulPlugin.LogDiagnostic("ALLOWING first Marshal hire despite low merchant count", LogCategory.Economy, __instance.kingdom);
+                        return true;
+                   }
+                }
+
+                // Strict rule: No non-merchant characters (and no 2nd+ Marshal) until we have 2 merchants
                 return false;
             }
             
-
             // CLERIC HIRING LOGIC
             if (cDef.id == CharacterClassNames.Cleric)
             {
