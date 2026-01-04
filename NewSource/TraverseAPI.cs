@@ -55,7 +55,7 @@ namespace AIOverhaul
             }
             else
             {
-                AIOverhaulPlugin.LogWarning($"Could not find method {METHOD_CONSIDER_EXPENSE} with 6 params", LogCategory.General);
+                AIOverhaulPlugin.LogError($"Could not find method {METHOD_CONSIDER_EXPENSE} with 6 params", LogCategory.General);
             }
         }
 
@@ -76,7 +76,7 @@ namespace AIOverhaul
             }
             else
             {
-                 AIOverhaulPlugin.LogWarning($"Could not find method {METHOD_SEND} with 3 params", LogCategory.General);
+                 AIOverhaulPlugin.LogError($"Could not find method {METHOD_SEND} with 3 params", LogCategory.General);
             }
         }
 
