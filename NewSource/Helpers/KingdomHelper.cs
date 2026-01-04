@@ -60,7 +60,12 @@ namespace AIOverhaul.Helpers
                 {
                     foreach (var action in character.actions.active)
                     {
-                        if (action?.def?.id == ActionNames.Trade)
+                        string aid = action?.def?.id;
+                        if (string.IsNullOrEmpty(aid)) continue;
+
+                        if (aid == ActionNames.Trade || 
+                            aid == ActionNames.TradeWithKingdom ||
+                            aid == ActionNames.EstablishTradeRoute)
                         {
                             hasTradeRoute = true;
                             break;
@@ -279,10 +284,7 @@ namespace AIOverhaul.Helpers
             k.court.Clear();
             for (int i = 0; i < courtSize; i++)
             {
-                if (slots[i] != null)
-                {
-                    k.court.Add(slots[i]);
-                }
+                k.court.Add(slots[i]); // Add slot even if null
             }
             
             // If any somehow remaining (shouldn't happen if logic is correct), add them back

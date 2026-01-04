@@ -250,4 +250,56 @@ namespace AIOverhaul
             return true;
         }
     }
+
+    // "ConsiderHireMarshal" checks if a Marshal should be hired.
+    // Intent: Prioritize Merchants over Marshals by skipping this check if we don't have enough merchants.
+    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderHireMarshal")]
+    public static class KingdomAI_ConsiderHireMarshal
+    {
+        [HarmonyPrefix]
+        public static bool Prefix(Logic.KingdomAI __instance, ref bool __result)
+        {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+
+            return true;
+        }
+    }
+
+    // "ConsiderHireMerchant" checks if a Merchant should be hired.
+    // Intent: Bypass the "Trade Disagreement" limit for the first 2 merchants.
+    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderHireMerchant")]
+    public static class KingdomAI_ConsiderHireMerchant
+    {
+        [HarmonyPrefix]
+        public static bool Prefix(Logic.KingdomAI __instance, ref bool __result)
+        {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+
+            // Vanilla logic caps merchants at Trade Agreements count (or max commerce logic).
+            // We want to force the first 2 merchants regardless of trade agreements.
+            if (KingdomHelper.CountMerchants(__instance.kingdom) < GameBalance.RequiredMerchantCount)
+            {
+                // Verify we have a valid merchant def to use
+                if (__instance.game?.ai?.merchant_def == null) return true;
+
+                AIOverhaulPlugin.LogDiagnostic("Forcing Merchant consideration (Bypassing Trade Agreement limits)", LogCategory.Economy, __instance.kingdom);
+
+                // Manually trigger the expense consideration
+                // This will hit our KingdomAI_ConsiderExpense patch, which allows the first 2 merchants unconditionally.
+                var merchantDef = __instance.game.ai.merchant_def;
+                TraverseAPI.ConsiderExpense(
+                    __instance, 
+                    Logic.KingdomAI.Expense.Type.HireChacacter, 
+                    merchantDef, 
+                    null, 
+                    merchantDef.ai_category
+                );
+
+                __result = true; // "I have considered hiring a merchant"
+                return false;    // Skip original vanilla logic which would have returned false due to limits
+            }
+
+            return true;
+        }
+    }
 }

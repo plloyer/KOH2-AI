@@ -1,6 +1,7 @@
 using HarmonyLib;
 using System.Collections;
 using System.Collections.Generic;
+using AIOverhaul.Constants;
 
 namespace AIOverhaul
 {
@@ -18,7 +19,7 @@ namespace AIOverhaul
         public const string METHOD_SEND = "Send";
         public const string METHOD_FIND_NEAREST_OWN_CASTLE = "FindNearestOwnCastle";
         public const string METHOD_GET_SIDE = "GetSide";
-        public const string METHOD_GET_WAR_SCORE = "GetWarScore";
+        public const string METHOD_GET_WAR_SCORE = "GetSideScore";
         public const string METHOD_THINK_PROPOSE_OFFER_THREAD = "ThinkProposeOfferThread";
         public const string METHOD_CHOOSE_NEW_SKILL = "ChooseNewSkill";
 
@@ -43,10 +44,19 @@ namespace AIOverhaul
             return Traverse.Create(kingdom).Method(METHOD_GET_MAX_COMMERCE).GetValue<float>();
         }
 
-        public static void ConsiderExpense(Logic.KingdomAI ai, Logic.KingdomAI.Expense.Type type, object defParam, object objectParam, Logic.KingdomAI.Expense.Category category, Logic.KingdomAI.Expense.Priority priority, List<Logic.Value> args = null)
+        public static void ConsiderExpense(Logic.KingdomAI ai, Logic.KingdomAI.Expense.Type type, object defParam, object objectParam, Logic.KingdomAI.Expense.Category category, Logic.KingdomAI.Expense.Priority priority = Logic.KingdomAI.Expense.Priority.Normal, List<Logic.Value> args = null)
         {
-            Traverse.Create(ai).Method(METHOD_CONSIDER_EXPENSE,
-                new[] { type, defParam, objectParam, category, priority, args }).GetValue();
+            // Use AccessTools to find the specific overload with 6 parameters to avoid ambiguity
+            // private void ConsiderExpense(Expense.Type type, BaseObject defParam, Object objectParam, Expense.Category category, Expense.Priority priority, List<Value> args)
+            var method = AccessTools.FirstMethod(typeof(Logic.KingdomAI), m => m.Name == METHOD_CONSIDER_EXPENSE && m.GetParameters().Length == 6);
+            if (method != null)
+            {
+                method.Invoke(ai, new object[] { type, defParam, objectParam, category, priority, args });
+            }
+            else
+            {
+                AIOverhaulPlugin.LogInfo($"[Error] Could not find method {METHOD_CONSIDER_EXPENSE} with 6 params", LogCategory.General);
+            }
         }
 
         public static Logic.KingdomAI.Expense.Category GetExpenseCategory(object instance)
@@ -56,7 +66,22 @@ namespace AIOverhaul
 
         public static void SendArmy(Logic.KingdomAI ai, Logic.Army army, object target, string aiStatus, object extraParam = null)
         {
-            Traverse.Create(ai).Method(METHOD_SEND, new[] { army, target, aiStatus, extraParam }).GetValue();
+            // Vanilla "Send" method has 3 arguments: Send(Army army, Object target, string status)
+            // It does not accept a 4th argument.
+            var method = AccessTools.Method(typeof(Logic.KingdomAI), METHOD_SEND, new[] { typeof(Logic.Army), typeof(UnityEngine.Object), typeof(string) });
+            
+            // If Object doesn't work, try BaseObject or just loose matching
+            if (method == null)
+                 method = AccessTools.FirstMethod(typeof(Logic.KingdomAI), m => m.Name == METHOD_SEND && m.GetParameters().Length == 3);
+
+            if (method != null)
+            {
+                method.Invoke(ai, new object[] { army, target, aiStatus });
+            }
+            else
+            {
+                 AIOverhaulPlugin.LogInfo($"[Error] Could not find method {METHOD_SEND} with 3 params", LogCategory.General);
+            }
         }
 
         public static Logic.Castle FindNearestOwnCastle(Logic.KingdomAI ai, Logic.Army army, bool allowGarrisoned)
