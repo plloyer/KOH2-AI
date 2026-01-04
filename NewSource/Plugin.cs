@@ -15,8 +15,12 @@ namespace AIOverhaul
         public static HashSet<int> BaselineKingdomIds = new HashSet<int>();
 
         // Mortal Enemy System: Tracks the FIRST kingdom that declared war on each Enhanced AI kingdom
+        // Now persisted using Kingdom.SetVar/GetVar for automatic save/load support
         // Key = defender kingdom ID, Value = attacker kingdom ID (mortal enemy)
+        // NOTE: Dictionary kept for backwards compatibility and fast lookups, but data is actually stored in Kingdom vars
         public static Dictionary<int, int> MortalEnemies = new Dictionary<int, int>();
+
+        public const string MORTAL_ENEMY_VAR = "aimod_mortal_enemy";
 
         static Logic.Game current_game;
 
@@ -204,20 +208,35 @@ namespace AIOverhaul
         /// <summary>
         /// Get the mortal enemy of a kingdom (if any exists)
         /// Returns null if no mortal enemy has been set
+        /// Reads from persisted Kingdom variable for automatic save/load support
         /// </summary>
         public static Logic.Kingdom GetMortalEnemy(Logic.Kingdom k, Logic.Game game)
         {
             if (k == null || game == null) return null;
-            if (!MortalEnemies.ContainsKey(k.id)) return null;
 
-            int enemyId = MortalEnemies[k.id];
+            // Try to read from Kingdom vars (persisted data)
+            Logic.Value var = k.GetVar(MORTAL_ENEMY_VAR);
+            if (var.type != Logic.Value.Type.Int)
+            {
+                // Not set or wrong type, return null
+                return null;
+            }
+
+            int enemyId = (int)var;
             Logic.Kingdom enemy = game.GetKingdom(enemyId);
 
             // Clear mortal enemy if they're defeated
             if (enemy == null || enemy.IsDefeated())
             {
-                MortalEnemies.Remove(k.id);
+                k.SetVar(MORTAL_ENEMY_VAR, new Logic.Value()); // Clear the var
+                MortalEnemies.Remove(k.id); // Clear cache too
                 return null;
+            }
+
+            // Update cache for fast lookups
+            if (!MortalEnemies.ContainsKey(k.id))
+            {
+                MortalEnemies[k.id] = enemyId;
             }
 
             return enemy;
@@ -253,8 +272,13 @@ namespace AIOverhaul
             // Only track for Enhanced AI kingdoms
             if (!AIOverhaulPlugin.IsEnhancedAI(k2)) return;
 
-            // Only if defender doesn't already have a mortal enemy
-            if (AIOverhaulPlugin.MortalEnemies.ContainsKey(k2.id)) return;
+            // Check if defender already has a mortal enemy (check persisted var)
+            Logic.Value existingVar = k2.GetVar(AIOverhaulPlugin.MORTAL_ENEMY_VAR);
+            if (existingVar.type == Logic.Value.Type.Int)
+            {
+                // Already has a mortal enemy set
+                return;
+            }
 
             // Only if attacker is a DIRECT neighbor
             bool isNeighbor = false;
@@ -273,7 +297,12 @@ namespace AIOverhaul
             if (!isNeighbor) return;
 
             // Record as mortal enemy - the FIRST kingdom to declare war becomes the permanent grudge
+            // Store in Kingdom variable for automatic persistence
+            k2.SetVar(AIOverhaulPlugin.MORTAL_ENEMY_VAR, new Logic.Value(k1.id));
+
+            // Update cache for fast lookups this session
             AIOverhaulPlugin.MortalEnemies[k2.id] = k1.id;
+
             AIOverhaulPlugin.LogInfo($"MORTAL ENEMY: will never forgive {k1.Name} for attacking first!", LogCategory.War, k2);
         }
     }

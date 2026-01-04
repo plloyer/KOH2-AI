@@ -1004,7 +1004,7 @@ namespace AIOverhaul
             // 1. Check Mortal Enemy (Never accept friendly pacts with them)
             if (WarLogicHelper.IsMortalEnemy(receiver, sender))
             {
-                AIOverhaulPlugin.LogInfo($"REFUSING {offerType} from MORTAL ENEMY {sender.Name}", LogCategory.Diplomacy, receiver);
+                AIOverhaulPlugin.LogDebug($"REFUSING {offerType} from MORTAL ENEMY {sender.Name}", LogCategory.Diplomacy, receiver);
                 // Let default logic handle rejection (likely low opinion -> decline)
                 return true; 
             }
@@ -1013,7 +1013,7 @@ namespace AIOverhaul
             Logic.Kingdom expansionTarget = WarLogicHelper.SelectExpansionTarget(receiver);
             if (expansionTarget == sender)
             {
-                AIOverhaulPlugin.LogInfo($"REFUSING {offerType} from EXPANSION TARGET {sender.Name}", LogCategory.Diplomacy, receiver);
+                AIOverhaulPlugin.LogDebug($"REFUSING {offerType} from EXPANSION TARGET {sender.Name}", LogCategory.Diplomacy, receiver);
                 return true; 
             }
 
