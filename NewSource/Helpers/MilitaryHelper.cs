@@ -1,7 +1,3 @@
-using System.Collections.Generic;
-using AIOverhaul.Constants;
-using Logic;
-
 namespace AIOverhaul.Helpers
 {
     public static class MilitaryHelper

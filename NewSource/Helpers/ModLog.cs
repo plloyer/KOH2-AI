@@ -8,10 +8,10 @@ namespace AIOverhaul.Helpers
         {
             if (k == null)
             {
-                AIOverhaulPlugin.LogMod(message, category);
+                AIOverhaulPlugin.LogInfo(message, category);
                 return;
             }
-            AIOverhaulPlugin.LogMod($"[{k.Name}] {message}", category);
+            AIOverhaulPlugin.LogInfo($"[{k.Name}] {message}", category);
         }
     }
 }

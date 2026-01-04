@@ -11,7 +11,7 @@ namespace AIOverhaul
     public static class TraverseAPI
     {
         // Method name constants
-        public const string METHOD_HIRE_KNIGHT = "HireKnight";
+        public const string METHOD_HIRE_CHARACTER = "HireCharacter";
         public const string METHOD_GET_MAX_COMMERCE = "GetMaxCommerce";
         public const string METHOD_CONSIDER_EXPENSE = "ConsiderExpense";
         public const string METHOD_GET_EXPENSE_CATEGORY = "GetExpenseCategory";
@@ -36,10 +36,7 @@ namespace AIOverhaul
         public const string FIELD_TITLE = "title";
 
         // KingdomAI Methods
-        public static void HireKnight(Logic.KingdomAI ai, string knightClass)
-        {
-            Traverse.Create(ai).Method(METHOD_HIRE_KNIGHT, new object[] { knightClass }).GetValue();
-        }
+        // KingdomAI Methods
 
         public static float GetMaxCommerce(Logic.Kingdom kingdom)
         {

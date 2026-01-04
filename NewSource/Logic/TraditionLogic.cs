@@ -1,7 +1,6 @@
 using System;
 using HarmonyLib;
 using Logic;
-using AIOverhaul.Constants;
 using AIOverhaul.Helpers;
 
 namespace AIOverhaul

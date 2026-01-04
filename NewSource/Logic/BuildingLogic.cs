@@ -33,6 +33,14 @@ namespace AIOverhaul
 
             var kingdom = __instance.GetKingdom();
 
+            // Block all construction if less than 2 merchants (Early Economy Setup)
+            if (KingdomHelper.CountMerchants(kingdom) < 2)
+            {
+                Castle.build_options.Clear();
+                Castle.upgrade_options.Clear();
+                return;
+            }
+
             // Block all construction if rushing tradition (save gold for Writing/Learning)
             if (TraditionHelper.ShouldRushTradition(kingdom))
             {

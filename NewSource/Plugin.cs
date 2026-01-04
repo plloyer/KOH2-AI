@@ -87,10 +87,10 @@ namespace AIOverhaul
         /// <summary>
         /// Static logging helper that automatically adds the [AI-Mod] prefix, category tag, and kingdom name
         /// </summary>
-        public static void LogMod(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null, LogLevel level = LogLevel.Log)
+        static void LogMod(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null, LogLevel level = LogLevel.Log)
         {
             // Filter Diagnostic logs - only show for England
-            if (level == LogLevel.Diagnostic && kingdom != null && kingdom.Name != "England")
+            if (level == LogLevel.Diagnostic && kingdom != null && kingdom.Name != KingdomNames.England)
             {
                 return; // Skip this log
             }
@@ -131,9 +131,7 @@ namespace AIOverhaul
         {
             LogMod(message, category, kingdom, LogLevel.Diagnostic);
         }
-
-        // Update() method removed - F9 detection now handled in GameUpdatePatch
-
+        
         public static bool IsEnhancedAI(Logic.Kingdom k)
         {
             if (k == null) return false;
@@ -285,7 +283,7 @@ namespace AIOverhaul
 
             // Record as mortal enemy - the FIRST kingdom to declare war becomes the permanent grudge
             AIOverhaulPlugin.MortalEnemies[k2.id] = k1.id;
-            AIOverhaulPlugin.LogMod($"MORTAL ENEMY: will never forgive {k1.Name} for attacking first!", LogCategory.War, k2);
+            AIOverhaulPlugin.LogInfo($"MORTAL ENEMY: will never forgive {k1.Name} for attacking first!", LogCategory.War, k2);
         }
     }
 
@@ -317,13 +315,13 @@ namespace AIOverhaul
                             {
                                 AIOverhaulPlugin.EnhancedKingdomIds.Add(playerKingdom.id);
                             }
-                            AIOverhaulPlugin.LogMod($"Spectator Mode ENABLED - Enhanced AI is now controlling kingdom", LogCategory.Spectator, playerKingdom);
+                            AIOverhaulPlugin.LogInfo($"Spectator Mode ENABLED - Enhanced AI is now controlling kingdom", LogCategory.Spectator, playerKingdom);
                         }
                         else
                         {
                             // Remove player from Enhanced AI when spectator mode is off
                             AIOverhaulPlugin.EnhancedKingdomIds.Remove(playerKingdom.id);
-                            AIOverhaulPlugin.LogMod($"Spectator Mode DISABLED - Player control restored", LogCategory.Spectator, playerKingdom);
+                            AIOverhaulPlugin.LogInfo($"Spectator Mode DISABLED - Player control restored", LogCategory.Spectator, playerKingdom);
                         }
                     }
                 }

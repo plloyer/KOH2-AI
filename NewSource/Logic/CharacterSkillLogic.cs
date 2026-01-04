@@ -1,12 +1,13 @@
 using HarmonyLib;
 using Logic;
 using System.Collections.Generic;
-using AIOverhaul;
 using AIOverhaul.Helpers;
+
+using System;
 
 namespace AIOverhaul
 {
-    [HarmonyPatch(typeof(Character), TraverseAPI.METHOD_CHOOSE_NEW_SKILL)]
+    [HarmonyPatch(typeof(Logic.Character), TraverseAPI.METHOD_CHOOSE_NEW_SKILL, new Type[] { typeof(List<Skill.Def>) })]
     public static class Character_ChooseNewSkill_Patch
     {
         public static void Postfix(Logic.Character __instance, ref Skill.Def __result, List<Skill.Def> skills)
