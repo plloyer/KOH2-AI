@@ -140,8 +140,10 @@ namespace AIOverhaul
                 }
                 else
                 {
-                    // Kingdom already has barracks - ONLY allow in Castle districts
-                    if (!hasCastleDistrict)
+                    // Kingdom already has barracks - ONLY allow in Castle districts OR IronOre provinces
+                    bool hasIronOre = FeatureHelper.HasFeature(castle.GetRealm(), FeatureNames.IronOre);
+
+                    if (!hasCastleDistrict && !hasIronOre)
                     {
                         Castle.build_options.RemoveAt(i);
                     }

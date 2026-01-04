@@ -291,13 +291,6 @@ namespace AIOverhaul
             Logic.Kingdom kingdom = army.GetKingdom();
             if (kingdom == null || !AIOverhaulPlugin.IsEnhancedAI(kingdom)) return;
 
-            // Block hiring if rushing tradition (save gold for Writing/Learning)
-            if (MilitaryLogicHelpers.ShouldRushTradition(kingdom))
-            {
-                __result = -1000f;
-                return;
-            }
-
             // Count current ranged vs melee units in this army
 
             int rangedCount = 0;
@@ -437,14 +430,6 @@ namespace AIOverhaul
             // Make fortifications URGENT priority once armies are ready
             Logic.Realm realm = castle?.GetRealm();
             if (realm == null)
-            {
-                __result = false;
-                return false;
-            }
-
-            // Block if under siege
-            Logic.KingdomAI.Threat threat = realm.threat;
-            if (threat.level >= Logic.KingdomAI.Threat.Level.Invaded)
             {
                 __result = false;
                 return false;

@@ -76,5 +76,13 @@ namespace AIOverhaul.Helpers
         {
              return BuildingToFeatureMap.TryGetValue(buildingName, out var feature) ? feature : null;
         }
+
+        /// <summary>
+        /// Check if a realm has a specific feature.
+        /// </summary>
+        public static bool HasFeature(Logic.Realm realm, string featureName)
+        {
+            return realm?.features?.Contains(featureName) ?? false;
+        }
     }
 }

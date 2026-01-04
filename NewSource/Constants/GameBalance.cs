@@ -81,7 +81,7 @@ namespace AIOverhaul.Constants
         public const int RequiredMerchantCount = 2;
         public const float MinGoldForCourtHiring = 500f;
         public const float MinGoldIncomeForSpies = 500f;
-        public const float MinGoldIncomeForDiplomats = 500f;
+        public const float MinGoldIncomeForDiplomats = 150f;
         public const float MinGoldIncomeForClerics = 50f;
         public const int CommercePerMerchant = 10;
         public const float MinCommerceForMerchant = 10f; // Minimum available commerce to trigger urgent merchant hire

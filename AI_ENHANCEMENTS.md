@@ -23,27 +23,20 @@ This document describes all the behavioral changes made to the enhanced AI.
 ### Army Composition
 - **First Two Armies**: Exactly 4 archers + 4 swordsmen each
 - **Subsequent Armies**: 80% ranged-to-melee ratio (roughly 3.5 ranged : 4.5 melee per 8-unit army)
-- **Swordsmen Priority**: Always prefer swordsmen over other melee units
-- **Archer Priority**: Always prefer archers over other ranged units
 
 ### Army Healing
 - **In Own Territory**: Camp if any unit has any damage
 - **In Enemy Territory**: Retreat and camp if army health < 70%
 
-### Unit Hiring
-- Block all unit hiring during Tradition Rush (when saving gold for first tradition)
-- Block all unit hiring during Survive mode (bankrupt or losing war badly)
-
 ### Fortifications
 - After first two armies are ready, upgrading fortifications becomes URGENT priority for all levels (not just level 1)
-- Block fortification upgrades if province is under siege (Invaded threat level)
 
 ## Buildings & Upgrades
 
 ### Barracks
 - **First Barracks in Kingdom**: Allow in any province, but boost priority heavily for provinces with Castle district
   - Boost scales with Castle district building slots: `1.0 + (slots * 0.25)`
-- **Subsequent Barracks**: Only allow in provinces with Castle district (strictly enforce)
+- **Subsequent Barracks**: Only allow in provinces with Castle district OR IronOre feature (strictly enforce)
 
 ### Swordsmith
 - **Very High Priority** if kingdom doesn't have Swordsmith upgrade yet
@@ -68,7 +61,7 @@ This document describes all the behavioral changes made to the enhanced AI.
 - **Diplomat Hiring**: Only hire if:
   - Game time > 720 hours (1 month)
   - 2+ stronger neighboring kingdoms
-  - Gold income > 500/turn
+  - Gold income > 150/turn
 - **Spy Hiring**: Only if gold income > 500/turn
 - **Cleric Hiring**: Only if gold income > 50/turn
 - **Merchant Hiring**: See Economy section
