@@ -67,16 +67,14 @@ namespace AIOverhaul
         public static void SendArmy(Logic.KingdomAI ai, Logic.Army army, object target, string aiStatus, object extraParam = null)
         {
             // Vanilla "Send" method has 3 arguments: Send(Army army, Object target, string status)
-            // Use loose matching to avoid AccessTools warnings about parameter type mismatches
-            var method = AccessTools.FirstMethod(typeof(Logic.KingdomAI), m => m.Name == METHOD_SEND && m.GetParameters().Length == 3);
-
-            if (method != null)
+            // Use Traverse.Method which is more flexible with parameter matching
+            try
             {
-                method.Invoke(ai, new object[] { army, target, aiStatus });
+                Traverse.Create(ai).Method(METHOD_SEND, new object[] { army, target, aiStatus }).GetValue();
             }
-            else
+            catch (System.Exception ex)
             {
-                 AIOverhaulPlugin.LogError($"Could not find method {METHOD_SEND} with 3 params", LogCategory.General);
+                AIOverhaulPlugin.LogError($"Could not invoke method {METHOD_SEND}: {ex.Message}", LogCategory.General);
             }
         }
 

@@ -165,7 +165,7 @@ namespace AIOverhaul
         {
             if (k == null) return false;
 
-            AIOverhaulPlugin.LogDiagnostic($"WantsDiplomat() called - starting diplomat check", LogCategory.Diplomacy, k);
+            AIOverhaulPlugin.LogDebug($"WantsDiplomat() called - starting diplomat check", LogCategory.Diplomacy, k);
 
             // EARLY GAME TIME BLOCK: No diplomats within first month of game (nobody has armies yet)
             if (k.game?.session_time != null)
@@ -173,7 +173,7 @@ namespace AIOverhaul
                 float gameHours = k.game.session_time.hours;
                 if (gameHours < GameBalance.MinGameHoursForDiplomat)
                 {
-                    AIOverhaulPlugin.LogDiagnostic($"BLOCKING diplomat: too early in game (hours={gameHours:F0}, need {GameBalance.MinGameHoursForDiplomat})", LogCategory.Diplomacy, k);
+                    AIOverhaulPlugin.LogDebug($"BLOCKING diplomat: too early in game (hours={gameHours:F0}, need {GameBalance.MinGameHoursForDiplomat})", LogCategory.Diplomacy, k);
                     return false;
                 }
             }
@@ -183,14 +183,14 @@ namespace AIOverhaul
             int merchants = KingdomHelper.CountMerchants(k);
             if (merchants < GameBalance.RequiredMerchantCount)
             {
-                AIOverhaulPlugin.LogDiagnostic($"BLOCKING diplomat: need {GameBalance.RequiredMerchantCount} merchants first (have {merchants})", LogCategory.Diplomacy, k);
+                AIOverhaulPlugin.LogDebug($"BLOCKING diplomat: need {GameBalance.RequiredMerchantCount} merchants first (have {merchants})", LogCategory.Diplomacy, k);
                 return false;
             }
 
             // 2. Must have at least 2 armies ready (military foundation)
             if (!KingdomHelper.HasTwoReadyArmies(k))
             {
-                AIOverhaulPlugin.LogDiagnostic($"BLOCKING diplomat: need 2 ready armies first", LogCategory.Diplomacy, k);
+                AIOverhaulPlugin.LogDebug($"BLOCKING diplomat: need 2 ready armies first", LogCategory.Diplomacy, k);
                 return false;
             }
 
@@ -200,7 +200,7 @@ namespace AIOverhaul
             // Need solid income to afford a diplomat
             if (goldIncome < GameBalance.MinGoldIncomeForDiplomats)
             {
-                AIOverhaulPlugin.LogDiagnostic($"BLOCKING diplomat: goldIncome too low ({goldIncome} < {GameBalance.MinGoldIncomeForDiplomats})", LogCategory.Diplomacy, k);
+                AIOverhaulPlugin.LogDebug($"BLOCKING diplomat: goldIncome too low ({goldIncome} < {GameBalance.MinGoldIncomeForDiplomats})", LogCategory.Diplomacy, k);
                 return false;
             }
 
@@ -228,16 +228,16 @@ namespace AIOverhaul
                 }
             }
 
-            AIOverhaulPlugin.LogDiagnostic($"Diplomat check: goldIncome={goldIncome}, ownPower={ownPower}, strongerThreats={strongerThreats}", LogCategory.Diplomacy, k);
+            AIOverhaulPlugin.LogDebug($"Diplomat check: goldIncome={goldIncome}, ownPower={ownPower}, strongerThreats={strongerThreats}", LogCategory.Diplomacy, k);
 
             // Hire diplomat if we have enough stronger neighbors (need alliances/NAPs to secure flanks)
             if (strongerThreats >= GameBalance.MinStrongerThreatsForDiplomat)
             {
-                AIOverhaulPlugin.LogDiagnostic($"ALLOWING diplomat: {strongerThreats} stronger neighbors threatening us", LogCategory.Diplomacy, k);
+                AIOverhaulPlugin.LogDebug($"ALLOWING diplomat: {strongerThreats} stronger neighbors threatening us", LogCategory.Diplomacy, k);
                 return true;
             }
 
-            AIOverhaulPlugin.LogDiagnostic($"BLOCKING diplomat: only {strongerThreats} stronger threats (need {GameBalance.MinStrongerThreatsForDiplomat}+)", LogCategory.Diplomacy, k);
+            AIOverhaulPlugin.LogDebug($"BLOCKING diplomat: only {strongerThreats} stronger threats (need {GameBalance.MinStrongerThreatsForDiplomat}+)", LogCategory.Diplomacy, k);
             return false;
         }
 
@@ -1026,7 +1026,7 @@ namespace AIOverhaul
             // Sanity check: Don't accept if we are already at war (Action validation should prevent this offer actually, but safe to check)
             if (receiver.IsEnemy(sender)) return true;
 
-            AIOverhaulPlugin.LogInfo($"AUTO-ACCEPTING {offerType} from {sender.Name} (Secure Flank/Trade Opportunism)", LogCategory.Diplomacy, receiver);
+            AIOverhaulPlugin.LogDebug($"AUTO-ACCEPTING {offerType} from {sender.Name} (Secure Flank/Trade Opportunism)", LogCategory.Diplomacy, receiver);
             __result = "accept";
             return false; // Skip original method
         }

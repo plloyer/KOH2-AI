@@ -14,7 +14,7 @@ namespace AIOverhaul
             if (__instance == null || __result == null) return;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance)) return;
             
-            AIOverhaulPlugin.LogDiagnostic($"On Knight Hired", LogCategory.Knights, __instance);
+            AIOverhaulPlugin.LogDebug($"On Knight Hired", LogCategory.Knights, __instance);
             KingdomHelper.OrganizeCourt(__instance);
         }
     }

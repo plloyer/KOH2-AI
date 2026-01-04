@@ -39,7 +39,7 @@ namespace AIOverhaul
                 // Allow first 2 merchants unconditionally
                 if (merchants < GameBalance.RequiredMerchantCount)
                 {
-                    AIOverhaulPlugin.LogDiagnostic($"ALLOWING merchant #{merchants + 1} (first 2 are guaranteed)", LogCategory.Economy, __instance.kingdom);
+                    AIOverhaulPlugin.LogDebug($"ALLOWING merchant #{merchants + 1} (first 2 are guaranteed)", LogCategory.Economy, __instance.kingdom);
                     return true; // Allow vanilla to hire (ConsiderExpense just evaluates, actual hiring happens elsewhere)
                 }
 
@@ -47,7 +47,7 @@ namespace AIOverhaul
                 if (requiredCommerce > maxCommerce)
                     return false; // Block hire
 
-                AIOverhaulPlugin.LogDiagnostic($"ALLOWING merchant hire: {requiredCommerce} <= {maxCommerce} (Merchants: {merchants})", LogCategory.Economy, __instance.kingdom);
+                AIOverhaulPlugin.LogDebug($"ALLOWING merchant hire: {requiredCommerce} <= {maxCommerce} (Merchants: {merchants})", LogCategory.Economy, __instance.kingdom);
                 return true; // Allow hiring (commerce check passed)
             }
             
@@ -61,7 +61,7 @@ namespace AIOverhaul
                    int currentMarshals = KingdomHelper.CountCourtMembers(__instance.kingdom, CharacterClassNames.Marshal);
                    if (currentMarshals == 0) 
                    {
-                        AIOverhaulPlugin.LogDiagnostic("ALLOWING first Marshal hire despite low merchant count", LogCategory.Economy, __instance.kingdom);
+                        AIOverhaulPlugin.LogDebug("ALLOWING first Marshal hire despite low merchant count", LogCategory.Economy, __instance.kingdom);
                         return true;
                    }
                 }
@@ -80,7 +80,7 @@ namespace AIOverhaul
                 if (hasCleric || income < GameBalance.MinGoldIncomeForClerics)
                     return false;
 
-                AIOverhaulPlugin.LogDiagnostic($"ALLOWING cleric hire (Income: {income:F1} >= {GameBalance.MinGoldIncomeForClerics}, HasCleric: {hasCleric})", LogCategory.Economy, __instance.kingdom);
+                AIOverhaulPlugin.LogDebug($"ALLOWING cleric hire (Income: {income:F1} >= {GameBalance.MinGoldIncomeForClerics}, HasCleric: {hasCleric})", LogCategory.Economy, __instance.kingdom);
                 return true;
             }
 
@@ -94,7 +94,7 @@ namespace AIOverhaul
                 if (!WarLogicHelper.WantsSpy(__instance.kingdom))
                     return false;
 
-                AIOverhaulPlugin.LogDiagnostic($"ALLOWING spy hire (Income: {income:F1} >= {GameBalance.MinGoldIncomeForSpies}, WantsSpy: True)", LogCategory.Economy, __instance.kingdom);
+                AIOverhaulPlugin.LogDebug($"ALLOWING spy hire (Income: {income:F1} >= {GameBalance.MinGoldIncomeForSpies}, WantsSpy: True)", LogCategory.Economy, __instance.kingdom);
                 return true;
             }
 
@@ -105,7 +105,7 @@ namespace AIOverhaul
                 if (!wants)
                     return false;
 
-                AIOverhaulPlugin.LogDiagnostic("ALLOWING diplomat hire (WantsDiplomat: True)", LogCategory.Economy, __instance.kingdom);
+                AIOverhaulPlugin.LogDebug("ALLOWING diplomat hire (WantsDiplomat: True)", LogCategory.Economy, __instance.kingdom);
             }
 
             return true;
@@ -199,7 +199,7 @@ namespace AIOverhaul
                 if (availableCommerce >= GameBalance.MinCommerceForMerchant && hasIdleMerchant)
                 {
                     expense.eval *= GameBalance.UrgentPriorityMultiplier;
-                    AIOverhaulPlugin.LogDiagnostic($"URGENT merchant hire - {availableCommerce} commerce available, idle merchant detected", LogCategory.Economy, __instance.kingdom);
+                    AIOverhaulPlugin.LogDebug($"URGENT merchant hire - {availableCommerce} commerce available, idle merchant detected", LogCategory.Economy, __instance.kingdom);
                 }
             }
 
@@ -291,7 +291,7 @@ namespace AIOverhaul
                 // Verify we have a valid merchant def to use
                 if (__instance.game?.ai?.merchant_def == null) return true;
 
-                AIOverhaulPlugin.LogDiagnostic("Forcing Merchant consideration (Bypassing Trade Agreement limits)", LogCategory.Economy, __instance.kingdom);
+                AIOverhaulPlugin.LogDebug("Forcing Merchant consideration (Bypassing Trade Agreement limits)", LogCategory.Economy, __instance.kingdom);
 
                 // Manually trigger the expense consideration
                 // This will hit our KingdomAI_ConsiderExpense patch, which allows the first 2 merchants unconditionally.

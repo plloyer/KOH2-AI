@@ -348,7 +348,7 @@ namespace AIOverhaul
                 // block ALL hiring until Swordsmith is built
                 if (!hasSwordsmith && rangedCount >= GameBalance.EarlyGameRangedCount && meleeCount < GameBalance.EarlyGameMeleeCount)
                 {
-                    AIOverhaulPlugin.LogDiagnostic($"BLOCKING all unit hiring: ranged={rangedCount}, melee={meleeCount}, need Swordsmith first!", LogCategory.Military, kingdom);
+                    AIOverhaulPlugin.LogDebug($"BLOCKING all unit hiring: ranged={rangedCount}, melee={meleeCount}, need Swordsmith first!", LogCategory.Military, kingdom);
                     __result *= GameBalance.StrictBlockMultiplier;
                     return;
                 }

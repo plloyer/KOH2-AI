@@ -67,7 +67,7 @@ namespace AIOverhaul
         /// </summary>
         public static void LogError(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null)
         {
-            LogMod(message, category, kingdom, LogLevel.Error);
+            Log(message, category, kingdom, LogLevel.Error);
         }
 
         /// <summary>
@@ -75,7 +75,7 @@ namespace AIOverhaul
         /// </summary>
         public static void LogWarning(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null)
         {
-            LogMod(message, category, kingdom, LogLevel.Warning);
+            Log(message, category, kingdom, LogLevel.Warning);
         }
 
         /// <summary>
@@ -83,28 +83,26 @@ namespace AIOverhaul
         /// </summary>
         public static void LogInfo(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null)
         {
-            LogMod(message, category, kingdom, LogLevel.Log);
+            Log(message, category, kingdom, LogLevel.Log);
         }
 
         /// <summary>
         /// Log a diagnostic message (only shown for England)
         /// </summary>
-        public static void LogDiagnostic(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null)
+        public static void LogDebug(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null)
         {
-            LogMod(message, category, kingdom, LogLevel.Diagnostic);
+            // Filter Diagnostic logs - only show for England
+            if (kingdom != null && kingdom.Name != KingdomNames.England)
+                return; // Skip this log
+            
+            Log(message, category, kingdom, LogLevel.Diagnostic);
         }
 
         /// <summary>
         /// Static logging helper that automatically adds the [AI-Mod] prefix, category tag, and kingdom name
         /// </summary>
-        static void LogMod(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null, LogLevel level = LogLevel.Log)
+        static void Log(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null, LogLevel level = LogLevel.Log)
         {
-            // Filter Diagnostic logs - only show for England
-            if (level == LogLevel.Diagnostic && kingdom != null && kingdom.Name != KingdomNames.England)
-            {
-                return; // Skip this log
-            }
-
             string levelTag = level == LogLevel.Diagnostic ? "[DIAG] " : "";
             string formattedMessage = $"{LogPrefix}[{kingdom?.Name}][{category}]{levelTag}{message}";
 
@@ -162,7 +160,7 @@ namespace AIOverhaul
 
             if (playerKingdoms.Count > 0)
             {
-                LogMod($"Player kingdoms added to Enhanced AI: {string.Join(", ", playerKingdoms.Select(k => k.Name))}", LogCategory.General);
+                Log($"Player kingdoms added to Enhanced AI: {string.Join(", ", playerKingdoms.Select(k => k.Name))}", LogCategory.General);
             }
 
             // Now select enhanced/baseline from AI kingdoms only
@@ -190,17 +188,17 @@ namespace AIOverhaul
                 EnhancedPerformanceLogger.RecordBaseline(k, "Baseline", game);
             }
 
-            LogMod($"New game session detected. Selected {EnhancedKingdomIds.Count} enhanced and {BaselineKingdomIds.Count} baseline kingdoms out of {aiKingdoms.Count} total AI kingdoms.", LogCategory.General);
+            Log($"New game session detected. Selected {EnhancedKingdomIds.Count} enhanced and {BaselineKingdomIds.Count} baseline kingdoms out of {aiKingdoms.Count} total AI kingdoms.", LogCategory.General);
 
             if (enhanced.Count > 0)
-                LogMod($"-----> Enhanced ({enhanced.Count}): {string.Join(", ", enhanced.Select(k => k.Name))}", LogCategory.General);
+                Log($"-----> Enhanced ({enhanced.Count}): {string.Join(", ", enhanced.Select(k => k.Name))}", LogCategory.General);
             else
-                LogMod("Enhanced (0): None", LogCategory.General);
+                Log("Enhanced (0): None", LogCategory.General);
 
             if (baseline.Count > 0)
-                LogMod($"Baseline ({baseline.Count}): {string.Join(", ", baseline.Select(k => k.Name))}", LogCategory.General);
+                Log($"Baseline ({baseline.Count}): {string.Join(", ", baseline.Select(k => k.Name))}", LogCategory.General);
             else
-                LogMod("Baseline (0): None", LogCategory.General);
+                Log("Baseline (0): None", LogCategory.General);
         }
 
         /// <summary>

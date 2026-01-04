@@ -128,7 +128,7 @@ namespace AIOverhaul
                         // Additional boost based on Castle district slots
                         int slots = castleDistrict.buildings?.Count ?? 0;
                         boost *= (1.0f + (slots * GameBalance.BarracksSlotBoostPerSlot));
-                        AIOverhaulPlugin.LogDiagnostic($"BOOSTING first Barracks in {castle.name} (Base: {GameBalance.BarracksBoost}, Slots: {slots})", LogCategory.Military, kingdom);
+                        AIOverhaulPlugin.LogDebug($"BOOSTING first Barracks in {castle.name} (Base: {GameBalance.BarracksBoost}, Slots: {slots})", LogCategory.Military, kingdom);
                     }
 
                     option.eval *= boost;
