@@ -101,12 +101,6 @@ Note: When king dies, composition changes and AI must adapt to maintain target r
 - Avoid Commerce skills for non-merchants
 - Avoid Combat skills for non-martial characters
 
-## Royal Family
-
-### Children Naming
-- Name children after spouse's culture instead of always using ruler's culture
-- Provides cultural diversity in royal family
-
 ## Diplomacy
 
 ### War Declaration
