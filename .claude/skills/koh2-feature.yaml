@@ -75,7 +75,10 @@ prompt: |
 
   4. **Add logging for debugging**
      ```csharp
-     AIOverhaulPlugin.Instance?.Log($"[AI-Mod] Your message here");
+     AIOverhaulPlugin.LogInfo("Your message here", LogCategory.General, kingdom);
+     AIOverhaulPlugin.LogWarning("Warning message", LogCategory.General, kingdom);
+     AIOverhaulPlugin.LogError("Error message", LogCategory.General, kingdom);
+     AIOverhaulPlugin.LogDiagnostic("Debug message (England only)", LogCategory.General, kingdom);
      ```
 
   ## Phase 3: Compilation Check (MANDATORY)
@@ -244,7 +247,10 @@ prompt: |
   **AIOverhaulPlugin** (in Plugin.cs)
   - `AIOverhaulPlugin.IsEnhancedAI(Kingdom k)` - Check if Enhanced AI
   - `AIOverhaulPlugin.IsBaselineAI(Kingdom k)` - Check if Baseline AI
-  - `AIOverhaulPlugin.Instance.Log(string message)` - Logging
+  - `AIOverhaulPlugin.LogInfo(string message, LogCategory category, Kingdom k)` - Info logging
+  - `AIOverhaulPlugin.LogWarning(string message, LogCategory category, Kingdom k)` - Warning logging
+  - `AIOverhaulPlugin.LogError(string message, LogCategory category, Kingdom k)` - Error logging
+  - `AIOverhaulPlugin.LogDiagnostic(string message, LogCategory category, Kingdom k)` - Diagnostic logging (England only)
 
   **Constants** (MANDATORY - use these, NEVER hardcode strings)
   - `SkillNames.*` - All skill names (e.g., `SkillNames.Leadership`)

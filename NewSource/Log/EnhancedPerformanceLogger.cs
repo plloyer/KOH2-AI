@@ -76,7 +76,7 @@ namespace AIOverhaul
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.Instance?.Log($"[AI-Logger] ERROR initializing log files: {ex.Message}");
+                AIOverhaulPlugin.LogError($"ERROR initializing log files: {ex.Message}", LogCategory.General);
             }
         }
 
@@ -97,7 +97,7 @@ namespace AIOverhaul
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.Instance?.Log($"[AI-Logger] ERROR recording baseline for {k.Name}: {ex.Message}");
+                AIOverhaulPlugin.LogError($"ERROR recording baseline: {ex.Message}", LogCategory.General, k);
             }
         }
 
@@ -186,7 +186,7 @@ namespace AIOverhaul
                 }
                 catch (Exception ex)
                 {
-                    AIOverhaulPlugin.Instance?.Log($"[AI-Logger] ERROR writing performance log: {ex.Message}");
+                    AIOverhaulPlugin.LogError($"ERROR writing performance log: {ex.Message}", LogCategory.General);
                 }
             }
 
@@ -230,7 +230,7 @@ namespace AIOverhaul
                     }
                     catch (Exception ex)
                     {
-                        AIOverhaulPlugin.Instance?.Log($"[AI-Logger] ERROR logging defeat for {k.Name}: {ex.Message}");
+                        AIOverhaulPlugin.LogError($"ERROR logging defeat: {ex.Message}", LogCategory.General, k);
                     }
                 }
             }
@@ -292,14 +292,14 @@ namespace AIOverhaul
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.Instance?.Log($"[AI-Logger] ERROR writing aggregate stats: {ex.Message}");
+                AIOverhaulPlugin.LogError($"ERROR writing aggregate stats: {ex.Message}", LogCategory.General);
             }
 
             // Also log to console for immediate feedback
-            AIOverhaulPlugin.Instance?.Log($"[AI-Stats] Year {currentYear:F0}: Enhanced vs Baseline | " +
+            AIOverhaulPlugin.LogInfo($"[AI-Stats] Year {currentYear:F0}: Enhanced vs Baseline | " +
                                          $"Realms: {enhancedAvgRealms:F1} vs {baselineAvgRealms:F1} ({realmsRatio:P0}) | " +
                                          $"Strength: {enhancedAvgStrength:F0} vs {baselineAvgStrength:F0} ({strengthRatio:P0}) | " +
-                                         $"Survival: {enhancedSurvivalRate:P0} vs {baselineSurvivalRate:P0}");
+                                         $"Survival: {enhancedSurvivalRate:P0} vs {baselineSurvivalRate:P0}", LogCategory.General);
         }
 
 

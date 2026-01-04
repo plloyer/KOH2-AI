@@ -25,80 +25,42 @@ namespace AIOverhaul
             Instance = this;
             var harmony = new Harmony("com.mod.aioverhaul");
             harmony.PatchAll();
-            
+
             // Listen to all Unity logs to capture game errors/warnings into BepInEx log
             Application.logMessageReceived += OnUnityLogMessage;
-            
-            Log("AI Overhaul Plugin Loaded with dynamic selection logic.");
+            Logger.LogInfo("AI Overhaul Plugin Loaded with dynamic selection logic.");
         }
 
+        /// <summary>
+        /// Capture Unity logs and forward Warnings/Errors to BepInEx log
+        /// </summary>
         void OnUnityLogMessage(string condition, string stackTrace, LogType type)
         {
-            // Avoid infinite loops - ignore our own logs
+            // Only capture warnings and errors to avoid spam
+            // Ignore benign "invalid remote vars" errors which are common in base game
+            if (condition.Contains("invalid remote vars") || condition.Contains("Received data_changed")) return;
+
+            // Ignore our own logs and BepInEx logs to prevent infinite recursion
             if (condition.StartsWith(LogPrefix) || condition.StartsWith("[BepInEx]")) return;
 
-            // Suppress benign base game errors regarding remote vars
-            if (condition.Contains("invalid remote vars") || condition.Contains("Received data_changed") || condition.Contains("Could not resolve target")) return;
-
-            // Map Unity LogType to BepInEx LogLevel
-            BepInEx.Logging.LogLevel level = BepInEx.Logging.LogLevel.Info;
-            string prefix = "[Unity]";
-            
+            string prefix = "[Unity] ";
             switch (type)
             {
                 case LogType.Error:
                 case LogType.Exception:
                 case LogType.Assert:
-                    level = BepInEx.Logging.LogLevel.Error;
-                    prefix = "[Unity Error]";
+                    Logger.LogError($"{prefix}{condition}\n{stackTrace}");
                     break;
                 case LogType.Warning:
-                    level = BepInEx.Logging.LogLevel.Warning;
-                    prefix = "[Unity Warning]";
+                    Logger.LogWarning($"{prefix}{condition}");
                     break;
-            }
-
-            // Write to BepInEx log (disk)
-            // Note: We use LogInfo/LogWarning/LogError manually to ensure it hits the file
-            string msg = $"{prefix} {condition}";
-            if (level == BepInEx.Logging.LogLevel.Error)
-            {
-                Logger.LogError(msg + (string.IsNullOrEmpty(stackTrace) ? "" : $"\n{stackTrace}"));
-            }
-            else if (level == BepInEx.Logging.LogLevel.Warning)
-            {
-                Logger.LogWarning(msg);
-            }
-            else
-            {
-                Logger.LogInfo(msg);
+                // Explicitly ignore LogType.Log to prevent spam
             }
         }
 
         public const string LogPrefix = "[AI-Mod]";
 
         public static bool SpectatorMode = false;
-
-        public void Log(string message)
-        {
-            Logger.LogInfo(message);
-        }
-
-        /// <summary>
-        /// Static logging helper that automatically adds the [AI-Mod] prefix, category tag, and kingdom name
-        /// </summary>
-        static void LogMod(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null, LogLevel level = LogLevel.Log)
-        {
-            // Filter Diagnostic logs - only show for England
-            if (level == LogLevel.Diagnostic && kingdom != null && kingdom.Name != KingdomNames.England)
-            {
-                return; // Skip this log
-            }
-
-            string levelTag = level == LogLevel.Diagnostic ? "[DIAG] " : "";
-            string kingdomTag = kingdom != null ? $"[{kingdom.Name}] " : "";
-            Instance?.Log($"{LogPrefix}[{category}]{kingdomTag}{levelTag}{message}");
-        }
 
         /// <summary>
         /// Log an error message
@@ -130,6 +92,37 @@ namespace AIOverhaul
         public static void LogDiagnostic(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null)
         {
             LogMod(message, category, kingdom, LogLevel.Diagnostic);
+        }
+
+        /// <summary>
+        /// Static logging helper that automatically adds the [AI-Mod] prefix, category tag, and kingdom name
+        /// </summary>
+        static void LogMod(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null, LogLevel level = LogLevel.Log)
+        {
+            // Filter Diagnostic logs - only show for England
+            if (level == LogLevel.Diagnostic && kingdom != null && kingdom.Name != KingdomNames.England)
+            {
+                return; // Skip this log
+            }
+
+            string levelTag = level == LogLevel.Diagnostic ? "[DIAG] " : "";
+            string formattedMessage = $"{LogPrefix}[{kingdom?.Name}][{category}]{levelTag}{message}";
+
+            // Call the appropriate Logger method based on log level
+            switch (level)
+            {
+                case LogLevel.Error:
+                    Instance?.Logger.LogError(formattedMessage);
+                    break;
+                case LogLevel.Warning:
+                    Instance?.Logger.LogWarning(formattedMessage);
+                    break;
+                case LogLevel.Log:
+                case LogLevel.Diagnostic:
+                default:
+                    Instance?.Logger.LogInfo(formattedMessage);
+                    break;
+            }
         }
         
         public static bool IsEnhancedAI(Logic.Kingdom k)
