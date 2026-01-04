@@ -13,6 +13,8 @@ prompt: |
   4. **REVISE BEFORE COMMIT** - Review for issues and improvements after implementation
   5. **COMMIT WHEN DONE** - Git commit with descriptive message when complete
   6. **NEVER BLINDLY REMOVE CODE** - If a method/API doesn't exist, understand what it does first, then implement a replacement. DO NOT just delete calls without preserving functionality
+  7. **NO HARDCODED STRINGS** - Always use constants from Constants/ folder (BuildingNames.*, CharacterClassNames.*, ActionNames.*, etc.)
+  8. **NO HARDCODED VALUES** - Always use (or create) constants in GameBalance.cs for all numeric values
 
   # WORKFLOW - FOLLOW EXACTLY
 
@@ -222,12 +224,26 @@ prompt: |
   - `AIOverhaulPlugin.IsBaselineAI(Kingdom k)` - Check if Baseline AI
   - `AIOverhaulPlugin.Instance.Log(string message)` - Logging
 
-  **Constants** (use these, don't hardcode strings)
-  - `SkillNames.*` - All skill names
-  - `CharacterClassNames.*` - Character classes
+  **Constants** (MANDATORY - use these, NEVER hardcode strings)
+  - `SkillNames.*` - All skill names (e.g., `SkillNames.Leadership`)
+  - `CharacterClassNames.*` - Character classes (e.g., `CharacterClassNames.Merchant`)
   - `BattleTacticNames.*` - Battle tactics
-  - `TraditionNames.*` - Traditions
-  - `BuildingNames.*` - Building types
+  - `TraditionNames.*` - Traditions (e.g., `TraditionNames.WritingTradition`)
+  - `BuildingNames.*` - Building types (e.g., `BuildingNames.Barracks`)
+  - `BuildingUpgradeNames.*` - Building upgrades (e.g., `BuildingUpgradeNames.Swordsmith`)
+  - `ActionNames.*` - Actions (e.g., `ActionNames.Trade`)
+  - `DistrictNames.*` - Districts (e.g., `DistrictNames.Castle`)
+  - `FeatureNames.*` - Map features (e.g., `FeatureNames.IronOre`)
+  - `GoodsNames.*` - Trade goods (e.g., `GoodsNames.Iron`)
+
+  **GameBalance.cs** (MANDATORY - use these, NEVER hardcode numeric values)
+  - All numeric thresholds, multipliers, counts, etc.
+  - Examples:
+    - `GameBalance.MinBooksForFirstTradition` instead of `400`
+    - `GameBalance.RequiredMerchantCount` instead of `2`
+    - `GameBalance.CommercePerMerchant` instead of `10`
+    - `GameBalance.SwordsmithBoost` instead of `30f`
+  - If constant doesn't exist, CREATE it in GameBalance.cs with descriptive name and comment
 
   ## Common Patterns
 
@@ -290,6 +306,34 @@ prompt: |
   - WRONG: Deleting `GetAverageWarScore()` calls because method doesn't exist
   - RIGHT: Understand what it does (calculates war performance), implement helper using existing `GetWarScore()` per war, restore all logic
   - NEVER sacrifice functionality just to make code compile!
+
+  ❌ **Hardcoded strings:**
+  ```csharp
+  // WRONG
+  if (building.def.id == "Barracks")
+  if (character.class_def.id == "Merchant")
+  if (action.def.id == "Trade")
+
+  // CORRECT
+  if (building.def.id == BuildingNames.Barracks)
+  if (character.class_def.id == CharacterClassNames.Merchant)
+  if (action.def.id == ActionNames.Trade)
+  ```
+
+  ❌ **Hardcoded numeric values:**
+  ```csharp
+  // WRONG
+  if (books >= 400 && traditions.Count == 0)
+  if (merchants < 2)
+  if (commerce >= 10)
+  option.eval *= 30f;
+
+  // CORRECT
+  if (books >= GameBalance.MinBooksForFirstTradition && traditions.Count == 0)
+  if (merchants < GameBalance.RequiredMerchantCount)
+  if (commerce >= GameBalance.MinCommerceForMerchant)
+  option.eval *= GameBalance.SwordsmithBoost;
+  ```
 
   ## File Organization
 
