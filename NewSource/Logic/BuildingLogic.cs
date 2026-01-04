@@ -34,7 +34,7 @@ namespace AIOverhaul
             var kingdom = __instance.GetKingdom();
 
             // Block all construction if rushing tradition (save gold for Writing/Learning)
-            if (ShouldRushTradition(kingdom))
+            if (TraditionHelper.ShouldRushTradition(kingdom))
             {
                 Castle.build_options.Clear();
                 Castle.upgrade_options.Clear();
@@ -44,18 +44,6 @@ namespace AIOverhaul
             ApplySwordsmithLogic(__instance);
             ApplyBarracksLogic(__instance);
             ApplyReligionLogic(__instance);
-        }
-
-        static bool ShouldRushTradition(Logic.Kingdom kingdom)
-        {
-            if (kingdom.traditions?.Count > 0) return false;
-            if (kingdom.resources.Get(Logic.ResourceType.Books) < GameBalance.MinBooksForFirstTradition) return false;
-
-            var options = kingdom.GetNewTraditionOptions();
-            if (options == null) return false;
-
-            return options.Find(t => t.id == TraditionNames.WritingTradition ||
-                                     t.id == TraditionNames.LearningTradition) != null;
         }
 
         // --- Logic Blocks ---

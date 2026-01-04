@@ -413,7 +413,7 @@ namespace AIOverhaul
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
             // Block fortifications if rushing tradition (save gold for Writing/Learning)
-            if (MilitaryLogicHelpers.ShouldRushTradition(__instance.kingdom))
+            if (TraditionHelper.ShouldRushTradition(__instance.kingdom))
             {
                 __result = false;
                 return false;
@@ -494,22 +494,6 @@ namespace AIOverhaul
             }
             
             return true;
-        }
-    }
-
-    // Helper Methods
-    internal static class MilitaryLogicHelpers
-    {
-        internal static bool ShouldRushTradition(Logic.Kingdom kingdom)
-        {
-            if (kingdom.traditions?.Count > 0) return false;
-            if (kingdom.resources.Get(Logic.ResourceType.Books) < GameBalance.MinBooksForFirstTradition) return false;
-
-            var options = kingdom.GetNewTraditionOptions();
-            if (options == null) return false;
-
-            return options.Find(t => t.id == TraditionNames.WritingTradition ||
-                                     t.id == TraditionNames.LearningTradition) != null;
         }
     }
 }

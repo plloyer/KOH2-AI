@@ -58,6 +58,16 @@ This document describes all the behavioral changes made to the enhanced AI.
 ## Court & Characters
 
 ### Character Hiring
+
+**Target Composition Goal** (including King):
+- 4 Marshals
+- 1 Cleric
+- 1 Diplomat OR 1 Spy (not both)
+- 3 Merchants
+
+Note: When king dies, composition changes and AI must adapt to maintain target ratios.
+
+**Current Hiring Gates**:
 - **Diplomat Hiring**: Only hire if:
   - Game time > 720 hours (1 month)
   - 2+ stronger neighboring kingdoms

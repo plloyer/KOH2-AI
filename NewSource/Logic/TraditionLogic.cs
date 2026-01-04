@@ -2,6 +2,7 @@ using System;
 using HarmonyLib;
 using Logic;
 using AIOverhaul.Constants;
+using AIOverhaul.Helpers;
 
 namespace AIOverhaul
 {
@@ -32,9 +33,7 @@ namespace AIOverhaul
                 preferredTradition = traditionOptions.Find(t => t.id == TraditionNames.LearningTradition);
 
             // TRADITION RUSH: If we have 400+ books and Writing/Learning available, rush it with Urgent priority
-            bool rushingTradition = __instance.kingdom.traditions.Count == 0 &&
-                                    __instance.kingdom.resources.Get(ResourceType.Books) >= GameBalance.MinBooksForFirstTradition &&
-                                    preferredTradition != null;
+            bool rushingTradition = TraditionHelper.ShouldRushTradition(__instance.kingdom) && preferredTradition != null;
 
             // If rushing, force pick with Urgent priority
             if (rushingTradition)
