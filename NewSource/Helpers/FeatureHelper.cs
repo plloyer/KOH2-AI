@@ -8,7 +8,7 @@ namespace AIOverhaul.Helpers
     /// </summary>
     public static class FeatureHelper
     {
-        private static readonly Dictionary<string, string> FeatureToBuildingMap = new Dictionary<string, string>
+        static readonly Dictionary<string, string> FeatureToBuildingMap = new Dictionary<string, string>
         {
             // Animals
             { FeatureNames.Cattle, BuildingNames.CattleFarming },
@@ -41,7 +41,7 @@ namespace AIOverhaul.Helpers
             { FeatureNames.Coastal, BuildingNames.Harbor }
         };
 
-        private static readonly Dictionary<string, string> BuildingToFeatureMap = new Dictionary<string, string>();
+        static readonly Dictionary<string, string> BuildingToFeatureMap = new Dictionary<string, string>();
 
         static FeatureHelper()
         {

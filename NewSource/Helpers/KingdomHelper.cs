@@ -46,6 +46,34 @@ namespace AIOverhaul.Helpers
             return k?.court?.Any(c => c != null && c.IsCleric()) ?? false;
         }
 
+        public static bool HasIdleMerchant(Logic.Kingdom k)
+        {
+            if (k?.court == null) return false;
+
+            foreach (var character in k.court)
+            {
+                if (character == null || character.class_def?.id != CharacterClassNames.Merchant) continue;
+
+                // Check if this merchant has an active trade route
+                bool hasTradeRoute = false;
+                if (character.actions?.active != null)
+                {
+                    foreach (var action in character.actions.active)
+                    {
+                        if (action?.def?.id == ActionNames.Trade)
+                        {
+                            hasTradeRoute = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!hasTradeRoute) return true; // Found an idle merchant
+            }
+
+            return false; // No idle merchants
+        }
+
         // Army Checks
         public static bool HasTwoReadyArmies(Logic.Kingdom kingdom)
         {

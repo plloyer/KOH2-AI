@@ -173,6 +173,45 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkArmy")]
     public class KingdomAI_ThinkArmy
     {
+        static bool Prefix(Logic.KingdomAI __instance, Logic.Army army)
+        {
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+            // Removed is_alive, used IsValid() which is standard.
+            if (army == null || !army.IsValid()) return true;
+            if (army.battle != null) return true;
+
+            // 1. In Own Territory
+            // Fix: Realm.kingdom -> Realm.GetKingdom()
+            var realm = army.realm_in;
+            bool inOwnTerritory = realm != null && realm.GetKingdom() == __instance.kingdom;
+            
+            bool needsHeal = false;
+            if (inOwnTerritory)
+            {
+                needsHeal = AIOverhaul.Helpers.MilitaryHelper.IsDamaged(army);
+            }
+            else
+            {
+                float healthPerc = AIOverhaul.Helpers.MilitaryHelper.GetArmyHealthPercentage(army);
+                if (healthPerc < GameBalance.HealthRetreatThreshold)
+                {
+                    needsHeal = true;
+                }
+            }
+
+            if (needsHeal)
+            {
+                var action = army.leader?.FindAction(ActionNames.CampArmy);
+                if (action != null && action.Validate() == "ok")
+                {
+                    action.Execute(null);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        
         static void Postfix(Logic.KingdomAI __instance, Logic.Army army)
         {
             if (army == null || !AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return;
@@ -223,64 +262,6 @@ namespace AIOverhaul
                 }
             }
         }
-
-        static bool Prefix(Logic.KingdomAI __instance, Logic.Army army)
-        {
-            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
-            // Removed is_alive, used IsValid() which is standard.
-            if (army == null || !army.IsValid()) return true;
-            if (army.battle != null) return true;
-
-            // 1. In Own Territory
-            // Fix: Realm.kingdom -> Realm.GetKingdom()
-            var realm = army.realm_in;
-            bool inOwnTerritory = realm != null && realm.GetKingdom() == __instance.kingdom;
-            
-            bool needsHeal = false;
-            if (inOwnTerritory)
-            {
-                needsHeal = IsDamaged(army);
-            }
-            else
-            {
-                float healthPerc = GetArmyHealthPercentage(army);
-                if (healthPerc < GameBalance.HealthRetreatThreshold)
-                {
-                    needsHeal = true;
-                }
-            }
-
-            if (needsHeal)
-            {
-                var action = army.leader?.FindAction(ActionNames.CampArmy);
-                if (action != null && action.Validate() == "ok")
-                {
-                    action.Execute(null);
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        static bool IsDamaged(Logic.Army army)
-        {
-            if (army.units == null) return false;
-            foreach (var u in army.units)
-            {
-                if (u.damage > 0) return true;
-            }
-            return false;
-        }
-
-        static float GetArmyHealthPercentage(Logic.Army army)
-        {
-            if (army.units == null || army.units.Count == 0) return 0;
-            float max = 0;
-            foreach(var u in army.units) max += u.def.strength_eval;
-            float current = army.EvalStrength();
-            return max > 0 ? (current / max) : 0;
-        }
     }
 
     // "EvalHireUnits" determines if militia/peasants should be raised in a castle.
@@ -296,9 +277,7 @@ namespace AIOverhaul
             }
         }
     }
-
-
-
+    
     // Army composition: Prefer 3-4 ranged for every 4-5 melee
     // First two armies: 4 archers, 4 swordsmen
     // "EvalHireUnit" evaluates the desirability of hiring a specific unit type for an army.
@@ -312,7 +291,15 @@ namespace AIOverhaul
             Logic.Kingdom kingdom = army.GetKingdom();
             if (kingdom == null || !AIOverhaulPlugin.IsEnhancedAI(kingdom)) return;
 
+            // Block hiring if rushing tradition (save gold for Writing/Learning)
+            if (MilitaryLogicHelpers.ShouldRushTradition(kingdom))
+            {
+                __result = -1000f;
+                return;
+            }
+
             // Count current ranged vs melee units in this army
+
             int rangedCount = 0;
             int meleeCount = 0;
 
@@ -432,13 +419,22 @@ namespace AIOverhaul
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
-            // Check if first two armies are ready
-            bool firstTwoArmiesReady = KingdomHelper.HasTwoReadyArmies(__instance.kingdom);
+            // Block fortifications if rushing tradition (save gold for Writing/Learning)
+            if (MilitaryLogicHelpers.ShouldRushTradition(__instance.kingdom))
+            {
+                __result = false;
+                return false;
+            }
 
-            // If not ready, use default logic (which tends to be low priority)
-            if (!firstTwoArmiesReady) return true;
-            
-            // Reimplementation with URGENT priority for ALL fortification levels if armies are ready
+            // Check if first two armies are ready (Strategy requirement)
+            bool firstTwoArmiesReady = KingdomHelper.HasTwoReadyArmies(__instance.kingdom);
+            if (!firstTwoArmiesReady)
+            {
+                __result = false;
+                return false;
+            }
+
+            // Make fortifications URGENT priority once armies are ready
             Logic.Realm realm = castle?.GetRealm();
             if (realm == null)
             {
@@ -446,10 +442,8 @@ namespace AIOverhaul
                 return false;
             }
 
-            // REMOVED SAFE CHECK: We want to upgrade even in peace time if we have the armies ready
+            // Block if under siege
             Logic.KingdomAI.Threat threat = realm.threat;
-            
-            // Still block if invaded as building during siege is usually invalid/risky logic
             if (threat.level >= Logic.KingdomAI.Threat.Level.Invaded)
             {
                 __result = false;
@@ -463,21 +457,17 @@ namespace AIOverhaul
                 return false;
             }
 
-            // Boost to URGENT priority
-            // This normally bypasses category weight checks in ConsiderExpense
-            Logic.KingdomAI.Expense.Priority priority = Logic.KingdomAI.Expense.Priority.Urgent;
-
-            // Call ConsiderExpense with Urgent priority
+            // Upgrade with URGENT priority
             TraverseAPI.ConsiderExpense(__instance,
                 Logic.KingdomAI.Expense.Type.UpgradeFortifications,
                 null,
                 castle,
                 Logic.KingdomAI.Expense.Category.Military,
-                priority,
+                Logic.KingdomAI.Expense.Priority.Urgent,
                 null);
 
             __result = true;
-            return false; // Skip original method
+            return false;
         }
     }
 
@@ -519,6 +509,22 @@ namespace AIOverhaul
             }
             
             return true;
+        }
+    }
+
+    // Helper Methods
+    internal static class MilitaryLogicHelpers
+    {
+        internal static bool ShouldRushTradition(Logic.Kingdom kingdom)
+        {
+            if (kingdom.traditions?.Count > 0) return false;
+            if (kingdom.resources.Get(Logic.ResourceType.Books) < GameBalance.MinBooksForFirstTradition) return false;
+
+            var options = kingdom.GetNewTraditionOptions();
+            if (options == null) return false;
+
+            return options.Find(t => t.id == TraditionNames.WritingTradition ||
+                                     t.id == TraditionNames.LearningTradition) != null;
         }
     }
 }

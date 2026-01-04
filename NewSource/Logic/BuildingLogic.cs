@@ -31,49 +31,71 @@ namespace AIOverhaul
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
 
+            var kingdom = __instance.GetKingdom();
+
+            // Block all construction if rushing tradition (save gold for Writing/Learning)
+            if (ShouldRushTradition(kingdom))
+            {
+                Castle.build_options.Clear();
+                Castle.upgrade_options.Clear();
+                return;
+            }
+
             ApplySwordsmithLogic(__instance);
             ApplyBarracksLogic(__instance);
             ApplyReligionLogic(__instance);
+        }
+
+        static bool ShouldRushTradition(Logic.Kingdom kingdom)
+        {
+            if (kingdom.traditions?.Count > 0) return false;
+            if (kingdom.resources.Get(Logic.ResourceType.Books) < GameBalance.MinBooksForFirstTradition) return false;
+
+            var options = kingdom.GetNewTraditionOptions();
+            if (options == null) return false;
+
+            return options.Find(t => t.id == TraditionNames.WritingTradition ||
+                                     t.id == TraditionNames.LearningTradition) != null;
         }
 
         // --- Logic Blocks ---
 
         static void ApplySwordsmithLogic(Castle castle)
         {
+            var kingdom = castle.GetKingdom();
+            if (kingdom == null) return;
+
+            bool hasSwordsmith = BuildingHelper.HasBuildingUpgrade(kingdom, BuildingUpgradeNames.Swordsmith);
+            bool hasFletcher = BuildingHelper.HasBuildingUpgrade(kingdom, BuildingUpgradeNames.Fletcher_Barracks);
+
             // Boost Swordsmith evaluation, reduce Fletcher evaluation
             for (int i = 0; i < Castle.upgrade_options.Count; i++)
             {
                 var option = Castle.upgrade_options[i];
-                if (option.def != null)
+                if (option.def == null) continue;
+
+                if (option.def.id == BuildingUpgradeNames.Swordsmith)
                 {
-                    if (option.def.id == BuildingUpgradeNames.Swordsmith)
+                    if (!hasSwordsmith)
                     {
-                        // Significantly boost Swordsmith evaluation (need melee units first)
-                        option.eval *= GameBalance.StrongBoostMultiplier;
+                        // Very high priority for first Swordsmith in kingdom
+                        option.eval *= GameBalance.SwordsmithBoost;
                         Castle.upgrade_options[i] = option;
                     }
-                    else if (option.def.id == BuildingUpgradeNames.Fletcher_Barracks)
+                }
+                else if (option.def.id == BuildingUpgradeNames.Fletcher_Barracks)
+                {
+                    if (hasSwordsmith && !hasFletcher)
                     {
-                        // Check if Swordsmith is not yet built
-                        bool hasSwordsmith = false;
-                        if (castle.buildings != null)
-                        {
-                            foreach (var building in castle.buildings)
-                            {
-                                if (building?.def?.id == BuildingUpgradeNames.Swordsmith)
-                                {
-                                    hasSwordsmith = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!hasSwordsmith)
-                        {
-                            // Drastically reduce Fletcher priority until Swordsmith is built
-                            option.eval *= GameBalance.StrongPenaltyMultiplier;
-                            Castle.upgrade_options[i] = option;
-                        }
+                        // Very high priority for Fletcher after Swordsmith
+                        option.eval *= GameBalance.FletcherBoost;
+                        Castle.upgrade_options[i] = option;
+                    }
+                    else if (!hasSwordsmith)
+                    {
+                        // Block Fletcher until Swordsmith is built
+                        option.eval *= GameBalance.StrongPenaltyMultiplier;
+                        Castle.upgrade_options[i] = option;
                     }
                 }
             }
@@ -81,6 +103,9 @@ namespace AIOverhaul
 
         static void ApplyBarracksLogic(Castle castle)
         {
+            var kingdom = castle.GetKingdom();
+            if (kingdom == null) return;
+
             // Get Castle district definition (Barracks goes in Castle district)
             District.Def castleDistrict = DistrictHelper.GetDistrict(castle.game, DistrictNames.Castle);
             if (castleDistrict == null) return;
@@ -89,51 +114,36 @@ namespace AIOverhaul
             bool hasCastleDistrict = castle.HasDistrict(castleDistrict);
 
             // Check if kingdom already has any barracks (across all provinces)
-            bool kingdomHasBarracks = false;
-            Building.Def barracksDef = castle.game?.defs?.Get<Building.Def>(BuildingNames.Barracks);
-            if (barracksDef != null)
-            {
-                var kingdom = castle.GetKingdom();
-                if (kingdom?.realms != null)
-                {
-                    foreach (var realm in kingdom.realms)
-                    {
-                        if (realm?.castle != null && realm.castle.HasBuilding(barracksDef))
-                        {
-                            kingdomHasBarracks = true;
-                            break;
-                        }
-                    }
-                }
-            }
+            bool kingdomHasBarracks = BuildingHelper.HasBuilding(kingdom, BuildingNames.Barracks);
 
             // Find Barracks in build options
             for (int i = Castle.build_options.Count - 1; i >= 0; i--)
             {
                 var option = Castle.build_options[i];
-                if (option.def != null && option.def.id == BuildingNames.Barracks)
+                if (option.def == null || option.def.id != BuildingNames.Barracks) continue;
+
+                if (!kingdomHasBarracks)
                 {
-                    if (!kingdomHasBarracks)
+                    // First barracks in kingdom - high priority, extra boost for Castle districts
+                    float boost = GameBalance.BarracksBoost;
+
+                    if (hasCastleDistrict)
                     {
-                        // FIRST barracks - allow anywhere, but boost Castle districts
-                        if (hasCastleDistrict)
-                        {
-                            // Boost based on Castle district slots
-                            int slots = castleDistrict.buildings?.Count ?? 0;
-                            float boost = 1.0f + (slots * GameBalance.BarracksSlotBoostPerSlot);
-
-                            option.eval *= boost;
-                            Castle.build_options[i] = option;
-
-                            AIOverhaulPlugin.LogDiagnostic($"BOOSTING first Barracks in {castle.name} (Slots: {slots}, Boost: {boost:F1}x)", LogCategory.Military, castle.GetKingdom());
-                        }
-                        // else: no boost but still allow (fallback if no Castle district exists)
+                        // Additional boost based on Castle district slots
+                        int slots = castleDistrict.buildings?.Count ?? 0;
+                        boost *= (1.0f + (slots * GameBalance.BarracksSlotBoostPerSlot));
+                        AIOverhaulPlugin.LogDiagnostic($"BOOSTING first Barracks in {castle.name} (Base: {GameBalance.BarracksBoost}, Slots: {slots})", LogCategory.Military, kingdom);
                     }
-                    else
+
+                    option.eval *= boost;
+                    Castle.build_options[i] = option;
+                }
+                else
+                {
+                    // Kingdom already has barracks - ONLY allow in Castle districts
+                    if (!hasCastleDistrict)
                     {
-                        // Kingdom already has barracks - ONLY allow in Castle districts
-                        if (!hasCastleDistrict)
-                            Castle.build_options.RemoveAt(i);
+                        Castle.build_options.RemoveAt(i);
                     }
                 }
             }

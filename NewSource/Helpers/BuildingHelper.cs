@@ -155,7 +155,7 @@ namespace AIOverhaul.Helpers
         /// <summary>
         /// Helper to get the goods produced by a SPECIFIC building or upgrade definition ID.
         /// </summary>
-        private static List<string> GetGoodsProducedByDef(string defId)
+        static List<string> GetGoodsProducedByDef(string defId)
         {
              switch (defId)
              {
@@ -275,6 +275,42 @@ namespace AIOverhaul.Helpers
                 default:
                     return new List<string>();
              }
+        }
+        /// <summary>
+        /// Checks if the kingdom has a specific building constructed in any of its realms.
+        /// </summary>
+        public static bool HasBuilding(Logic.Kingdom k, string buildingName)
+        {
+            if (k.realms == null) return false;
+            foreach (var realm in k.realms)
+            {
+                if (realm.castle?.buildings == null) continue;
+                foreach (var b in realm.castle.buildings)
+                {
+                    if (b?.def?.id == buildingName) return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if the kingdom has a specific building upgrade in any of its realms.
+        /// </summary>
+        public static bool HasBuildingUpgrade(Logic.Kingdom k, string upgradeId)
+        {
+            if (k?.realms == null) return false;
+
+            foreach (var realm in k.realms)
+            {
+                if (realm?.castle?.buildings == null) continue;
+
+                foreach (var building in realm.castle.buildings)
+                {
+                    if (building?.def?.id == upgradeId)
+                        return true;
+                }
+            }
+            return false;
         }
     }
 }

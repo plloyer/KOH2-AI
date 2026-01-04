@@ -71,6 +71,7 @@
         <Compile Include="NewSource\Constants\GoodsNames.cs" />
     <Compile Include="NewSource\Constants\FeatureNames.cs" />
     <Compile Include="NewSource\Helpers\FeatureHelper.cs" />
+    <Compile Include="NewSource\Helpers\MilitaryHelper.cs" />
         <Compile Include="NewSource\Constants\LogCategory.cs" />
         <Compile Include="NewSource\Constants\SkillNames.cs" />
         <Compile Include="NewSource\Constants\KingdomNames.cs" />
@@ -97,6 +98,7 @@
     </ItemGroup>
     <ItemGroup>
         <None Include="TODO.md" />
+        <None Include="AI_ENHANCEMENTS.md" />
         <None Include="GAME_CONCEPTS.md" />
         <None Include="Sources\**\*.cs" />
     </ItemGroup>

@@ -26,23 +26,18 @@ namespace AIOverhaul
             // Safety checks for kingdom properties
             if (__instance.kingdom.traditions == null || __instance.kingdom.wars == null || __instance.kingdom.resources == null) return true;
 
-            // TRADITION RUSH LOGIC
-            bool rushingTradition = false;
-            // Use resources.Get(ResourceType.Books) and wars.Count
-            if (__instance.kingdom.traditions.Count == 0 &&
-                __instance.kingdom.wars.Count == 0 &&
-                __instance.kingdom.resources.Get(ResourceType.Books) >= GameBalance.MinBooksForFirstTradition)
-            {
-                rushingTradition = true;
-            }
-
             // Look for Writing or Learning tradition
             var preferredTradition = traditionOptions.Find(t => t.id == TraditionNames.WritingTradition);
             if (preferredTradition == null)
                 preferredTradition = traditionOptions.Find(t => t.id == TraditionNames.LearningTradition);
 
-            // If rushing, force pick even if we have to save gold (priority Urgent)
-            if (rushingTradition && preferredTradition != null)
+            // TRADITION RUSH: If we have 400+ books and Writing/Learning available, rush it with Urgent priority
+            bool rushingTradition = __instance.kingdom.traditions.Count == 0 &&
+                                    __instance.kingdom.resources.Get(ResourceType.Books) >= GameBalance.MinBooksForFirstTradition &&
+                                    preferredTradition != null;
+
+            // If rushing, force pick with Urgent priority
+            if (rushingTradition)
             {
                 Resource cost = preferredTradition.GetAdoptCost(__instance.kingdom);
                 if (__instance.kingdom.resources.CanAfford(cost, 1f))

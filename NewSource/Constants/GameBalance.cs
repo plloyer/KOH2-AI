@@ -32,6 +32,7 @@ namespace AIOverhaul.Constants
         public const float MediumPenaltyMultiplier = 0.2f;
         public const float HighPriorityMultiplier = 0.7f; // Lower eval = higher priority
         public const float StrictBlockMultiplier = 0.01f;
+        public const float UrgentPriorityMultiplier = 100f; // Massive boost for urgent expenses
 
         // War Score Thresholds (negative = losing)
         public const float WarScorePeaceSeeking = -15f;
@@ -83,6 +84,7 @@ namespace AIOverhaul.Constants
         public const float MinGoldIncomeForDiplomats = 500f;
         public const float MinGoldIncomeForClerics = 50f;
         public const int CommercePerMerchant = 10;
+        public const float MinCommerceForMerchant = 10f; // Minimum available commerce to trigger urgent merchant hire
         public const float MinGameHoursForDiplomat = 720f; // 1 in-game month (30 days) before considering diplomats
 
         // Economy - Resource Thresholds
@@ -104,6 +106,9 @@ namespace AIOverhaul.Constants
         // Building Bonuses
         public const float ReligionBuildingBoostPerSlot = 0.2f; // 20% per religion slot
         public const float BarracksSlotBoostPerSlot = 0.25f; // 25% per barracks slot
+        public const float BarracksBoost = 50f; // Priority boost for first barracks in kingdom
+        public const float SwordsmithBoost = 30f; // Priority boost for swordsmith upgrade
+        public const float FletcherBoost = 30f; // Priority boost for fletcher upgrade
 
         // Island Detection
         public const int IslandMaxNeighbors = 1;

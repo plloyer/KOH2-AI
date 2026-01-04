@@ -1,0 +1,123 @@
+# AI Enhancements
+
+This document describes all the behavioral changes made to the enhanced AI.
+
+## Economy
+
+### Merchant Hiring
+- **URGENT Priority**: If kingdom has 10+ available commerce (maxCommerce - usedCommerce) and has at least one merchant without an active trade route, hire a merchant immediately
+- **Early Game**: First 2 merchants are guaranteed (bypass commerce checks)
+- **Commerce Requirement**: For 3rd+ merchant, only hire if `(merchants + 1) * 10 <= maxCommerce`
+
+### Crown Authority
+- Block Crown Authority increase until kingdom has built Barracks with both Swordsmith and Fletcher upgrades
+- Block Crown Authority increase if rushing tradition (see Tradition section)
+- Block Crown Authority increase if any province can upgrade fortifications to level 1
+
+### Trade Actions
+- Trade agreements have high priority (lower eval = higher priority in AI expense system)
+- Free diplomatic action but prioritized over other free actions
+
+## Military
+
+### Army Composition
+- **First Two Armies**: Exactly 4 archers + 4 swordsmen each
+- **Subsequent Armies**: 80% ranged-to-melee ratio (roughly 3.5 ranged : 4.5 melee per 8-unit army)
+- **Swordsmen Priority**: Always prefer swordsmen over other melee units
+- **Archer Priority**: Always prefer archers over other ranged units
+
+### Army Healing
+- **In Own Territory**: Camp if any unit has any damage
+- **In Enemy Territory**: Retreat and camp if army health < 70%
+
+### Unit Hiring
+- Block all unit hiring during Tradition Rush (when saving gold for first tradition)
+- Block all unit hiring during Survive mode (bankrupt or losing war badly)
+
+### Fortifications
+- After first two armies are ready, upgrading fortifications becomes URGENT priority for all levels (not just level 1)
+- Block fortification upgrades if province is under siege (Invaded threat level)
+
+## Buildings & Upgrades
+
+### Barracks
+- **First Barracks in Kingdom**: Allow in any province, but boost priority heavily for provinces with Castle district
+  - Boost scales with Castle district building slots: `1.0 + (slots * 0.25)`
+- **Subsequent Barracks**: Only allow in provinces with Castle district (strictly enforce)
+
+### Swordsmith
+- **Very High Priority** if kingdom doesn't have Swordsmith upgrade yet
+- Always boost Swordsmith evaluation significantly
+- **Fletcher Blocking**: Block Fletcher upgrade until Swordsmith is built
+
+### Fletcher
+- **Very High Priority** if kingdom has Swordsmith but no Fletcher yet
+- Must have Swordsmith before Fletcher is allowed
+
+### Religion Buildings
+- **Strict Requirement**: Religious buildings can ONLY be built in provinces with Religion district
+- **Priority Boost**: In provinces with Religion district, boost religious building priority based on district slots: `1.0 + (slots * 0.2)`
+- Religious buildings include: Church, Masjid, Temple, Cathedral, GreatMosque
+
+### Construction Blocking
+- **Tradition Rush**: Block ALL construction when saving gold for first tradition (400+ books, Writing/Learning available)
+
+## Court & Characters
+
+### Character Hiring
+- **Diplomat Hiring**: Only hire if:
+  - Game time > 720 hours (1 month)
+  - 2+ stronger neighboring kingdoms
+  - Gold income > 500/turn
+- **Spy Hiring**: Only if gold income > 500/turn
+- **Cleric Hiring**: Only if gold income > 50/turn
+- **Merchant Hiring**: See Economy section
+
+### Governor Assignment
+- **Early Game (2-3 provinces)**: Marshal should govern the province with highest military potential (most districts, iron ore, etc.)
+- **Merchant Governors**: Boost priority for towns with Market Square (+20 eval bonus)
+
+## Traditions
+
+### Tradition Rush
+- **Trigger**: When kingdom has 0 traditions, 400+ books, and Writing or Learning tradition is available
+- **Behavior**:
+  - Block all construction (save gold)
+  - Block all unit hiring (save gold)
+  - Block Crown Authority increases (save gold)
+  - Prioritize tradition adoption
+
+### Tradition Selection
+- Prefer Writing or Learning as first tradition when available
+
+## Character Development
+
+### Skill Selection
+- **Ruler**: Prioritize Leadership and Administration skills
+- **Marshal**: Prioritize Leadership and Combat skills
+- Avoid Commerce skills for non-merchants
+- Avoid Combat skills for non-martial characters
+
+## Royal Family
+
+### Children Naming
+- Name children after spouse's culture instead of always using ruler's culture
+- Provides cultural diversity in royal family
+
+## Diplomacy
+
+### War Declaration
+- Consider defensive pacts against you in strength calculations (not yet implemented - see TODO.md)
+
+## Constants & Thresholds
+
+All numerical values are defined in `GameBalance.cs`:
+- Min commerce for merchant: 10
+- Commerce per merchant: 10
+- Min books for tradition rush: 400
+- Health retreat threshold: 0.7 (70%)
+- Early game army size: 4 ranged + 4 melee
+- Full army size: 8 units
+- Ranged/melee ratio: 0.8 (80%)
+- Religion building boost per slot: 0.2
+- Barracks slot boost per slot: 0.25

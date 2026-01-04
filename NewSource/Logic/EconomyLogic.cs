@@ -2,14 +2,11 @@
 using HarmonyLib;
 using Logic;
 using UnityEngine;
-using System.Collections.Generic;
 using AIOverhaul.Constants;
 using AIOverhaul.Helpers;
 
 namespace AIOverhaul
 {
-
-
     // "ConsiderExpense" evaluates a specific expense (hiring, building, bribing) to decide if the AI should pay for it.
     // Intent: ConsiderExpense
     [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderExpense", typeof(Logic.KingdomAI.Expense))]
@@ -170,13 +167,33 @@ namespace AIOverhaul
         }
     }
 
-
     [HarmonyPatch(typeof(KingdomAI), "AddExpense", new[] { typeof(WeightedRandom<KingdomAI.Expense>), typeof(KingdomAI.Expense) })]
     public class KingdomAI_AddExpense
     {
         static void Prefix(KingdomAI __instance, object expenses, KingdomAI.Expense expense)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return;
+
+            // URGENT MERCHANT HIRING
+            if (expense.type == KingdomAI.Expense.Type.HireChacacter &&
+                expense.defParam is CharacterClass.Def cd &&
+                cd.id == CharacterClassNames.Merchant)
+            {
+                float maxCommerce = TraverseAPI.GetMaxCommerce(__instance.kingdom);
+                int merchants = KingdomHelper.CountMerchants(__instance.kingdom);
+                int usedCommerce = merchants * GameBalance.CommercePerMerchant;
+                float availableCommerce = maxCommerce - usedCommerce;
+
+                // Check if we have idle merchants (merchants without active trade routes)
+                bool hasIdleMerchant = KingdomHelper.HasIdleMerchant(__instance.kingdom);
+
+                if (availableCommerce >= GameBalance.MinCommerceForMerchant && hasIdleMerchant)
+                {
+                    expense.eval *= GameBalance.UrgentPriorityMultiplier;
+                    AIOverhaulPlugin.LogDiagnostic($"URGENT merchant hire - {availableCommerce} commerce available, idle merchant detected", LogCategory.Economy, __instance.kingdom);
+                }
+            }
+
             if (expense.category == KingdomAI.Expense.Category.Diplomacy)
             {
                 // Trade is free, but lowering eval ensures it's prioritized over other free diplomatic actions
@@ -197,52 +214,52 @@ namespace AIOverhaul
             if (__instance == null || __instance.kingdom == null) return true;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
-            // Safety checks
-            if (__instance.kingdom.traditions == null || __instance.kingdom.wars == null || __instance.kingdom.resources == null) return true;
+            // Block until kingdom has built military infrastructure
+            bool hasBarracks = BuildingHelper.HasBuilding(__instance.kingdom, BuildingNames.Barracks);
+            bool hasSwordsmith = BuildingHelper.HasBuildingUpgrade(__instance.kingdom, BuildingUpgradeNames.Swordsmith);
+            bool hasFletcher = BuildingHelper.HasBuildingUpgrade(__instance.kingdom, BuildingUpgradeNames.Fletcher_Barracks);
 
-            // Block CA if Rushing Tradition
-            // Check 0 Traditions, Not at War
-            if (__instance.kingdom.traditions.Count == 0 && __instance.kingdom.wars.Count == 0)
+            if (!hasBarracks || !hasSwordsmith || !hasFletcher)
             {
-                 // If we have books, save gold for tradition.
-                 // Correctly access resources
-                 float books = __instance.kingdom.resources.Get(ResourceType.Books);
-                 float gold = __instance.kingdom.resources.Get(ResourceType.Gold);
-
-                 if (books >= GameBalance.HighBooksThreshold && gold < GameBalance.LowGoldThreshold) // Thresholds
-                 {
-                     __result = false;
-                     return false; // Block CA
-                 }
+                __result = false;
+                return false; // Block Crown Authority
             }
 
-            // Block CA if Fortifications needed
+            // Block CA if rushing tradition (400+ books, Writing/Learning available)
+            if (ShouldRushTradition(__instance.kingdom))
+            {
+                __result = false;
+                return false;
+            }
+
+            // Block CA if any province can upgrade fortifications to level 1
             if (__instance.kingdom.realms != null)
             {
                 foreach (var realm in __instance.kingdom.realms)
                 {
-                     // Remove IsDepleted check, rely on CanUpgradeFortification
-                     if (realm.castle != null && realm.castle.CanUpgradeFortification())
-                     {
-                         if (realm.castle.fortifications.level == 0) // Prioritize level 1 heavily
-                         {
-                             // Also checking if we can mostly afford it? 
-                             // If we can afford it, we should definitely block CA.
-                             // Even if we can't afford it yet, we should probably save for it if it's level 0?
-                             __result = false;
-                             return false; 
-                         }
-                     }
+                    if (realm?.castle != null &&
+                        realm.castle.CanUpgradeFortification() &&
+                        realm.castle.fortifications.level == 0)
+                    {
+                        __result = false;
+                        return false;
+                    }
                 }
             }
 
             return true;
         }
+
+        static bool ShouldRushTradition(Logic.Kingdom kingdom)
+        {
+            if (kingdom.traditions?.Count > 0) return false;
+            if (kingdom.resources.Get(Logic.ResourceType.Books) < GameBalance.MinBooksForFirstTradition) return false;
+
+            var options = kingdom.GetNewTraditionOptions();
+            if (options == null) return false;
+
+            return options.Find(t => t.id == TraditionNames.WritingTradition ||
+                                     t.id == TraditionNames.LearningTradition) != null;
+        }
     }
-
-
-
-    // OBSOLETE: ConsiderExpense overload with complex parameters doesn't exist
-    // All character hiring goes through ConsiderExpense(KingdomAI.Expense)
-    // See CharacterHiringControlPatch above
 }
