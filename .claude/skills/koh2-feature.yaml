@@ -15,6 +15,7 @@ prompt: |
   6. **NEVER BLINDLY REMOVE CODE** - If a method/API doesn't exist, understand what it does first, then implement a replacement. DO NOT just delete calls without preserving functionality
   7. **NO HARDCODED STRINGS** - Always use constants from Constants/ folder (BuildingNames.*, CharacterClassNames.*, ActionNames.*, etc.)
   8. **NO HARDCODED VALUES** - Always use (or create) constants in GameBalance.cs for all numeric values
+  9. **KEEP AI_ENHANCEMENTS.md IN SYNC** - When implementing/modifying AI features, update AI_ENHANCEMENTS.md to match. When updating AI_ENHANCEMENTS.md, verify code matches documentation
 
   # WORKFLOW - FOLLOW EXACTLY
 
@@ -119,9 +120,30 @@ prompt: |
   - [ ] Enhanced AI filter applied correctly
   - [ ] No unintended side effects
 
+  **Documentation Sync (CRITICAL):**
+  - [ ] Read AI_ENHANCEMENTS.md to understand current documented behavior
+  - [ ] Update AI_ENHANCEMENTS.md if your code adds/modifies AI features
+  - [ ] Verify all documented behaviors in AI_ENHANCEMENTS.md match actual code
+  - [ ] Remove any documented features that were removed from code
+  - [ ] Update numeric values if GameBalance constants changed
+
   **Make improvements now before committing**
 
-  ## Phase 5: Git Commit (MANDATORY)
+  ## Phase 5: Update AI_ENHANCEMENTS.md (If applicable)
+
+  If your feature changes AI behavior:
+
+  1. **Read AI_ENHANCEMENTS.md** to understand current documentation
+  2. **Update relevant section** with your changes
+     - Economy section for economic features
+     - Military section for army/battle features
+     - Buildings section for construction features
+     - Diplomacy section for diplomatic features
+  3. **Use exact constant names** in documentation (e.g., `GameBalance.MinBooksForFirstTradition` not "400")
+  4. **Describe the behavior**, not implementation details
+  5. **Include file references** when helpful (e.g., "EconomyLogic.cs:123")
+
+  ## Phase 6: Git Commit (MANDATORY)
 
   1. **Check git status**
      ```bash
