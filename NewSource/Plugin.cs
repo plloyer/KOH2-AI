@@ -245,6 +245,34 @@ namespace AIOverhaul
 
             return enemy;
         }
+        public static void ToggleSpectatorMode()
+        {
+            SpectatorMode = !SpectatorMode;
+
+            // Find player kingdom and add/remove from Enhanced AI
+            if (CurrentGame?.kingdoms != null)
+            {
+                var playerKingdom = CurrentGame.kingdoms.FirstOrDefault(k => k != null && k.is_player);
+                if (playerKingdom != null)
+                {
+                    if (SpectatorMode)
+                    {
+                        // Enable Enhanced AI for player when spectator mode is on
+                        if (!EnhancedKingdomIds.Contains(playerKingdom.id))
+                        {
+                            EnhancedKingdomIds.Add(playerKingdom.id);
+                        }
+                        LogInfo($"Spectator Mode ENABLED - Enhanced AI is now controlling kingdom", LogCategory.Spectator, playerKingdom);
+                    }
+                    else
+                    {
+                        // Remove player from Enhanced AI when spectator mode is off
+                        EnhancedKingdomIds.Remove(playerKingdom.id);
+                        LogInfo($"Spectator Mode DISABLED - Player control restored", LogCategory.Spectator, playerKingdom);
+                    }
+                }
+            }
+        }
     }
 
     // Removed GameClearPatch and GameLoadPatch as target methods do not exist

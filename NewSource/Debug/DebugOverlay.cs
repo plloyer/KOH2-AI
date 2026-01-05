@@ -32,10 +32,34 @@ namespace AIOverhaul
             DontDestroyOnLoad(this.gameObject);
         }
 
+        void OnEnable()
+        {
+            AIOverhaulPlugin.LogInfo("DebugOverlay Component ENABLED");
+        }
+
+        void OnDisable()
+        {
+            AIOverhaulPlugin.LogInfo("DebugOverlay Component DISABLED");
+        }
+
         void Update()
         {
+            // Input Handling
+            if (Input.GetKeyDown(KeyCode.F9))
+            {
+                AIOverhaulPlugin.ToggleSpectatorMode();
+            }
+
             // Toggle visibility matches Spectator Mode
-            isVisible = AIOverhaulPlugin.SpectatorMode;
+            bool shouldBeVisible = AIOverhaulPlugin.SpectatorMode;
+            
+            // Rising Edge Detection: Reset window position when opening
+            if (shouldBeVisible && !isVisible)
+            {
+                 windowRect = new Rect(50, 50, 400, 800);
+                 AIOverhaulPlugin.LogInfo("Overlay toggled ON. Resetting Window Rect to (50,50).");
+            }
+            isVisible = shouldBeVisible;
 
             // Auto-clear expenses periodically
             if (Time.time > lastClearTime + CLEAR_INTERVAL)
@@ -67,10 +91,19 @@ namespace AIOverhaul
         {
             if (!isVisible) return;
 
-            GUI.skin.window.fontSize = 14;
-            GUI.skin.label.fontSize = 12;
+            // Strategy A: Visual Anchor (Direct GUI Test)
+            // Draw a simple box at known coordinates to verify IMGUI is working
+            GUI.Box(new Rect(10, 10, 250, 30), "");
+            GUI.Label(new Rect(15, 15, 240, 20), $"AI Mode: ON | Window: {windowRect.x:F0},{windowRect.y:F0}");
 
-            windowRect = GUI.Window(0, windowRect, DrawWindow, "AI Debug Overlay (F9)");
+            // Use a unique ID to avoid conflicts
+            int windowID = 9909;
+            
+            // Create local style to avoid corrupting global skin
+            GUIStyle windowStyle = new GUIStyle(GUI.skin.window);
+            windowStyle.fontSize = 14;
+
+            windowRect = GUI.Window(windowID, windowRect, DrawWindow, "AI Debug Overlay (F9)", windowStyle);
         }
 
         void DrawWindow(int windowID)

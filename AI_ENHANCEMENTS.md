@@ -89,7 +89,6 @@ Note: When king dies, composition changes and AI must adapt to maintain target r
 
 **Current Hiring Gates**:
 - **Diplomat Hiring**: Only hire if:
-  - Game time > 720 hours (1 month)
   - 2+ stronger neighboring kingdoms
   - Gold income > 150/turn
 - **Spy Hiring**: Only if gold income > 500/turn
