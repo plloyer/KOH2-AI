@@ -138,3 +138,10 @@ All numerical values are defined in `GameBalance.cs`:
 - Ranged/melee ratio: 0.8 (80%)
 - Religion building boost per slot: 0.2
 - Barracks slot boost per slot: 0.25
+
+## Debug Tools
+- **Overlay**: Press **F9** to toggle the AI Debug Overlay.
+    - Shows stats for the player kingdom (Gold, Piety, Books).
+    - Lists Mortal Enemies and Neighbors with relationship status.
+    - Logs "Considered Expenses" in real-time to see what the AI is thinking.
+- **Spectator Mode**: Toggling the overlay also enables/disables Enhanced AI control for the player kingdom.

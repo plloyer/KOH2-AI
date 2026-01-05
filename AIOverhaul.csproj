@@ -58,6 +58,9 @@
         <Reference Include="UnityEngine.InputLegacyModule">
           <HintPath>..\Sovereign_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
         </Reference>
+        <Reference Include="UnityEngine.IMGUIModule">
+          <HintPath>..\Sovereign_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+        </Reference>
     </ItemGroup>
     <ItemGroup>
         <Compile Include="NewSource\Constants\BattleTacticNames.cs" />
@@ -96,6 +99,8 @@
         <Compile Include="NewSource\Logic\TraditionLogic.cs" />
         <Compile Include="NewSource\Logic\WarDiplomacyLogic.cs" />
         <Compile Include="NewSource\Plugin.cs" />
+        <Compile Include="NewSource\Debug\DebugOverlay.cs" />
+        <Compile Include="NewSource\Debug\DebugPatches.cs" />
         <Compile Include="NewSource\TraverseAPI.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>
     </ItemGroup>

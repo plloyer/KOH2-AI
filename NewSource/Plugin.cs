@@ -22,6 +22,7 @@ namespace AIOverhaul
 
         public const string MORTAL_ENEMY_VAR = "aimod_mortal_enemy";
 
+        public static Logic.Game CurrentGame => current_game;
         static Logic.Game current_game;
 
         void Awake()
@@ -29,6 +30,9 @@ namespace AIOverhaul
             Instance = this;
             var harmony = new Harmony("com.mod.aioverhaul");
             harmony.PatchAll();
+
+            // Initialize Debug Overlay
+            this.gameObject.AddComponent<DebugOverlay>();
 
             // Listen to all Unity logs to capture game errors/warnings into BepInEx log
             Application.logMessageReceived += OnUnityLogMessage;
