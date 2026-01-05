@@ -4,6 +4,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using AIOverhaul.Constants;
+using System;
 
 namespace AIOverhaul
 {
@@ -31,8 +32,11 @@ namespace AIOverhaul
             var harmony = new Harmony("com.mod.aioverhaul");
             harmony.PatchAll();
 
-            // Initialize Debug Overlay
-            this.gameObject.AddComponent<DebugOverlay>();
+            // Initialize Debug Overlay on a dedicated GameObject to allow it to persist independently
+            var overlayGO = new GameObject("AI_Debug_Overlay");
+            DontDestroyOnLoad(overlayGO);
+            overlayGO.hideFlags = HideFlags.HideAndDontSave;
+            overlayGO.AddComponent<DebugOverlay>();
 
             // Listen to all Unity logs to capture game errors/warnings into BepInEx log
             Application.logMessageReceived += OnUnityLogMessage;
@@ -249,6 +253,9 @@ namespace AIOverhaul
         {
             SpectatorMode = !SpectatorMode;
 
+            // Notify listeners
+            OnSpectatorModeChanged?.Invoke(SpectatorMode);
+
             // Find player kingdom and add/remove from Enhanced AI
             if (CurrentGame?.kingdoms != null)
             {
@@ -271,6 +278,26 @@ namespace AIOverhaul
                         LogInfo($"Spectator Mode DISABLED - Player control restored", LogCategory.Spectator, playerKingdom);
                     }
                 }
+            }
+        }
+
+        public static event Action<bool> OnSpectatorModeChanged;
+    }
+
+    // --- Spectator Mode Patches ---
+
+    // Hook into Logic.Game.Update() to detect F9 key press
+    // "Update" is the main game loop update function, called every frame.
+    // Intent: GameUpdatePatch (Spectator Mode)
+    [HarmonyPatch(typeof(Logic.Game), "Update")]
+    public class UpdatePatch
+    {
+        static void Postfix(Logic.Game __instance)
+        {
+            // Detect F9 key press to toggle spectator mode
+            if (Input.GetKeyDown(KeyCode.F9))
+            {
+                AIOverhaulPlugin.ToggleSpectatorMode();
             }
         }
     }
@@ -339,47 +366,7 @@ namespace AIOverhaul
         }
     }
 
-    // --- Spectator Mode Patches ---
 
-    // Hook into Logic.Game.Update() to detect F9 key press
-    // "Update" is the main game loop update function, called every frame.
-    // Intent: GameUpdatePatch (Spectator Mode)
-    [HarmonyPatch(typeof(Logic.Game), "Update")]
-    public class UpdatePatch
-    {
-        static void Postfix(Logic.Game __instance)
-        {
-            // Detect F9 key press to toggle spectator mode
-            if (Input.GetKeyDown(KeyCode.F9))
-            {
-                AIOverhaulPlugin.SpectatorMode = !AIOverhaulPlugin.SpectatorMode;
-
-                // Find player kingdom and add/remove from Enhanced AI
-                if (__instance?.kingdoms != null)
-                {
-                    var playerKingdom = __instance.kingdoms.FirstOrDefault(k => k != null && k.is_player);
-                    if (playerKingdom != null)
-                    {
-                        if (AIOverhaulPlugin.SpectatorMode)
-                        {
-                            // Enable Enhanced AI for player when spectator mode is on
-                            if (!AIOverhaulPlugin.EnhancedKingdomIds.Contains(playerKingdom.id))
-                            {
-                                AIOverhaulPlugin.EnhancedKingdomIds.Add(playerKingdom.id);
-                            }
-                            AIOverhaulPlugin.LogInfo($"Spectator Mode ENABLED - Enhanced AI is now controlling kingdom", LogCategory.Spectator, playerKingdom);
-                        }
-                        else
-                        {
-                            // Remove player from Enhanced AI when spectator mode is off
-                            AIOverhaulPlugin.EnhancedKingdomIds.Remove(playerKingdom.id);
-                            AIOverhaulPlugin.LogInfo($"Spectator Mode DISABLED - Player control restored", LogCategory.Spectator, playerKingdom);
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     // "Enabled" is a property getter determining if the AI should be active for a specific kingdom.
     // Intent: ForceAIEnabledPatch

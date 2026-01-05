@@ -10,9 +10,9 @@ namespace AIOverhaul
         public static DebugOverlay Instance;
 
         // Configuration
-        private Rect windowRect = new Rect(20, 20, 400, 800);
-        private Vector2 scrollPosition;
-        private bool isVisible = false;
+        Rect windowRect = new Rect(20, 150, 800, 600);
+        Vector2 scrollPosition;
+        bool isVisible = false;
 
         // Data Storage
         public struct ExpenseRecord
@@ -22,44 +22,53 @@ namespace AIOverhaul
             public string Category;
         }
 
-        private List<ExpenseRecord> consideredExpenses = new List<ExpenseRecord>();
-        private float lastClearTime = 0f;
-        private const float CLEAR_INTERVAL = 3.0f; // Clear log every 3 seconds to keep it fresh but readable
+        List<ExpenseRecord> consideredExpenses = new List<ExpenseRecord>();
+        float lastClearTime = 0f;
+        const float CLEAR_INTERVAL = 3.0f; // Clear log every 3 seconds to keep it fresh but readable
+
 
         void Awake()
         {
             Instance = this;
-            DontDestroyOnLoad(this.gameObject);
+        }
+
+        void Start()
+        {
         }
 
         void OnEnable()
         {
             AIOverhaulPlugin.LogInfo("DebugOverlay Component ENABLED");
+            AIOverhaulPlugin.OnSpectatorModeChanged += OnSpectatorModeChanged;
+            
+            // Sync initial state
+            OnSpectatorModeChanged(AIOverhaulPlugin.SpectatorMode);
         }
 
         void OnDisable()
         {
             AIOverhaulPlugin.LogInfo("DebugOverlay Component DISABLED");
+            AIOverhaulPlugin.OnSpectatorModeChanged -= OnSpectatorModeChanged;
+        }
+
+        void OnSpectatorModeChanged(bool isSpectatorMode)
+        {
+            bool wasVisible = isVisible;
+            isVisible = isSpectatorMode;
+
+            if (isVisible && !wasVisible)
+            {
+                // Reset to default position if toggled on
+                windowRect = new Rect(50, 250, 800, 600);
+                AIOverhaulPlugin.LogInfo("Overlay toggled ON via Event.");
+            }
         }
 
         void Update()
         {
-            // Input Handling
-            if (Input.GetKeyDown(KeyCode.F9))
-            {
-                AIOverhaulPlugin.ToggleSpectatorMode();
-            }
-
-            // Toggle visibility matches Spectator Mode
-            bool shouldBeVisible = AIOverhaulPlugin.SpectatorMode;
+            // Input is now handled by Plugin.cs -> OnSpectatorModeChanged event
             
-            // Rising Edge Detection: Reset window position when opening
-            if (shouldBeVisible && !isVisible)
-            {
-                 windowRect = new Rect(50, 50, 400, 800);
-                 AIOverhaulPlugin.LogInfo("Overlay toggled ON. Resetting Window Rect to (50,50).");
-            }
-            isVisible = shouldBeVisible;
+
 
             // Auto-clear expenses periodically
             if (Time.time > lastClearTime + CLEAR_INTERVAL)
@@ -82,7 +91,7 @@ namespace AIOverhaul
             }
         }
 
-        private void ClearExpenses()
+        void ClearExpenses()
         {
             consideredExpenses.Clear();
         }
@@ -91,55 +100,45 @@ namespace AIOverhaul
         {
             if (!isVisible) return;
 
-            // Strategy A: Visual Anchor (Direct GUI Test)
-            // Draw a simple box at known coordinates to verify IMGUI is working
-            GUI.Box(new Rect(10, 10, 250, 30), "");
-            GUI.Label(new Rect(15, 15, 240, 20), $"AI Mode: ON | Window: {windowRect.x:F0},{windowRect.y:F0}");
-
-            // Use a unique ID to avoid conflicts
-            int windowID = 9909;
+            // Use GUILayout.Area for a non-interactive, transparent overlay
+            GUILayout.BeginArea(windowRect);
             
-            // Create local style to avoid corrupting global skin
-            GUIStyle windowStyle = new GUIStyle(GUI.skin.window);
-            windowStyle.fontSize = 14;
+            // Define Custom Style for larger text and compact spacing
+            GUIStyle style = new GUIStyle(GUI.skin.label);
+            style.fontSize = 16;
+            style.richText = true;
+            style.wordWrap = true;
+            style.margin = new RectOffset(4, 4, 0, 0); // 4px horizontal, 0 vertical for compactness
+            style.padding = new RectOffset(0, 0, 0, 0);
+            // style.alignment = TextAnchor.UpperLeft; // Removed to avoid TextRenderingModule dependency
+            
+            GUILayout.Label("<b>AI Debug Overlay (F9)</b>", style);
+            // Reduced space
+            GUILayout.Space(2);
 
-            windowRect = GUI.Window(windowID, windowRect, DrawWindow, "AI Debug Overlay (F9)", windowStyle);
+            DrawOverlayContent(style);
+
+            GUILayout.EndArea();
         }
 
-        void DrawWindow(int windowID)
+        void DrawOverlayContent(GUIStyle style)
         {
             Logic.Kingdom k = GetPlayerKingdom();
 
             if (k == null)
             {
-                GUILayout.Label("No active Player Kingdom found.");
+                GUILayout.Label("No active Player Kingdom found.", style);
             }
             else
             {
-                DrawKingdomInfo(k);
-                GUILayout.Space(10);
-                DrawKeyRelations(k);
-                GUILayout.Space(10);
-                DrawExpenseLog();
+                GUILayout.Label($"<b>{k.Name}</b>", style);
+                DrawKeyRelations(k, style);
+                DrawExpenseLog(style);
             }
-
-            GUI.DragWindow();
         }
 
         Logic.Kingdom GetPlayerKingdom()
         {
-            // Logic.Game.instance might not be easily accessible, but we can try via Plugin's references if needed.
-            // For now, let's assume we can access it via a static helper or just finding the player kingdom.
-            // Since we are in the game process, we need to find the Logic.Game instance.
-            // Best way is to use a known reference. Let's try to pass it from the Plugin or find it.
-            
-            // NOTE: Logic.Game.current is not a standard Unity singleton.
-            // We'll trust that we can get it from AIOverhaulPlugin or similar if we exposed it.
-            // For this draft, I will assume we can find it or it is passed.
-            // Actually, we can use accessing the static logic if available, or just rely on the plugin having a reference.
-            // Plugin.cs has `static Logic.Game current_game;` but it is private.
-            // I will add a public getter to Plugin.cs in the next step.
-            
             var game = AIOverhaulPlugin.CurrentGame; 
             if (game != null)
             {
@@ -151,56 +150,70 @@ namespace AIOverhaul
             return null;
         }
 
-        void DrawKingdomInfo(Logic.Kingdom k)
+        void DrawKeyRelations(Logic.Kingdom k, GUIStyle style)
         {
-            GUILayout.Label($"<b>Kingdom:</b> {k.Name}");
-            // Use dictionary lookups or resource helper methods as direct fields don't exist
-            float gold = k.resources[Logic.ResourceType.Gold];
-            float income = k.income.Get(Logic.ResourceType.Gold);
-            float books = k.resources[Logic.ResourceType.Books];
-            float piety = k.resources[Logic.ResourceType.Piety];
-            
-            GUILayout.Label($"<b>Gold:</b> {gold:F0} ({income:F1})");
-            GUILayout.Label($"<b>Books:</b> {books:F0}");
-            GUILayout.Label($"<b>Piety:</b> {piety:F0}");
-        }
-
-        void DrawKeyRelations(Logic.Kingdom k)
-        {
-            GUILayout.Label("<b>--- Relations ---</b>");
-            
             // Mortal Enemy
             var nemesis = AIOverhaulPlugin.GetMortalEnemy(k, k.game);
             string nemesisName = nemesis != null ? nemesis.Name : "None";
-            GUILayout.Label($"Mortal Enemy: <color=red>{nemesisName}</color>");
+            GUILayout.Label($"Mortal Enemy: <color=red>{nemesisName}</color>", style);
 
-            // Neighbors
-            GUILayout.Label("Neighbors:");
-            GUILayout.BeginHorizontal();
+            // Neighbors - Combined into one label to avoid gaps
             if (k.neighbors != null)
             {
+                var neighborsData = new List<(Logic.Kingdom k, float rel)>();
                 foreach (var n in k.neighbors)
                 {
                     if (n is Logic.Kingdom nk)
                     {
-                        var rel = Logic.KingdomAndKingdomRelation.Get(k, nk, false);
-                        string color = "white";
-                        
-                        // Check enum flags manually to avoid missing extension methods
-                        if ((rel.stance & Logic.RelationUtils.Stance.War) != 0) color = "red";
-                        else if ((rel.stance & Logic.RelationUtils.Stance.Alliance) != 0) color = "cyan";
-                        else if ((rel.stance & Logic.RelationUtils.Stance.Trade) != 0) color = "green";
-                        
-                        GUILayout.Label($"<color={color}>{nk.Name}</color>");
+                        // Calc relationship (false = don't calc fade, just get current)
+                        float val = Logic.KingdomAndKingdomRelation.Get(k, nk, false).GetRelationship();
+                        neighborsData.Add((nk, val));
                     }
                 }
+
+                // Sort: Friend (High) -> Neutral -> Enemy (Low)
+                neighborsData.Sort((a, b) => b.rel.CompareTo(a.rel));
+
+                // Build string
+                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                sb.Append("Neighbors: "); // Prefix directly in string
+
+                float minRel = Logic.RelationUtils.Def.minRelationship;
+                float maxRel = Logic.RelationUtils.Def.maxRelationship;
+
+                for (int i = 0; i < neighborsData.Count; i++)
+                {
+                    var data = neighborsData[i];
+                    Color c = Color.white;
+                    
+                    if (data.rel > 0)
+                    {
+                        // White -> Green
+                        float t = Mathf.Clamp01(data.rel / maxRel);
+                        c = Color.Lerp(Color.white, Color.green, t);
+                    }
+                    else
+                    {
+                        // Red -> White (rel is negative)
+                        // t=0 (0) -> White, t=1 (min) -> Red
+                        float t = Mathf.Clamp01(Mathf.Abs(data.rel) / Mathf.Abs(minRel));
+                        c = Color.Lerp(Color.white, Color.red, t);
+                    }
+
+                    string hex = ColorUtility.ToHtmlStringRGB(c);
+                    sb.Append($"<color=#{hex}>{data.k.Name}</color>");
+                    
+                    if (i < neighborsData.Count - 1) sb.Append(", ");
+                }
+                
+                // Allow multiline
+                GUILayout.Label(sb.ToString(), style);
             }
-            GUILayout.EndHorizontal();
         }
 
-        void DrawExpenseLog()
+        void DrawExpenseLog(GUIStyle style)
         {
-            GUILayout.Label($"<b>--- Considered Expenses (Last {CLEAR_INTERVAL}s) ---</b>");
+            GUILayout.Label($"<b>--- Considered Expenses (Last {CLEAR_INTERVAL}s) ---</b>", style);
             
             // Sort by Score descending
             var sorted = consideredExpenses.OrderByDescending(e => e.Score).ToList();
@@ -210,7 +223,7 @@ namespace AIOverhaul
             foreach (var record in sorted)
             {
                 string color = record.Score > 100 ? "green" : (record.Score > 10 ? "white" : "grey");
-                GUILayout.Label($"<color={color}>[{record.Score:F1}]</color> {record.Name} ({record.Category})");
+                GUILayout.Label($"<color={color}>[{record.Score:F1}]</color> {record.Name} ({record.Category})", style);
             }
 
             GUILayout.EndScrollView();
