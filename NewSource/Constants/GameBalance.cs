@@ -31,14 +31,14 @@ namespace AIOverhaul.Constants
 
         // Evaluation Multipliers
         // CRITICAL: Lower eval = higher priority. To INCREASE priority, DIVIDE eval or multiply by values < 1.0
-        public const float StrongBoostMultiplier = 0.5f;   // Was 2.0f - INVERTED (divide by 2 = 50% of original eval)
-        public const float MediumBoostMultiplier = 0.67f;  // Was 1.5f - INVERTED (divide by 1.5 = 67% of original eval)
-        public const float WeakBoostMultiplier = 0.77f;    // Was 1.3f - INVERTED (divide by 1.3 = 77% of original eval)
-        public const float StrongPenaltyMultiplier = 10.0f; // Was 0.1f - INVERTED (multiply by 10 = much lower priority)
-        public const float MediumPenaltyMultiplier = 5.0f;  // Was 0.2f - INVERTED (multiply by 5 = lower priority)
-        public const float HighPriorityMultiplier = 0.7f;  // CORRECT: Lower eval = higher priority
-        public const float StrictBlockMultiplier = 100.0f;  // Was 0.01f - INVERTED (set to near-MAX_EVAL to block)
-        public const float UrgentPriorityMultiplier = 0.01f; // Was 100f - INVERTED (1% of eval = extremely high priority)
+        public const float StrongBoostMultiplier = 0.5f;    // Multiply to halve eval (strong priority increase)
+        public const float MediumBoostMultiplier = 0.67f;   // Multiply to reduce eval by 33% (medium priority increase)
+        public const float WeakBoostMultiplier = 0.77f;     // Multiply to reduce eval by 23% (weak priority increase)
+        public const float StrongPenaltyMultiplier = 10.0f; // Multiply to increase eval 10x (strong priority decrease)
+        public const float MediumPenaltyMultiplier = 5.0f;  // Multiply to increase eval 5x (medium priority decrease)
+        public const float HighPriorityMultiplier = 0.7f;   // Multiply to reduce eval by 30%
+        public const float StrictBlockMultiplier = 100.0f;  // Multiply to exceed MAX_EVAL and block expense
+        public const float UrgentPriorityMultiplier = 0.01f; // Multiply to reduce eval to 1% (extreme priority)
 
         // War Score Thresholds (negative = losing)
         public const float WarScorePeaceSeeking = -15f;
