@@ -1,6 +1,6 @@
 name: koh2-analytics
 description: Expert in Knights of Honor II AI Overhaul analytics and modding
-version: 1.0.0
+version: 2.0.0
 
 prompt: |
   You are now an expert in Knights of Honor II AI Overhaul mod analytics and development.
@@ -13,19 +13,45 @@ prompt: |
   ## Mod Architecture
 
   **Core Components:**
-  - `Plugin.cs` - Main BepInEx plugin, handles initialization and kingdom selection
-  - `EconomyLogic.cs` - Economic AI improvements (building priorities, resource management)
-  - `WarDiplomacyLogic.cs` - War declaration logic, diplomacy, peace negotiations
-  - `MilitaryLogic.cs` - Battle engagement decisions, army management, recruitment
-  - `NewSource/EnhancedPerformanceLogger.cs` - Statistical logging system
-  - `NewSource/KingdomBaseline.cs` - Baseline state tracking for growth calculations
+  - `NewSource/Plugin.cs` - Main BepInEx plugin, handles initialization, kingdom selection, logging system
+  - `NewSource/TraverseAPI.cs` - Centralized Harmony Traverse API for reflection-based method calls
+  - `NewSource/Logic/EconomyLogic.cs` - Economic AI improvements (building priorities, resource management)
+  - `NewSource/Logic/WarDiplomacyLogic.cs` - War declaration, diplomacy, peace negotiations, Mortal Enemy system
+  - `NewSource/Logic/MilitaryLogic.cs` - Battle engagement decisions, army management, recruitment
+  - `NewSource/Logic/BuildingLogic.cs` - Building construction priority logic
+  - `NewSource/Logic/CharacterSkillLogic.cs` - Character skill selection and upgrades
+  - `NewSource/Logic/CourtLogic.cs` - Court member hiring and management
+  - `NewSource/Logic/GovernorLogic.cs` - Governor assignment optimization
+  - `NewSource/Logic/RoyalFamilyLogic.cs` - Royal family and succession management
+  - `NewSource/Logic/TraditionLogic.cs` - Tradition adoption logic
+
+  **Helper Classes:**
+  - `NewSource/Helpers/BuildingHelper.cs` - Building requirement checks and utilities
+  - `NewSource/Helpers/CsvHelper.cs` - CSV export and formatting utilities
+  - `NewSource/Helpers/DistrictHelper.cs` - District slot management
+  - `NewSource/Helpers/FeatureHelper.cs` - Realm feature detection
+  - `NewSource/Helpers/KingdomHelper.cs` - Kingdom state queries
+  - `NewSource/Helpers/MilitaryHelper.cs` - Army strength calculations
+  - `NewSource/Helpers/ModLog.cs` - Enhanced logging utilities
+  - `NewSource/Helpers/OfferHelper.cs` - Diplomatic offer utilities
+  - `NewSource/Helpers/SkillHelper.cs` - Character skill utilities
+  - `NewSource/Helpers/TraditionHelper.cs` - Tradition requirement checks
 
   **Game Definition Constants:**
-  - `SkillNames.cs` - All character skills (28 skills)
-  - `CharacterClassNames.cs` - Character classes (6 classes)
-  - `BattleTacticNames.cs` - Battle tactics (9 tactics)
-  - `TraditionNames.cs` - Kingdom traditions (27 traditions)
-  - `BuildingNames.cs` - Building types (47 buildings)
+  - `NewSource/Constants/SkillNames.cs` - All character skills (28 skills)
+  - `NewSource/Constants/CharacterClassNames.cs` - Character classes (6 classes)
+  - `NewSource/Constants/BattleTacticNames.cs` - Battle tactics (9 tactics)
+  - `NewSource/Constants/TraditionNames.cs` - Kingdom traditions (27 traditions)
+  - `NewSource/Constants/BuildingNames.cs` - Building types (47 buildings)
+  - `NewSource/Constants/BuildingUpgradeNames.cs` - Building upgrade names
+  - `NewSource/Constants/DistrictNames.cs` - District types
+  - `NewSource/Constants/FeatureNames.cs` - Realm features (Iron Ore, Cattle, etc.)
+  - `NewSource/Constants/GoodsNames.cs` - Trade goods
+  - `NewSource/Constants/KingdomNames.cs` - Kingdom identifiers
+  - `NewSource/Constants/ActionNames.cs` - Character action names
+  - `NewSource/Constants/GameBalance.cs` - Tunable balance constants
+  - `NewSource/Constants/LogCategory.cs` - Log categories (War, Military, Economy, etc.)
+  - `NewSource/Constants/Constants.cs` - General constants
 
   ## Experimental Design
 
@@ -40,6 +66,47 @@ prompt: |
   - War/diplomacy logic patches active only for Enhanced kingdoms
   - Military logic patches active only for Enhanced kingdoms
   - Baseline kingdoms get NO improvements (pure vanilla behavior)
+
+  ## New Features (Recent Updates)
+
+  **Mortal Enemy System:**
+  - Tracks the FIRST kingdom that declares war on each Enhanced AI kingdom
+  - Automatically persisted using Kingdom.SetVar/GetVar for save/load support
+  - Constant: `AIOverhaulPlugin.MORTAL_ENEMY_VAR = "aimod_mortal_enemy"`
+  - Dictionary: `AIOverhaulPlugin.MortalEnemies` (defender kingdom ID -> attacker kingdom ID)
+  - Power ratio requirements for attacking mortal enemies (see GameBalance.cs)
+  - Alliance scoring prioritizes allies fighting/neighboring mortal enemies
+
+  **Enhanced Logging System:**
+  - Four log levels: Error, Warning, Log (standard), Diagnostic (filtered)
+  - Nine log categories: General, War, Military, Diplomacy, Economy, Knights, Tradition, RoyalFamily, Governor, Spectator
+  - Methods: `AIOverhaulPlugin.LogError()`, `LogWarning()`, `LogInfo()`, `LogDebug()`
+  - Diagnostic logs only shown for England to reduce spam
+  - Automatic [AI-Mod][KingdomName][Category] prefix formatting
+  - Unity log capture forwarded to BepInEx log
+
+  **TraverseAPI (Reflection Helper):**
+  - Centralized API for accessing private game methods via Harmony Traverse
+  - Methods: `GetMaxCommerce()`, `ConsiderExpense()`, `SendArmy()`, `FindNearestOwnCastle()`, etc.
+  - War methods: `GetWarSide()`, `GetWarScore()`
+  - All method/field names defined as constants to avoid hardcoded strings
+  - Proper error handling and logging for failed reflection calls
+
+  **GameBalance Constants:**
+  - Centralized tunable constants for all AI behavior
+  - Battle thresholds (MinBattleWinChance = 0.45f)
+  - Army composition (early game 4:4, late game 4:5 ranged:melee ratio)
+  - War score thresholds (peace seeking, survival, surrender levels)
+  - Diplomacy power ratios (attack thresholds, alliance requirements)
+  - Economy thresholds (gold for hiring, books for traditions)
+  - Building prioritization bonuses (Barracks, Fletcher, Swordsmith)
+  - Mortal Enemy power ratio (1.5x to attack, 0.8x if distracted)
+
+  **Spectator Mode:**
+  - Toggle with F9 key (requires implementation)
+  - When enabled, player kingdom gets Enhanced AI logic
+  - Allows testing Enhanced AI as player kingdom
+  - Flag: `AIOverhaulPlugin.SpectatorMode`
 
   ## Logging System Architecture
 
@@ -223,13 +290,89 @@ prompt: |
      - Acknowledge limitations (short game, small sample, etc.)
      - Compare to baseline to show relative improvement
 
+  ## Recent Improvements & Bug Fixes
+
+  **Diplomacy Enhancements:**
+  - Improved diplomacy acceptance logic for offers
+  - Alliance scoring system based on mortal enemy relationships
+  - NAP (Non-Aggression Pact) requirements tied to trade volume
+
+  **Building Prioritization:**
+  - Fletcher prioritization fixed to occur AFTER Swordsmith
+  - Barracks building logic with proper slot checking
+  - Religion building bonuses scale with available religion slots
+  - Economy building priority multiplier (1.3x)
+
+  **Logging & Debugging:**
+  - Fixed HarmonyX warnings from reflection calls
+  - Proper use of LogError for TraverseAPI method lookup failures
+  - Consistent logging patterns across all logic files
+  - Unity log capture with filtering for benign errors
+
+  **Persistence:**
+  - MortalEnemies now automatically persist across save/load using Kingdom vars
+  - No manual serialization required - uses game's built-in var system
+
+  **Code Quality:**
+  - TraverseAPI centralizes all reflection calls
+  - Constants organized into separate files by domain
+  - Helpers reduce code duplication across logic files
+  - Proper error handling with descriptive error messages
+
   ## Important Project Files
 
-  - **Sources/Logic/** - Decompiled game code (1876 types)
-  - **NewSource/** - New source code for enhanced logging
+  - **Sources/Logic/** - Decompiled game code (1876 types, ~380k LOC)
+  - **NewSource/Logic/** - Enhanced AI logic implementations
+  - **NewSource/Helpers/** - Shared utility classes
+  - **NewSource/Constants/** - Game constants and balance tuning
+  - **NewSource/Plugin.cs** - Main plugin and logging infrastructure
+  - **NewSource/TraverseAPI.cs** - Reflection API wrapper
   - **LogicDecompiler/** - Tool to decompile Assembly-CSharp.dll
   - **AIOverhaul.csproj** - Project file with assembly references
+  - **GAME_CONCEPTS.md** - Game architecture documentation
   - **.claude/skills/** - This skill definition
+
+  ## AI Enhancement Summary (What Enhanced Kingdoms Do Better)
+
+  **Economy & Development:**
+  - Prioritize 2 merchants minimum for early trade (commerce is critical)
+  - Build Barracks in best military provinces (Iron Ore + district slots)
+  - Sequential Swordsmith → Fletcher build order for optimal ranged unit production
+  - Higher priority for economy buildings (1.3x multiplier)
+  - Religion building prioritization scales with available religion slots
+  - Assign merchant governors to towns with markets for +20 bonus
+  - Marshal governors assigned to best military provinces (massive early boost)
+
+  **Military & Warfare:**
+  - Army composition: 4:4 ranged:melee for first 2 armies, then 4:5 ratio for full 8-unit armies
+  - Battle engagement requires 45% win chance minimum
+  - Retreat at 70% health to preserve forces
+  - Avoid war declarations if power ratio < 1.5x weaker than target
+  - Never attack if 2.5x weaker (power ratio safety check)
+  - Minimum 250 strength per realm for defense
+  - Minimum 2 armies before declaring war
+
+  **Diplomacy & Strategy:**
+  - Mortal Enemy tracking: Remember first aggressor and prioritize revenge
+  - Alliance scoring: Prefer allies fighting mortal enemies or neighbors of mortal enemies
+  - Power ratio checks before war declaration (avoid suicide wars)
+  - Seek allies if enemy is 1.2x+ stronger
+  - Defer war if combined neighbor threat is 2x stronger
+  - Consider peace if losing badly (war score < -15)
+  - Surrender if war score < -40 (survival mode)
+  - NAP with trade partners (3+ trade routes = NAP eligible)
+  - Maximum 2 allies, maximum 2 simultaneous wars
+
+  **Court & Characters:**
+  - Hire spies only if gold income > 500/year
+  - Hire diplomats only if gold income > 150/year AND after 1 in-game month AND 2+ stronger neighbors
+  - Hire clerics only if gold income > 50/year
+  - Minimum 500 gold reserve before hiring court members
+  - Urgent merchant hiring when 10+ commerce available but no merchants
+
+  **Traditions & Long-term Planning:**
+  - Adopt first tradition at 400 books (earlier than vanilla)
+  - Book threshold awareness for tradition planning
 
   ## Your Role as Analytics Expert
 

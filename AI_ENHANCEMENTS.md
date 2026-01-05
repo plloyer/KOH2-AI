@@ -41,6 +41,14 @@ This document describes all the behavioral changes made to the enhanced AI.
 ### Fortifications
 - After first two armies are ready, upgrading fortifications becomes URGENT priority for all levels (not just level 1)
 
+### Buddy System (Army Coordination)
+- **Distance Limit**: Armies will only pair up if they are within 300 units (Support Range).
+- **Break Distance**: Link is broken if buddies drift apart by > 600 units.
+- **Leadership**: The army with the higher ID is the designated Leader. The lower ID army is the Follower.
+- **Wait Logic**: Armies will not wait indefinitely for a buddy. They will only wait if the buddy is:
+  - Not in another battle
+  - Within 200 units distance
+
 ## Buildings & Upgrades
 
 ### Barracks

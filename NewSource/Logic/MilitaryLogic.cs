@@ -29,30 +29,42 @@ namespace AIOverhaul
                 int buddyId = buddyMap[armyId];
                 // Find army object by ID
                 var buddy = kingdom.armies.Find(a => a.GetNid() == buddyId);
+                
+                // Validate buddy exists AND is close enough (hysteresis)
                 if (buddy != null && buddy.IsValid())
                 {
-                     return buddy;
+                    float distSq = buddy.position.SqrDist(army.position);
+                    float maxDistSq = GameBalance.BuddyBreakDistance * GameBalance.BuddyBreakDistance;
+                    
+                    if (distSq <= maxDistSq)
+                    {
+                        return buddy;
+                    }
                 }
-                else
-                {
-                    // Buddy died or invalid
-                    buddyMap.Remove(armyId);
-                    // Also clean up reverse mapping if it existed
-                    if (buddyMap.ContainsKey(buddyId) && buddyMap[buddyId] == armyId)
-                        buddyMap.Remove(buddyId);
-                }
+                
+                // Buddy died, invalid, or too far
+                buddyMap.Remove(armyId);
+                // Also clean up reverse mapping if it existed
+                if (buddyMap.ContainsKey(buddyId) && buddyMap[buddyId] == armyId)
+                    buddyMap.Remove(buddyId);
             }
 
             // 2. Assign new buddy if needed
-            // Simple logic: Pair with the nearest unpartnered army
+            // Simple logic: Pair with the nearest unpartnered army WITHIN RANGE
             var availableParams = kingdom.armies.Where(a => a != army && a.IsValid() && !buddyMap.ContainsKey(a.GetNid())).ToList();
             if (availableParams.Count > 0)
             {
                 // Find nearest
                 var nearest = availableParams.OrderBy(a => a.position.SqrDist(army.position)).First();
-                buddyMap[armyId] = nearest.GetNid();
-                buddyMap[nearest.GetNid()] = armyId; // Mutual
-                return nearest;
+                float distSq = nearest.position.SqrDist(army.position);
+                float maxAssignDistSq = GameBalance.MaxBuddyDistance * GameBalance.MaxBuddyDistance;
+
+                if (distSq <= maxAssignDistSq)
+                {
+                    buddyMap[armyId] = nearest.GetNid();
+                    buddyMap[nearest.GetNid()] = armyId; // Mutual
+                    return nearest;
+                }
             }
 
             return null;
@@ -61,11 +73,10 @@ namespace AIOverhaul
         public static bool IsFollower(Logic.Army army)
         {
             // Simple rule: Lower ID follows Higher ID to avoid circular following
-            // Or use the map logic: if paired, one is leader, one is follower?
-            // Let's say: The one with lower ID is the follower.
             if (buddyMap.ContainsKey(army.GetNid()))
             {
                 int buddyId = buddyMap[army.GetNid()];
+                // Lower ID is the follower. Higher ID is the leader.
                 return army.GetNid() < buddyId;
             }
             return false;
@@ -133,13 +144,23 @@ namespace AIOverhaul
 
                 if (buddy != null && !buddyPresent && enemyStrength > 0)
                 {
-                    float soloWinChance = ownStrength / (ownStrength + enemyStrength);
-                    if (soloWinChance < GameBalance.MinBattleWinChance && winChance >= GameBalance.MinBattleWinChance)
+                    // Check if buddy is available to help
+                    bool isBuddyAvailable = buddy.battle == null;
+                    // Check distance
+                    float distToBuddySq = buddy.position.SqrDist(army.position);
+                    float maxWaitDistSq = GameBalance.BuddyWaitDistance * GameBalance.BuddyWaitDistance;
+                    bool isBuddyClose = distToBuddySq <= maxWaitDistSq;
+
+                    if (isBuddyAvailable && isBuddyClose)
                     {
-                        army.Stop();
-                        army.ai_status = "wait_for_buddy";
-                        __result = true;
-                        return false;
+                        float soloWinChance = ownStrength / (ownStrength + enemyStrength);
+                        if (soloWinChance < GameBalance.MinBattleWinChance && winChance >= GameBalance.MinBattleWinChance)
+                        {
+                            army.Stop();
+                            army.ai_status = "wait_for_buddy";
+                            __result = true;
+                            return false;
+                        }
                     }
                 }
 
@@ -226,28 +247,34 @@ namespace AIOverhaul
             // Assuming "idle" check is correct from decompilation context.
             // If status is not accessible, we skip.
             
-            // Logic: If we are idle, follow our buddy
+            // Logic: If we are idle, follow our buddy (ONLY if we are the follower)
             if (BuddySystem.IsFollower(army))
             {
                 Logic.Army leader = BuddySystem.GetBuddy(army, __instance.kingdom);
-                if (leader != null && leader.movement.IsMoving() && !army.movement.IsMoving())
+                if (leader != null && leader.IsValid())
                 {
-                    // Order to follow
-                    // Need access to army methods. 
-                    // army.Interact(leader, false); // Interact often handles 'follow' for friendly units
-                }
-            }
-            
-            if (status == "idle" || status == "wait_orders") // was: BuddySystem.IsFollower
-            {
-                Logic.Army leader = BuddySystem.GetBuddy(army, __instance.kingdom); // was: BuddySystem.GetBuddy(army, __instance.kingdom);
-                if (leader != null)
-                {
-                    Logic.MapObject leaderTarget = leader.GetTarget();
-                    if (leaderTarget != null && leaderTarget != army.GetTarget())
+                    // If we are idle or waiting, and leader is doing something, copy them
+                    if (status == "idle" || status == "wait_orders" || status == "wait_for_buddy")
                     {
-                        TraverseAPI.SendArmy(__instance, army, leaderTarget, "follow_buddy", null);
-                        return;
+                        // 1. If leader has a specific target (enemy, castle), engage it
+                        Logic.MapObject leaderTarget = leader.GetTarget();
+                        if (leaderTarget != null && leaderTarget != army.GetTarget())
+                        {
+                            // Avoid following if leader is just moving to a point (target is null usually for move pos?)
+                            // Actually GetTarget returns the interacted object.
+                            
+                            // Check if leaderTarget is valid target for us
+                            TraverseAPI.SendArmy(__instance, army, leaderTarget, "follow_buddy_target", null);
+                            return;
+                        }
+
+                        // 2. If leader is moving but has no target, follow the leader himself
+                        if (leader.movement.IsMoving() && army.GetTarget() != leader)
+                        {
+                             // LogInfo("Follower {army.GetNid()} following Leader {leader.GetNid()}");
+                             TraverseAPI.SendArmy(__instance, army, leader, "follow_buddy_leader", null);
+                             return;
+                        }
                     }
                 }
             }

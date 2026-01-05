@@ -14,6 +14,11 @@ namespace AIOverhaul.Constants
         public const int EarlyGameRangedCount = 4;
         public const int EarlyGameMeleeCount = 4;
 
+        // Buddy System
+        public const float MaxBuddyDistance = 300f; // Max distance to assign a buddy
+        public const float BuddyBreakDistance = 600f; // Distance to break buddy link
+        public const float BuddyWaitDistance = 200f; // Max distance to wait for a buddy
+
         // Army Composition - Late Game
         public const int FullArmySize = 8;
         public const float LateGameRangedMeleeRatio = 0.8f; // 4:5 ratio (3.5:4.5)
