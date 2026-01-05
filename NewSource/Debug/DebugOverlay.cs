@@ -105,16 +105,26 @@ namespace AIOverhaul
             
             // Define Custom Style for larger text and compact spacing
             GUIStyle style = new GUIStyle(GUI.skin.label);
-            style.fontSize = 16;
+            style.fontSize = 18; // Increased from 16
             style.richText = true;
             style.wordWrap = true;
-            style.margin = new RectOffset(4, 4, 0, 0); // 4px horizontal, 0 vertical for compactness
+            style.margin = new RectOffset(0, 0, 0, 0); // Zero margins for tight stacking
             style.padding = new RectOffset(0, 0, 0, 0);
-            // style.alignment = TextAnchor.UpperLeft; // Removed to avoid TextRenderingModule dependency
             
+            // Diagnostics Input
+            if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.R)
+            {
+                Logic.Kingdom k = GetPlayerKingdom();
+                if (k != null) 
+                {
+                    k.RecalculateNeighbors();
+                    AIOverhaulPlugin.LogInfo("Forced Neighbor Recalculation via Debug Overlay");
+                }
+            }
+
             GUILayout.Label("<b>AI Debug Overlay (F9)</b>", style);
-            // Reduced space
-            GUILayout.Space(2);
+            // Minimized space
+            GUILayout.Space(0);
 
             DrawOverlayContent(style);
 
@@ -131,9 +141,53 @@ namespace AIOverhaul
             }
             else
             {
-                GUILayout.Label($"<b>{k.Name}</b>", style);
+                GUILayout.Label($"<b>{k.Name}</b> (ID: {k.id})", style);
                 DrawKeyRelations(k, style);
-                DrawExpenseLog(style);
+                
+                // Diagnostic View (Hold Alt)
+                if (Event.current.alt)
+                {
+                    DrawRealmNeighborsDebug(k, style);
+                }
+                else
+                {
+                    DrawExpenseLog(style);
+                }
+            }
+        }
+
+        void DrawRealmNeighborsDebug(Logic.Kingdom k, GUIStyle style)
+        {
+            GUILayout.Label($"<color=orange>=== NEIGHBOR DIAGNOSTICS (Press 'R' to Recalc) ===</color>", style);
+            GUILayout.Label($"Kingdom Neighbors Count: {k.neighbors.Count}", style);
+            
+            if (k.realms != null) 
+            {
+                foreach(var r in k.realms)
+                {
+                    System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                    // Display Town Name (Realm Name) for clarity
+                    string realmLabel = !string.IsNullOrEmpty(r.town_name) ? $"{r.town_name} ({r.name})" : r.name;
+                    
+                    sb.Append($"<b>{realmLabel}</b>: ");
+                    if (r.logicNeighborsRestricted != null)
+                    {
+                        foreach(var n in r.logicNeighborsRestricted)
+                        {
+                           var nk = n.GetKingdom();
+                           string kName = nk != null ? nk.Name : "null";
+                           string nLabel = !string.IsNullOrEmpty(n.town_name) ? n.town_name : n.name;
+                           
+                           string color = (nk == k) ? "grey" : "yellow";
+                           sb.Append($"<color={color}>{nLabel} ({kName})</color>, ");
+                        }
+                    }
+                    else
+                    {
+                         sb.Append("No Restricted Neighbors");
+                    }
+                    GUILayout.Label(sb.ToString(), style);
+                }
             }
         }
 

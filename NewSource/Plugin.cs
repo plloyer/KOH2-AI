@@ -99,14 +99,14 @@ namespace AIOverhaul
         }
 
         /// <summary>
-        /// Log a diagnostic message (only shown for England)
+        /// Log a diagnostic message (only shown for player kingdom)
         /// </summary>
         public static void LogDebug(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null)
         {
-            // Filter Diagnostic logs - only show for England
-            if (kingdom != null && kingdom.Name != KingdomNames.England)
+            // Filter Diagnostic logs - only show for player kingdom
+            if (kingdom != null && !kingdom.is_player)
                 return; // Skip this log
-            
+
             Log(message, category, kingdom, LogLevel.Diagnostic);
         }
 
