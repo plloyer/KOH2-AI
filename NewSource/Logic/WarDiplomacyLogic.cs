@@ -703,10 +703,10 @@ namespace AIOverhaul
             // If well-prepared and this is mortal enemy, prioritize but be smart
             if (isWellPrepared && isMortalEnemy)
             {
-                // Only attack if we're clearly stronger
-                if (ownPower > targetPower)
+                // Only attack if we're clearly stronger (1.5x power)
+                if (ownPower >= targetPower * GameBalance.MortalEnemyWarPowerRatio)
                 {
-                    AIOverhaulPlugin.LogInfo($"Declaring war on MORTAL ENEMY {k.Name} (well-prepared, stronger). Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
+                    AIOverhaulPlugin.LogInfo($"Declaring war on MORTAL ENEMY {k.Name} (well-prepared, {GameBalance.MortalEnemyWarPowerRatio}x stronger). Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
                     return true;
                 }
 

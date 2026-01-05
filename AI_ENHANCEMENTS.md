@@ -114,7 +114,9 @@ Note: When king dies, composition changes and AI must adapt to maintain target r
 ## Diplomacy
 
 ### War Declaration
+- **Mortal Enemies**: Strictly require 1.5x power advantage (Army + Castle Strength) before declaring war.
 - Consider defensive pacts against you in strength calculations (not yet implemented - see TODO.md)
+
 
 ## Constants & Thresholds
 

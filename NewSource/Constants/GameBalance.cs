@@ -68,6 +68,7 @@ namespace AIOverhaul.Constants
         public const int MinArmiesForWar = 2;
         public const int MinFortifiedProvincesForAggression = 1; // Need at least 1 fortified province to be "well-prepared"
         public const float MinGoldForAggression = 2000f; // Need 2000+ gold to be "well-prepared"
+        public const float MortalEnemyWarPowerRatio = 1.5f; // Require 1.5x power to attack mortal enemy
         public const float MortalEnemyDistractedPowerRatio = 0.8f; // Attack mortal enemy if distracted and we're 80%+ their power
         public const float StrongerEnemyAllianceThreshold = 1.2f; // Seek allies if enemy is 1.2x+ stronger
         public const float FullHealthThreshold = 1.0f; // Unit must be at 100% health to be considered "fully replenished"
