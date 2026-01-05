@@ -30,14 +30,15 @@ namespace AIOverhaul.Constants
         public const int MinFullArmyUnits = 4;
 
         // Evaluation Multipliers
-        public const float StrongBoostMultiplier = 2.0f;
-        public const float MediumBoostMultiplier = 1.5f;
-        public const float WeakBoostMultiplier = 1.3f;
-        public const float StrongPenaltyMultiplier = 0.1f;
-        public const float MediumPenaltyMultiplier = 0.2f;
-        public const float HighPriorityMultiplier = 0.7f; // Lower eval = higher priority
-        public const float StrictBlockMultiplier = 0.01f;
-        public const float UrgentPriorityMultiplier = 100f; // Massive boost for urgent expenses
+        // CRITICAL: Lower eval = higher priority. To INCREASE priority, DIVIDE eval or multiply by values < 1.0
+        public const float StrongBoostMultiplier = 0.5f;   // Was 2.0f - INVERTED (divide by 2 = 50% of original eval)
+        public const float MediumBoostMultiplier = 0.67f;  // Was 1.5f - INVERTED (divide by 1.5 = 67% of original eval)
+        public const float WeakBoostMultiplier = 0.77f;    // Was 1.3f - INVERTED (divide by 1.3 = 77% of original eval)
+        public const float StrongPenaltyMultiplier = 10.0f; // Was 0.1f - INVERTED (multiply by 10 = much lower priority)
+        public const float MediumPenaltyMultiplier = 5.0f;  // Was 0.2f - INVERTED (multiply by 5 = lower priority)
+        public const float HighPriorityMultiplier = 0.7f;  // CORRECT: Lower eval = higher priority
+        public const float StrictBlockMultiplier = 100.0f;  // Was 0.01f - INVERTED (set to near-MAX_EVAL to block)
+        public const float UrgentPriorityMultiplier = 0.01f; // Was 100f - INVERTED (1% of eval = extremely high priority)
 
         // War Score Thresholds (negative = losing)
         public const float WarScorePeaceSeeking = -15f;
@@ -109,11 +110,12 @@ namespace AIOverhaul.Constants
         public const float DistrictMilitaryMultiplier = 2f; // Multiplier for available slots in military potential calc
 
         // Building Bonuses
-        public const float ReligionBuildingBoostPerSlot = 0.2f; // 20% per religion slot
-        public const float BarracksSlotBoostPerSlot = 0.25f; // 25% per barracks slot
-        public const float BarracksBoost = 50f; // Priority boost for first barracks in kingdom
-        public const float SwordsmithBoost = 30f; // Priority boost for swordsmith upgrade
-        public const float FletcherBoost = 100f; // Priority boost for fletcher upgrade (very high to ensure it's built)
+        // CRITICAL: Lower eval = higher priority. Use DIVISORS (> 1.0) to increase priority.
+        public const float ReligionBuildingBoostPerSlot = 0.2f; // CORRECT: Reduces eval per slot (multiply by 1.0 + slots*0.2 is OK for small boosts)
+        public const float BarracksSlotBoostPerSlot = 0.25f; // CORRECT: Reduces eval per slot
+        public const float BarracksBoost = 50f; // DIVISOR: Divide eval by 50 = very high priority for first barracks
+        public const float SwordsmithBoost = 30f; // DIVISOR: Divide eval by 30 = high priority for swordsmith upgrade
+        public const float FletcherBoost = 100f; // DIVISOR: Divide eval by 100 = extremely high priority for fletcher
 
         // Island Detection
         public const int IslandMaxNeighbors = 1;

@@ -74,8 +74,8 @@ namespace AIOverhaul
                 {
                     if (!hasSwordsmith)
                     {
-                        // Very high priority for first Swordsmith in kingdom
-                        option.eval *= GameBalance.SwordsmithBoost;
+                        // Very high priority for first Swordsmith in kingdom (lower eval = higher priority)
+                        option.eval /= GameBalance.SwordsmithBoost;
                         Castle.upgrade_options[i] = option;
                     }
                 }
@@ -102,8 +102,8 @@ namespace AIOverhaul
 
                     if (option.def.id == BuildingUpgradeNames.Fletcher_Barracks)
                     {
-                        // VERY high priority for Fletcher after Swordsmith
-                        option.eval *= GameBalance.FletcherBoost;
+                        // VERY high priority for Fletcher after Swordsmith (lower eval = higher priority)
+                        option.eval /= GameBalance.FletcherBoost;
                         Castle.upgrade_options[i] = option;
                         fletcherOptionFound = true;
                         AIOverhaulPlugin.LogDebug($"BOOSTING Fletcher upgrade in {castle.name} (eval: {option.eval:F2})", LogCategory.Military, kingdom);
@@ -147,7 +147,7 @@ namespace AIOverhaul
                             {
                                 castle = castle,
                                 def = fletcherDef,
-                                eval = 1000f * GameBalance.FletcherBoost, // Base eval * boost
+                                eval = 1000f / GameBalance.FletcherBoost, // Base eval / divisor (lower = higher priority)
                                 priority = Logic.KingdomAI.Expense.Priority.Urgent
                             };
 
@@ -169,6 +169,7 @@ namespace AIOverhaul
 
                     if (option.def.id == BuildingUpgradeNames.Fletcher_Barracks)
                     {
+                        // Block Fletcher until Swordsmith (higher eval = lower priority)
                         option.eval *= GameBalance.StrongPenaltyMultiplier;
                         Castle.upgrade_options[i] = option;
                     }
@@ -199,18 +200,18 @@ namespace AIOverhaul
 
                 if (!kingdomHasBarracks)
                 {
-                    // First barracks in kingdom - high priority, extra boost for Castle districts
-                    float boost = GameBalance.BarracksBoost;
+                    // First barracks in kingdom - high priority, extra boost for Castle districts (lower eval = higher priority)
+                    float divisor = GameBalance.BarracksBoost;
 
                     if (hasCastleDistrict)
                     {
-                        // Additional boost based on Castle district slots
+                        // Additional boost based on Castle district slots (higher divisor = even lower eval)
                         int slots = castleDistrict.buildings?.Count ?? 0;
-                        boost *= (1.0f + (slots * GameBalance.BarracksSlotBoostPerSlot));
-                        AIOverhaulPlugin.LogDebug($"BOOSTING first Barracks in {castle.name} (Base: {GameBalance.BarracksBoost}, Slots: {slots})", LogCategory.Military, kingdom);
+                        divisor *= (1.0f + (slots * GameBalance.BarracksSlotBoostPerSlot));
+                        AIOverhaulPlugin.LogDebug($"BOOSTING first Barracks in {castle.name} (Divisor: {divisor:F1}, Slots: {slots})", LogCategory.Military, kingdom);
                     }
 
-                    option.eval *= boost;
+                    option.eval /= divisor;
                     Castle.build_options[i] = option;
                 }
                 else
@@ -252,11 +253,11 @@ namespace AIOverhaul
                     }
                     else
                     {
-                        // Boost priority for castles with religion district
+                        // Boost priority for castles with religion district (lower eval = higher priority)
                         // Further boost based on how many religion slots available
                         int religionSlots = BuildingHelper.CountReligionSlots(castle, religionDistrict);
-                        float boost = 1.0f + (religionSlots * GameBalance.ReligionBuildingBoostPerSlot);
-                        option.eval *= boost;
+                        float divisor = 1.0f + (religionSlots * GameBalance.ReligionBuildingBoostPerSlot);
+                        option.eval /= divisor;
                         Castle.build_options[i] = option;
                     }
                 }
@@ -279,10 +280,10 @@ namespace AIOverhaul
                     }
                     else
                     {
-                        // Boost priority for castles with religion district
+                        // Boost priority for castles with religion district (lower eval = higher priority)
                         int religionSlots = BuildingHelper.CountReligionSlots(castle, religionDistrict);
-                        float boost = 1.0f + (religionSlots * GameBalance.ReligionBuildingBoostPerSlot);
-                        option.eval *= boost;
+                        float divisor = 1.0f + (religionSlots * GameBalance.ReligionBuildingBoostPerSlot);
+                        option.eval /= divisor;
                         Castle.upgrade_options[i] = option;
                     }
                 }

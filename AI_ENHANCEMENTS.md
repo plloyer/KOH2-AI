@@ -64,7 +64,7 @@ This document describes all the behavioral changes made to the enhanced AI.
 ### Fletcher
 - **Very High Priority** if kingdom has Swordsmith but no Fletcher yet
 - Must have Swordsmith before Fletcher is allowed
-- **Direct Injection**: If Fletcher doesn't appear in upgrade options naturally, it is forcibly injected into the upgrade list with very high priority (eval: 1000 * GameBalance.FletcherBoost)
+- **Direct Injection**: If Fletcher doesn't appear in upgrade options naturally, it is forcibly injected into the upgrade list with very high priority (eval: 1000 / GameBalance.FletcherBoost = ~10)
 - This ensures Fletcher is built immediately after Swordsmith, even if the game's internal logic doesn't include it in available upgrades
 
 ### Religion Buildings
