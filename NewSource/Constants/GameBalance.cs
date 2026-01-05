@@ -111,11 +111,11 @@ namespace AIOverhaul.Constants
 
         // Building Bonuses
         // CRITICAL: Lower eval = higher priority. Use DIVISORS (> 1.0) to increase priority.
-        public const float ReligionBuildingBoostPerSlot = 0.2f; // CORRECT: Reduces eval per slot (multiply by 1.0 + slots*0.2 is OK for small boosts)
-        public const float BarracksSlotBoostPerSlot = 0.25f; // CORRECT: Reduces eval per slot
-        public const float BarracksBoost = 50f; // DIVISOR: Divide eval by 50 = very high priority for first barracks
-        public const float SwordsmithBoost = 30f; // DIVISOR: Divide eval by 30 = high priority for swordsmith upgrade
-        public const float FletcherBoost = 100f; // DIVISOR: Divide eval by 100 = extremely high priority for fletcher
+        public const float ReligionBuildingBoostPerSlot = 0.2f; // Bonus per religion slot (used in 1.0 + slots*0.2 formula)
+        public const float BarracksSlotBoostPerSlot = 0.25f; // Bonus per castle district slot for barracks placement
+        public const float BarracksBoost = 50f; // Divide eval by this for very high priority on first barracks
+        public const float SwordsmithBoost = 30f; // Divide eval by this for high priority on swordsmith upgrade
+        public const float FletcherBoost = 100f; // Divide eval by this for extremely high priority on fletcher
 
         // Island Detection
         public const int IslandMaxNeighbors = 1;
