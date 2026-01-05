@@ -20,10 +20,11 @@ namespace AIOverhaul
     
     // "AddBuildOptions" generates the list of available buildings and upgrades for a castle.
     // Intent: Consolidated AddBuildOptionsPatch
-    // Merges logic for:
-    // 1. Swordsmith Priority (Military)
-    // 2. Barracks Placement (Military)
-    // 3. Religion Building Logic (Economy)
+    // Priority order:
+    // 1. First Barracks (required for Swordsmith/Fletcher upgrades)
+    // 2. Swordsmith upgrade (better melee units, required before Fletcher)
+    // 3. Fletcher upgrade (better ranged units, requires Swordsmith first)
+    // 4. Religion buildings (only in provinces with Religion district)
     [HarmonyPatch(typeof(Castle), "AddBuildOptions", typeof(bool), typeof(Resource))]
     public class Castle_AddBuildOptions
     {
