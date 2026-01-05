@@ -110,19 +110,51 @@ namespace AIOverhaul
                     }
                 }
 
-                // 2. If no Fletcher option found, boost Barracks buildings to create opportunities
+                // 2. If Fletcher not found in options, forcibly inject it
                 if (!fletcherOptionFound)
                 {
-                    for (int i = 0; i < Castle.build_options.Count; i++)
+                    // Find Barracks in this castle
+                    Logic.Building barracks = null;
+                    if (castle.buildings != null)
                     {
-                        var option = Castle.build_options[i];
-                        if (option.def == null) continue;
-
-                        if (option.def.id == BuildingNames.Barracks)
+                        foreach (var building in castle.buildings)
                         {
-                            option.eval *= GameBalance.BarracksForFletcherBoost;
-                            Castle.build_options[i] = option;
-                            AIOverhaulPlugin.LogDebug($"BOOSTING Barracks in {castle.name} to enable Fletcher upgrade", LogCategory.Military, kingdom);
+                            if (building?.def?.id == BuildingNames.Barracks)
+                            {
+                                barracks = building;
+                                break;
+                            }
+                        }
+                    }
+
+                    // If we have a Barracks, find Fletcher in its upgrades and inject it
+                    if (barracks != null && barracks.def.upgrades?.buildings != null)
+                    {
+                        Logic.Building.Def fletcherDef = null;
+                        foreach (var upgradeInfo in barracks.def.upgrades.buildings)
+                        {
+                            if (upgradeInfo.def?.id == BuildingUpgradeNames.Fletcher_Barracks)
+                            {
+                                fletcherDef = upgradeInfo.def;
+                                break;
+                            }
+                        }
+
+                        // Inject Fletcher into upgrade_options with VERY high priority
+                        if (fletcherDef != null)
+                        {
+                            var fletcherOption = new Castle.BuildOption
+                            {
+                                castle = castle,
+                                def = fletcherDef,
+                                eval = 1000f * GameBalance.FletcherBoost, // Base eval * boost
+                                priority = Logic.KingdomAI.Expense.Priority.Urgent
+                            };
+
+                            Castle.upgrade_options.Add(fletcherOption);
+                            Castle.upgrade_options_sum += fletcherOption.eval;
+
+                            AIOverhaulPlugin.LogDebug($"INJECTED Fletcher upgrade into {castle.name} (eval: {fletcherOption.eval:F2})", LogCategory.Military, kingdom);
                         }
                     }
                 }
