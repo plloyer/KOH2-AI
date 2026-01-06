@@ -196,10 +196,11 @@ namespace AIOverhaul
                 // Check if we have idle merchants (merchants without active trade routes)
                 bool hasIdleMerchant = KingdomHelper.HasIdleMerchant(__instance.kingdom);
 
-                if (availableCommerce >= GameBalance.MinCommerceForMerchant && hasIdleMerchant)
+                // FORCE priority for the first two merchants, OR if we have idle slots and commerce
+                if (merchants < GameBalance.RequiredMerchantCount || (availableCommerce >= GameBalance.MinCommerceForMerchant && hasIdleMerchant))
                 {
                     expense.eval *= GameBalance.UrgentPriorityMultiplier;
-                    AIOverhaulPlugin.LogDebug($"URGENT merchant hire - {availableCommerce} commerce available, idle merchant detected", LogCategory.Economy, __instance.kingdom);
+                    AIOverhaulPlugin.LogDebug($"URGENT merchant hire - Merchants: {merchants}, AvailableCommerce: {availableCommerce}, HasIdle: {hasIdleMerchant}", LogCategory.Economy, __instance.kingdom);
                 }
             }
 

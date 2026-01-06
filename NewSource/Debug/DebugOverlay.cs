@@ -23,13 +23,14 @@ namespace AIOverhaul
         }
 
         List<ExpenseRecord> consideredExpenses = new List<ExpenseRecord>();
-        float lastClearTime = 0f;
-        const float CLEAR_INTERVAL = 3.0f; // Clear log every 3 seconds to keep it fresh but readable
-
 
         void Awake()
         {
             Instance = this;
+
+            // Subscribe to AI evaluation events to clear expenses when new cycle starts
+            AIEvaluationEvents.OnGeneralEvaluationStart += OnEvaluationStart;
+            AIEvaluationEvents.OnMilitaryEvaluationStart += OnEvaluationStart;
         }
 
         void Start()
@@ -49,6 +50,10 @@ namespace AIOverhaul
         {
             AIOverhaulPlugin.LogInfo("DebugOverlay Component DISABLED");
             AIOverhaulPlugin.OnSpectatorModeChanged -= OnSpectatorModeChanged;
+
+            // Unsubscribe from AI evaluation events
+            AIEvaluationEvents.OnGeneralEvaluationStart -= OnEvaluationStart;
+            AIEvaluationEvents.OnMilitaryEvaluationStart -= OnEvaluationStart;
         }
 
         void OnSpectatorModeChanged(bool isSpectatorMode)
@@ -64,18 +69,15 @@ namespace AIOverhaul
             }
         }
 
+        void OnEvaluationStart(Logic.KingdomAI kingdomAI)
+        {
+            // Clear expenses for new evaluation cycle
+            ClearExpenses();
+        }
+
         void Update()
         {
             // Input is now handled by Plugin.cs -> OnSpectatorModeChanged event
-            
-
-
-            // Auto-clear expenses periodically
-            if (Time.time > lastClearTime + CLEAR_INTERVAL)
-            {
-                ClearExpenses();
-                lastClearTime = Time.time;
-            }
         }
 
         public void RecordConsideredExpense(string name, float score, string category)
@@ -112,13 +114,24 @@ namespace AIOverhaul
             style.padding = new RectOffset(0, 0, 0, 0);
             
             // Diagnostics Input
-            if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.R)
+            if (Event.current.type == EventType.KeyDown)
             {
-                Logic.Kingdom k = GetPlayerKingdom();
-                if (k != null) 
+                if (Event.current.keyCode == KeyCode.R)
                 {
-                    k.RecalculateNeighbors();
-                    AIOverhaulPlugin.LogInfo("Forced Neighbor Recalculation via Debug Overlay");
+                    Logic.Kingdom k = GetPlayerKingdom();
+                    if (k != null) 
+                    {
+                        k.RecalculateNeighbors();
+                        AIOverhaulPlugin.LogInfo("Forced Neighbor Recalculation via Debug Overlay");
+                    }
+                    Event.current.Use(); // Consume input
+                }
+                // Force Breakpoint for Rider
+                if (Event.current.keyCode == KeyCode.B && Event.current.shift)
+                {
+                    AIOverhaulPlugin.LogInfo("Triggering Manual Breakpoint...");
+                    System.Diagnostics.Debugger.Break();
+                    Event.current.Use(); // Consume input
                 }
             }
 
@@ -267,7 +280,7 @@ namespace AIOverhaul
 
         void DrawExpenseLog(GUIStyle style)
         {
-            GUILayout.Label($"<b>--- Considered Expenses (Last {CLEAR_INTERVAL}s) ---</b>", style);
+            GUILayout.Label($"<b>--- Considered Expenses (Until Next Cycle) ---</b>", style);
             
             // Sort by Score descending
             var sorted = consideredExpenses.OrderByDescending(e => e.Score).ToList();
