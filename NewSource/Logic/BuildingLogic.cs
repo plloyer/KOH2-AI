@@ -34,10 +34,29 @@ namespace AIOverhaul
 
             var kingdom = __instance.GetKingdom();
 
-            // Block all construction if less than 2 merchants (Early Economy Setup)
+            // Block non-essential construction if less than 2 merchants (Early Economy Setup)
             if (KingdomHelper.CountMerchants(kingdom) < 2)
             {
-                Castle.build_options.Clear();
+                // ALLOW essential foundation buildings even without merchants
+                for (int i = Castle.build_options.Count - 1; i >= 0; i--)
+                {
+                    var opt = Castle.build_options[i];
+                    if (opt.def == null) continue;
+
+                    bool isEssential = opt.def.id == BuildingNames.Barracks ||
+                                     opt.def.id == BuildingNames.MarketSquare ||
+                                     opt.def.id == BuildingNames.Housings;
+
+                    if (!isEssential)
+                    {
+                        Castle.build_options.RemoveAt(i);
+                    }
+                }
+
+                // Apply Barracks priority boost BEFORE early return
+                ApplyBarracksLogic(__instance);
+
+                // Block all upgrades until we have merchants (Keep it simple)
                 Castle.upgrade_options.Clear();
                 return;
             }
