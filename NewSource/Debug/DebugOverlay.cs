@@ -2,6 +2,9 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using AIOverhaul;
+using AIOverhaul.Helpers;
+using AIOverhaul.Constants;
+using Logic;
 
 namespace AIOverhaul
 {
@@ -114,9 +117,9 @@ namespace AIOverhaul
             style.padding = new RectOffset(0, 0, 0, 0);
             
             // Diagnostics Input
-            if (Event.current.type == EventType.KeyDown)
+            if (UnityEngine.Event.current.type == EventType.KeyDown)
             {
-                if (Event.current.keyCode == KeyCode.R)
+                if (UnityEngine.Event.current.keyCode == KeyCode.R)
                 {
                     Logic.Kingdom k = GetPlayerKingdom();
                     if (k != null) 
@@ -124,14 +127,14 @@ namespace AIOverhaul
                         k.RecalculateNeighbors();
                         AIOverhaulPlugin.LogInfo("Forced Neighbor Recalculation via Debug Overlay");
                     }
-                    Event.current.Use(); // Consume input
+                    UnityEngine.Event.current.Use(); // Consume input
                 }
                 // Force Breakpoint for Rider
-                if (Event.current.keyCode == KeyCode.B && Event.current.shift)
+                if (UnityEngine.Event.current.keyCode == KeyCode.B && UnityEngine.Event.current.shift)
                 {
                     AIOverhaulPlugin.LogInfo("Triggering Manual Breakpoint...");
                     System.Diagnostics.Debugger.Break();
-                    Event.current.Use(); // Consume input
+                    UnityEngine.Event.current.Use(); // Consume input
                 }
             }
 
@@ -158,12 +161,13 @@ namespace AIOverhaul
                 DrawKeyRelations(k, style);
                 
                 // Diagnostic View (Hold Alt)
-                if (Event.current.alt)
+                if (UnityEngine.Event.current.alt)
                 {
                     DrawRealmNeighborsDebug(k, style);
                 }
                 else
                 {
+                    DrawKingdomStats(k, style);
                     DrawExpenseLog(style);
                 }
             }
@@ -217,12 +221,58 @@ namespace AIOverhaul
             return null;
         }
 
+
+        void DrawKingdomStats(Logic.Kingdom k, GUIStyle style)
+        {
+            float gold = KingdomHelper.GetGold(k);
+            float goldIncome = KingdomHelper.GetGoldIncome(k);
+            float books = KingdomHelper.GetBooks(k);
+            int merchants = KingdomHelper.CountMerchants(k);
+            bool isRushingTradition = TraditionHelper.ShouldRushTradition(k);
+            bool hasBarracks = BuildingHelper.HasBuilding(k, BuildingNames.Barracks);
+
+            string barracksStatus = hasBarracks ? "True" : "False";
+            string rushingColor = isRushingTradition ? "cyan" : "white";
+            string barracksColor = hasBarracks ? "green" : "red";
+
+            GUILayout.Label($"Gold: <color=yellow>{gold:F0}</color> (+{goldIncome:F1}/s) | Books: <color=cyan>{books:F0}</color> | Merchants: <color=white>{merchants}</color>", style);
+            GUILayout.Label($"Tradition Rushing: <color={rushingColor}>{isRushingTradition}</color> | Has Barracks: <color={barracksColor}>{barracksStatus}</color>", style);
+            
+            // Build Options stats
+            int buildCount = Castle.build_options.Count;
+            int upgradeCount = Castle.upgrade_options.Count;
+            GUILayout.Label($"Build Options: <color=white>{buildCount}</color> | Upgrade Options: <color=white>{upgradeCount}</color>", style);
+
+            if (buildCount > 0)
+            {
+                string topBuilds = "Top Builds: ";
+                for (int i = 0; i < System.Math.Min(buildCount, 3); i++)
+                {
+                    var opt = Castle.build_options[i];
+                    topBuilds += $"{opt.def.id}({opt.eval:F0}) ";
+                }
+                GUILayout.Label(topBuilds, style);
+            }
+            
+            if (upgradeCount > 0)
+            {
+                string topUpgrades = "Top Upgrades: ";
+                for (int i = 0; i < System.Math.Min(upgradeCount, 3); i++)
+                {
+                    var opt = Castle.upgrade_options[i];
+                    topUpgrades += $"{opt.def.id}({opt.eval:F0}) ";
+                }
+                GUILayout.Label(topUpgrades, style);
+            }
+            GUILayout.Space(5);
+        }
+
         void DrawKeyRelations(Logic.Kingdom k, GUIStyle style)
         {
             // Mortal Enemy
             var nemesis = AIOverhaulPlugin.GetMortalEnemy(k, k.game);
-            string nemesisName = nemesis != null ? nemesis.Name : "None";
-            GUILayout.Label($"Mortal Enemy: <color=red>{nemesisName}</color>", style);
+            string nemesisDisplay = nemesis != null ? $"<color=red>{nemesis.Name}</color>" : "None";
+            GUILayout.Label($"Mortal Enemy: {nemesisDisplay}", style);
 
             // Neighbors - Combined into one label to avoid gaps
             if (k.neighbors != null)
@@ -289,7 +339,8 @@ namespace AIOverhaul
             
             foreach (var record in sorted)
             {
-                string color = record.Score > 100 ? "green" : (record.Score > 10 ? "white" : "grey");
+                // Cyan (< 1.0), Green (< 10.0), White (< 100.0), Grey (>= 100.0)
+                string color = record.Score < 1.0f ? "cyan" : (record.Score < 10.0f ? "green" : (record.Score < 100.0f ? "white" : "grey"));
                 GUILayout.Label($"<color={color}>[{record.Score:F1}]</color> {record.Name} ({record.Category})", style);
             }
 
