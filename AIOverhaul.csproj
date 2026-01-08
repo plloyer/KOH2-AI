@@ -34,32 +34,40 @@
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="0Harmony">
-          <HintPath>..\BepInEx\core\0Harmony.dll</HintPath>
+          <HintPath Condition="Exists('..\BepInEx\core\0Harmony.dll')">..\BepInEx\core\0Harmony.dll</HintPath>
+          <HintPath Condition="!Exists('..\BepInEx\core\0Harmony.dll')">lib\0Harmony.dll</HintPath>
         </Reference>
         <Reference Include="Assembly-CSharp">
-          <HintPath>..\Sovereign_Data\Managed\Assembly-CSharp.dll</HintPath>
+          <HintPath Condition="Exists('..\Sovereign_Data\Managed\Assembly-CSharp.dll')">..\Sovereign_Data\Managed\Assembly-CSharp.dll</HintPath>
+          <HintPath Condition="!Exists('..\Sovereign_Data\Managed\Assembly-CSharp.dll')">lib\Assembly-CSharp.dll</HintPath>
         </Reference>
         <Reference Include="Assembly-CSharp-firstpass">
-          <HintPath>..\Sovereign_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+          <HintPath Condition="Exists('..\Sovereign_Data\Managed\Assembly-CSharp-firstpass.dll')">..\Sovereign_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+          <HintPath Condition="!Exists('..\Sovereign_Data\Managed\Assembly-CSharp-firstpass.dll')">lib\Assembly-CSharp-firstpass.dll</HintPath>
         </Reference>
         <Reference Include="BepInEx">
-          <HintPath>..\BepInEx\core\BepInEx.dll</HintPath>
+          <HintPath Condition="Exists('..\BepInEx\core\BepInEx.dll')">..\BepInEx\core\BepInEx.dll</HintPath>
+          <HintPath Condition="!Exists('..\BepInEx\core\BepInEx.dll')">lib\BepInEx.dll</HintPath>
         </Reference>
         <Reference Include="System"/>
         <Reference Include="System.Core"/>
         <Reference Include="System.Data"/>
         <Reference Include="System.Xml"/>
         <Reference Include="UnityEngine">
-          <HintPath>..\Sovereign_Data\Managed\UnityEngine.dll</HintPath>
+          <HintPath Condition="Exists('..\Sovereign_Data\Managed\UnityEngine.dll')">..\Sovereign_Data\Managed\UnityEngine.dll</HintPath>
+          <HintPath Condition="!Exists('..\Sovereign_Data\Managed\UnityEngine.dll')">lib\UnityEngine.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.CoreModule">
-          <HintPath>..\Sovereign_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+          <HintPath Condition="Exists('..\Sovereign_Data\Managed\UnityEngine.CoreModule.dll')">..\Sovereign_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+          <HintPath Condition="!Exists('..\Sovereign_Data\Managed\UnityEngine.CoreModule.dll')">lib\UnityEngine.CoreModule.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.InputLegacyModule">
-          <HintPath>..\Sovereign_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+          <HintPath Condition="Exists('..\Sovereign_Data\Managed\UnityEngine.InputLegacyModule.dll')">..\Sovereign_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+          <HintPath Condition="!Exists('..\Sovereign_Data\Managed\UnityEngine.InputLegacyModule.dll')">lib\UnityEngine.InputLegacyModule.dll</HintPath>
         </Reference>
         <Reference Include="UnityEngine.IMGUIModule">
-          <HintPath>..\Sovereign_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+          <HintPath Condition="Exists('..\Sovereign_Data\Managed\UnityEngine.IMGUIModule.dll')">..\Sovereign_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+          <HintPath Condition="!Exists('..\Sovereign_Data\Managed\UnityEngine.IMGUIModule.dll')">lib\UnityEngine.IMGUIModule.dll</HintPath>
         </Reference>
     </ItemGroup>
     <ItemGroup>
