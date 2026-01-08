@@ -24,7 +24,7 @@ jobs:
       run: nuget restore AIOverhaul.sln
 
     - name: Build with MSBuild
-      run: msbuild AIOverhaul.sln /p:Configuration=Debug /p:Platform="Any CPU" /p:PostBuildEvent=
+      run: msbuild AIOverhaul.sln /p:Configuration=Debug /p:Platform="Any CPU"
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
