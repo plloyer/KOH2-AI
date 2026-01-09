@@ -41,6 +41,31 @@ jobs:
         if (-not $gamePath) { Write-Error "KOH_INSTALL_PATH env var not set on runner!"; exit 1 }
         Copy-Item -Path "bin\Debug\AIOverhaul.dll" -Destination "$gamePath\BepInEx\plugins\AIOverhaul.dll" -Force
 
+    - name: Ensure Steam is Running
+      run: |
+        if (-not (Get-Process steam -ErrorAction SilentlyContinue)) {
+            Write-Host "Steam process not found. Attempting to launch..."
+            $gamePath = $env:KOH_INSTALL_PATH
+            # Try to deduce Steam path from game path (looking for 'steamapps')
+            $idx = $gamePath.ToLower().IndexOf("steamapps")
+            if ($idx -gt 0) {
+                $steamRoot = $gamePath.Substring(0, $idx)
+                $steamExe = Join-Path $steamRoot "steam.exe"
+                if (Test-Path $steamExe) {
+                    Write-Host "Found Steam at $steamExe. Launching..."
+                    Start-Process $steamExe
+                    Write-Host "Waiting 15 seconds for Steam to initialize..."
+                    Start-Sleep -Seconds 15
+                } else {
+                    Write-Warning "Could not find steam.exe at expected location: $steamExe"
+                }
+            } else {
+                 Write-Warning "Could not deduce Steam path from KOH_INSTALL_PATH"
+            }
+        } else {
+            Write-Host "Steam is already running."
+        }
+
     - name: Run Game Test
       run: |
         $gamePath = $env:KOH_INSTALL_PATH
