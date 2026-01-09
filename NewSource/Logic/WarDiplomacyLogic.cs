@@ -362,10 +362,14 @@ namespace AIOverhaul
         /// Select the best neighbor to designate as expansion target
         /// Strategy: MORTAL ENEMY first (never forgive), then current wars, then LOWEST RELATION
         /// Re-evaluates dynamically based on current relations (not locked in during peace)
+        /// Only logs when the expansion target changes
         /// </summary>
         public static Logic.Kingdom SelectExpansionTarget(Logic.Kingdom k)
         {
             if (k == null || k.neighbors == null) return null;
+
+            Logic.Kingdom selectedTarget = null;
+            string reason = "";
 
             // PRIORITY 1: Mortal Enemy - the FIRST kingdom that declared war on us
             // This is a permanent grudge that overrides all other considerations
@@ -385,59 +389,90 @@ namespace AIOverhaul
 
                 if (isStillNeighbor)
                 {
-                    AIOverhaulPlugin.LogDebug($"Expansion Target: {mortalEnemy.Name} (MORTAL ENEMY)", LogCategory.Diplomacy, k);
-                    return mortalEnemy; // Revenge is priority #1
+                    selectedTarget = mortalEnemy;
+                    reason = "MORTAL ENEMY";
                 }
             }
 
             // PRIORITY 2: If already at war with a neighbor, that's our expansion target
-            foreach (var neighbor in k.neighbors)
+            if (selectedTarget == null)
             {
-                if (neighbor is Logic.Kingdom nk && k.IsEnemy(nk) && !nk.IsDefeated())
+                foreach (var neighbor in k.neighbors)
                 {
-                    AIOverhaulPlugin.LogDebug($"Expansion Target: {nk.Name} (CURRENT WAR)", LogCategory.Diplomacy, k);
-                    return nk;
+                    if (neighbor is Logic.Kingdom nk && k.IsEnemy(nk) && !nk.IsDefeated())
+                    {
+                        selectedTarget = nk;
+                        reason = "CURRENT WAR";
+                        break;
+                    }
                 }
             }
 
             // PRIORITY 3: Select neighbor with LOWEST relationship (RE-EVALUATED EACH TIME)
             // This ensures we only refuse NAPs with our worst enemy
             // If relations improve with current target, we'll automatically switch to a worse neighbor
-            Logic.Kingdom worstNeighbor = null;
-            float lowestRelation = float.MaxValue;
-
-            foreach (var neighbor in k.neighbors)
+            if (selectedTarget == null)
             {
-                if (neighbor is Logic.Kingdom neighborKingdom)
+                Logic.Kingdom worstNeighbor = null;
+                float lowestRelation = float.MaxValue;
+
+                foreach (var neighbor in k.neighbors)
                 {
-                    // Skip if defeated
-                    if (neighborKingdom.IsDefeated()) continue;
-
-                    // Skip if allied (don't betray allies)
-                    if (k.IsAlly(neighborKingdom)) continue;
-
-                    // Get relationship value
-                    float relationship = k.GetRelationship(neighborKingdom);
-
-                    // Find the neighbor with the WORST (lowest) relationship
-                    if (relationship < lowestRelation)
+                    if (neighbor is Logic.Kingdom neighborKingdom)
                     {
-                        lowestRelation = relationship;
-                        worstNeighbor = neighborKingdom;
+                        // Skip if defeated
+                        if (neighborKingdom.IsDefeated()) continue;
+
+                        // Skip if allied (don't betray allies)
+                        if (k.IsAlly(neighborKingdom)) continue;
+
+                        // Get relationship value
+                        float relationship = k.GetRelationship(neighborKingdom);
+
+                        // Find the neighbor with the WORST (lowest) relationship
+                        if (relationship < lowestRelation)
+                        {
+                            lowestRelation = relationship;
+                            worstNeighbor = neighborKingdom;
+                        }
                     }
+                }
+
+                selectedTarget = worstNeighbor;
+                if (worstNeighbor != null)
+                {
+                    reason = $"LOWEST RELATION: {lowestRelation:F0}";
                 }
             }
 
-            if (worstNeighbor != null)
+            // Check if target changed and log if it did
+            int previousTargetId = -1;
+            AIOverhaulPlugin.ExpansionTargets.TryGetValue(k.id, out previousTargetId);
+
+            int newTargetId = selectedTarget?.id ?? -1;
+
+            if (previousTargetId != newTargetId)
             {
-                AIOverhaulPlugin.LogDebug($"Expansion Target: {worstNeighbor.Name} (LOWEST RELATION: {lowestRelation:F0})", LogCategory.Diplomacy, k);
-            }
-            else
-            {
-                AIOverhaulPlugin.LogDebug($"Expansion Target: NONE (all neighbors are allies or defeated)", LogCategory.Diplomacy, k);
+                // Target changed - log it
+                if (selectedTarget != null)
+                {
+                    string previousName = previousTargetId >= 0 ? k.game.GetKingdom(previousTargetId)?.Name ?? "Unknown" : "None";
+                    AIOverhaulPlugin.LogInfo($"Expansion Target CHANGED: {previousName} -> {selectedTarget.Name} ({reason})", LogCategory.Diplomacy, k);
+                    AIOverhaulPlugin.ExpansionTargets[k.id] = newTargetId;
+                }
+                else
+                {
+                    // No longer have a target
+                    if (previousTargetId >= 0)
+                    {
+                        string previousName = k.game.GetKingdom(previousTargetId)?.Name ?? "Unknown";
+                        AIOverhaulPlugin.LogInfo($"Expansion Target CLEARED: {previousName} -> None (all neighbors are allies or defeated)", LogCategory.Diplomacy, k);
+                    }
+                    AIOverhaulPlugin.ExpansionTargets.Remove(k.id);
+                }
             }
 
-            return worstNeighbor;
+            return selectedTarget;
         }
 
         /// <summary>

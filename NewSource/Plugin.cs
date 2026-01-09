@@ -21,6 +21,11 @@ namespace AIOverhaul
         // NOTE: Dictionary kept for backwards compatibility and fast lookups, but data is actually stored in Kingdom vars
         public static Dictionary<int, int> MortalEnemies = new Dictionary<int, int>();
 
+        // Expansion Target Tracking: Caches current expansion target to detect changes
+        // Key = kingdom ID, Value = expansion target kingdom ID
+        // Used only for logging when target changes (not persisted)
+        public static Dictionary<int, int> ExpansionTargets = new Dictionary<int, int>();
+
         public const string MORTAL_ENEMY_VAR = "aimod_mortal_enemy";
 
         public static Logic.Game CurrentGame => current_game;
