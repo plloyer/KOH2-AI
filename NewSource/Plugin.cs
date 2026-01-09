@@ -469,11 +469,12 @@ namespace AIOverhaul
             // If we can't easily replicate the UI flow, we might be limited.
             // However, we know CreateShatteredMap is a private method in Game.
             
-            // Let's try to find an existing Game instance (from Main Menu)
-            var game = Resources.FindObjectsOfTypeAll<Logic.Game>().FirstOrDefault();
+            // Try to access the Game instance through the plugin's CurrentGame property
+            // Logic.Game doesn't inherit from UnityEngine.Object, so we can't use Resources.FindObjectsOfTypeAll
+            var game = AIOverhaulPlugin.CurrentGame;
             if (game == null)
             {
-                AIOverhaulPlugin.LogError("AutoStart: No Logic.Game found!");
+                AIOverhaulPlugin.LogError("AutoStart: Logic.Game not ready yet!");
                 yield break;
             }
 
