@@ -1,0 +1,60 @@
+name: Run Game Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
+
+    - name: Restore NuGet packages
+      run: nuget restore AIOverhaul.sln
+
+    - name: Ensure BepInEx Installed
+      run: |
+        $gamePath = $env:KOH_INSTALL_PATH
+        if (-not $gamePath) { Write-Error "KOH_INSTALL_PATH env var not set on runner!"; exit 1 }
+        
+        if (-not (Test-Path "$gamePath\BepInEx\core\BepInEx.dll")) {
+            Write-Host "BepInEx not found. Installing..."
+            Expand-Archive -Path "Dependencies\BepInEx.zip" -DestinationPath "$gamePath" -Force
+        } else {
+            Write-Host "BepInEx already installed."
+        }
+
+    - name: Build Mod
+      run: msbuild AIOverhaul.sln /p:Configuration=Debug /p:Platform="Any CPU"
+
+    - name: Install Mod
+      run: |
+        $gamePath = $env:KOH_INSTALL_PATH
+        if (-not $gamePath) { Write-Error "KOH_INSTALL_PATH env var not set on runner!"; exit 1 }
+        Copy-Item -Path "NewSource\bin\Debug\AIOverhaul.dll" -Destination "$gamePath\BepInEx\plugins\AIOverhaul.dll" -Force
+
+    - name: Run Game Test
+      run: |
+        $gamePath = $env:KOH_INSTALL_PATH
+        & "$gamePath\Sovereign.exe" -autoStart -kingdom Champagne -provinces 2 -difficulty 2
+      # Uses KOH_INSTALL_PATH environment variable set on the runner.
+
+    - name: Upload Logs
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: game-logs
+        path: |
+          AI_Performance_Log.csv
+          Player.log
+          **/output_log.txt

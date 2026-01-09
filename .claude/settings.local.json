@@ -17,7 +17,8 @@
       "Bash(find:*)",
       "Bash(start Sovereign.exe)",
       "Bash(mkdir:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(msbuild:*)"
     ]
   }
 }
