@@ -5,7 +5,7 @@ on:
 
 jobs:
   test:
-    runs-on: windows-latest
+    runs-on: self-hosted
 
     steps:
     - name: Checkout code
@@ -22,9 +22,6 @@ jobs:
 
     - name: Ensure BepInEx Installed
       run: |
-        Write-Host "Listing Environment Variables:"
-        dir env:
-        
         $gamePath = $env:KOH_INSTALL_PATH
         if (-not $gamePath) { Write-Error "KOH_INSTALL_PATH env var not set on runner!"; exit 1 }
         
