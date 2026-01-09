@@ -457,7 +457,7 @@ namespace AIOverhaul
                 if (selectedTarget != null)
                 {
                     string previousName = previousTargetId >= 0 ? k.game.GetKingdom(previousTargetId)?.Name ?? "Unknown" : "None";
-                    AIOverhaulPlugin.LogInfo($"Expansion Target CHANGED: {previousName} -> {selectedTarget.Name} ({reason})", LogCategory.Diplomacy, k);
+                    AIOverhaulPlugin.LogDebug($"Expansion Target CHANGED: {previousName} -> {selectedTarget.Name} ({reason})", LogCategory.Diplomacy, k);
                     AIOverhaulPlugin.ExpansionTargets[k.id] = newTargetId;
                 }
                 else
@@ -466,7 +466,7 @@ namespace AIOverhaul
                     if (previousTargetId >= 0)
                     {
                         string previousName = k.game.GetKingdom(previousTargetId)?.Name ?? "Unknown";
-                        AIOverhaulPlugin.LogInfo($"Expansion Target CLEARED: {previousName} -> None (all neighbors are allies or defeated)", LogCategory.Diplomacy, k);
+                        AIOverhaulPlugin.LogDebug($"Expansion Target CLEARED: {previousName} -> None (all neighbors are allies or defeated)", LogCategory.Diplomacy, k);
                     }
                     AIOverhaulPlugin.ExpansionTargets.Remove(k.id);
                 }

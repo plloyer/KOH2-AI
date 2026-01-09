@@ -116,7 +116,11 @@
     <ItemGroup>
         <None Include="TODO.md" />
         <None Include="AI_ENHANCEMENTS.md" />
+        <None Include="AI_EVAL_SYSTEM.md" />
+        <None Include="AI_INSTRUCTIONS.md" />
         <None Include="GAME_CONCEPTS.md" />
+        <None Include="PATCH_VALIDATION.md" />
+        <None Include="PERFORMANCE_LOGGING_GUIDE.md" />
         <None Include="Sources\**\*.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
