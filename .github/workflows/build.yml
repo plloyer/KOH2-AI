@@ -32,3 +32,4 @@ jobs:
         name: AIOverhaul-dll
         path: bin/Debug/AIOverhaul.dll
         if-no-files-found: error
+        retention-days: 1

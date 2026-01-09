@@ -39,7 +39,7 @@ jobs:
       run: |
         $gamePath = $env:KOH_INSTALL_PATH
         if (-not $gamePath) { Write-Error "KOH_INSTALL_PATH env var not set on runner!"; exit 1 }
-        Copy-Item -Path "NewSource\bin\Debug\AIOverhaul.dll" -Destination "$gamePath\BepInEx\plugins\AIOverhaul.dll" -Force
+        Copy-Item -Path "bin\Debug\AIOverhaul.dll" -Destination "$gamePath\BepInEx\plugins\AIOverhaul.dll" -Force
 
     - name: Run Game Test
       run: |
@@ -52,6 +52,7 @@ jobs:
       if: always()
       with:
         name: game-logs
+        retention-days: 1
         path: |
           AI_Performance_Log.csv
           Player.log
