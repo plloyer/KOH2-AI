@@ -95,17 +95,18 @@
         <Compile Include="NewSource\Helpers\KingdomHelper.cs" />
         <Compile Include="NewSource\Helpers\ModLog.cs" />
         <Compile Include="NewSource\Helpers\OfferHelper.cs" />
+        <Compile Include="NewSource\Logic\Spending\Castle.AddBuildOption.cs" />
+        <Compile Include="NewSource\Logic\Spending\KingdomAI.ConsiderAdoptTradition.cs" />
+        <Compile Include="NewSource\Logic\Spending\KingdomAI.ConsiderExpense.cs" />
         <Compile Include="NewSource\Log\EnhancedPerformanceLogger.cs" />
         <Compile Include="NewSource\Log\KingdomBaseline.cs" />
         <Compile Include="NewSource\Logic\AIEvaluationEvents.cs" />
-        <Compile Include="NewSource\Logic\BuildingLogic.cs" />
-    <Compile Include="NewSource\Logic\CharacterSkillLogic.cs" />
-    <Compile Include="NewSource\Logic\CourtLogic.cs" />
+    <Compile Include="NewSource\Logic\Character.ChooseNewSkill.cs" />
+    <Compile Include="NewSource\Logic\Kingdom.HireCharacter.cs" />
         <Compile Include="NewSource\Logic\EconomyLogic.cs" />
-        <Compile Include="NewSource\Logic\GovernorLogic.cs" />
+        <Compile Include="NewSource\Logic\Governor.Eval.cs" />
         <Compile Include="NewSource\Logic\MilitaryLogic.cs" />
-        <Compile Include="NewSource\Logic\RoyalFamilyLogic.cs" />
-        <Compile Include="NewSource\Logic\TraditionLogic.cs" />
+        <Compile Include="NewSource\Logic\RoyalFamily.AddChild.cs" />
         <Compile Include="NewSource\Logic\WarDiplomacyLogic.cs" />
         <Compile Include="NewSource\Plugin.cs" />
         <Compile Include="NewSource\Debug\DebugOverlay.cs" />
@@ -122,6 +123,9 @@
         <None Include="PATCH_VALIDATION.md" />
         <None Include="PERFORMANCE_LOGGING_GUIDE.md" />
         <None Include="Sources\**\*.cs" />
+    </ItemGroup>
+    <ItemGroup>
+      <Compile Include="NewSource\Logic\Spending\KingdomAI.ConsiderIncreaseCrownAuthority.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
     <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="Exists('..\BepInEx\plugins\')">

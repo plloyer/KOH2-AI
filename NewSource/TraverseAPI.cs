@@ -12,7 +12,6 @@ namespace AIOverhaul
     public static class TraverseAPI
     {
         // Method name constants
-        public const string METHOD_HIRE_CHARACTER = "HireCharacter";
         public const string METHOD_GET_MAX_COMMERCE = "GetMaxCommerce";
         public const string METHOD_CONSIDER_EXPENSE = "ConsiderExpense";
         public const string METHOD_GET_EXPENSE_CATEGORY = "GetExpenseCategory";
@@ -21,7 +20,6 @@ namespace AIOverhaul
         public const string METHOD_GET_SIDE = "GetSide";
         public const string METHOD_GET_WAR_SCORE = "GetSideScore";
         public const string METHOD_THINK_PROPOSE_OFFER_THREAD = "ThinkProposeOfferThread";
-        public const string METHOD_CHOOSE_NEW_SKILL = "ChooseNewSkill";
 
         // Value constants
         public const string CONST_TITLE_KING = "King";

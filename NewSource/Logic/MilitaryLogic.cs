@@ -309,179 +309,180 @@ namespace AIOverhaul
     // First two armies: 4 archers, 4 swordsmen
     // "EvalHireUnit" evaluates the desirability of hiring a specific unit type for an army.
     // Intent: ArmyCompositionPatch
-    [HarmonyPatch(typeof(Logic.KingdomAI), "EvalHireUnit")]
-    public class KingdomAI_EvalHireUnit
-    {
-        static void Postfix(Logic.Unit.Def udef, Logic.Army army, ref float __result)
-        {
-            if (army == null || udef == null) return;
-            Logic.Kingdom kingdom = army.GetKingdom();
-            if (kingdom == null || !AIOverhaulPlugin.IsEnhancedAI(kingdom)) return;
-
-            // Count current ranged vs melee units in this army
-
-            int rangedCount = 0;
-            int meleeCount = 0;
-
-            if (army.units != null)
-            {
-                foreach (var unit in army.units)
-                {
-                    if (unit?.def == null) continue;
-                    if (unit.def.is_ranged)
-                        rangedCount++;
-                    else if (unit.def.is_infantry)
-                        meleeCount++;
-                }
-            }
-
-            // Count total armies to determine if this is one of the first two
-            int totalArmies = kingdom.armies?.Count ?? 0;
-            bool isFirstTwoArmies = totalArmies <= GameBalance.FirstTwoArmiesCount;
-
-            bool isRanged = udef.is_ranged;
-            bool isMelee = udef.is_infantry;
-
-            if (isFirstTwoArmies)
-            {
-                // CRITICAL: Check if Swordsmith is built (required for melee units)
-                // If we have 4+ archers but few melee, and Swordsmith isn't built,
-                // block ALL hiring to force building Swordsmith first
-                bool hasSwordsmith = false;
-                if (kingdom.realms != null)
-                {
-                    foreach (var realm in kingdom.realms)
-                    {
-                        if (realm?.castle != null)
-                        {
-                            var buildings = realm.castle.buildings;
-                            if (buildings != null)
-                            {
-                                foreach (var building in buildings)
-                                {
-                                    if (building?.def?.id == "Swordsmith")
-                                    {
-                                        hasSwordsmith = true;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        if (hasSwordsmith) break;
-                    }
-                }
-
-                // If we have imbalanced armies (lots of archers, few melee) and no Swordsmith,
-                // block ALL hiring until Swordsmith is built
-                if (!hasSwordsmith && rangedCount >= GameBalance.EarlyGameRangedCount && meleeCount < GameBalance.EarlyGameMeleeCount)
-                {
-                    AIOverhaulPlugin.LogDebug($"BLOCKING all unit hiring: ranged={rangedCount}, melee={meleeCount}, need Swordsmith first!", LogCategory.Military, kingdom);
-                    __result *= GameBalance.StrictBlockMultiplier;
-                    return;
-                }
-
-                // First two armies: 4 archers, 4 swordsmen target
-                if (isRanged && rangedCount >= GameBalance.EarlyGameRangedCount)
-                {
-                    __result *= GameBalance.StrictBlockMultiplier;
-                }
-                else if (isMelee && meleeCount >= GameBalance.EarlyGameMeleeCount)
-                {
-                    __result *= GameBalance.StrictBlockMultiplier;
-                }
-                else if (isRanged && rangedCount < GameBalance.EarlyGameRangedCount)
-                {
-                    __result *= GameBalance.StrongBoostMultiplier;
-                }
-                else if (isMelee && meleeCount < GameBalance.EarlyGameMeleeCount)
-                {
-                    __result *= GameBalance.MediumBoostMultiplier;
-                }
-            }
-            else
-            {
-                // Late game: 3-4 ranged for 4-5 melee (approximately 3.5:4.5 ratio = 0.778)
-                float currentRatio = meleeCount > 0 ? (float)rangedCount / meleeCount : (rangedCount > 0 ? 999f : 0.5f);
-                float targetRatio = GameBalance.LateGameRangedMeleeRatio;
-
-                if (isRanged)
-                {
-                    if (currentRatio > targetRatio * 1.1f) // Too many ranged
-                    {
-                        __result *= GameBalance.StrongPenaltyMultiplier;
-                    }
-                    else if (currentRatio < targetRatio * GameBalance.RatioToleranceLow) // Need more ranged
-                    {
-                        __result *= GameBalance.StrongBoostMultiplier;
-                    }
-                }
-                else if (isMelee)
-                {
-                    if (currentRatio < targetRatio * GameBalance.RatioToleranceLow) // Need more melee
-                    {
-                        __result *= 1.8f;
-                    }
-                    else if (currentRatio > targetRatio * 1.1f) // Too much melee
-                    {
-                        __result *= GameBalance.MediumPenaltyMultiplier;
-                    }
-                }
-            }
-        }
-    }
+    // [HarmonyPatch(typeof(Logic.KingdomAI), "EvalHireUnit")]
+    // public class KingdomAI_EvalHireUnit
+    // {
+    //     static void Postfix(Logic.Unit.Def udef, Logic.Army army, ref float __result)
+    //     {
+    //         if (army == null || udef == null) return;
+    //         Logic.Kingdom kingdom = army.GetKingdom();
+    //         if (kingdom == null || !AIOverhaulPlugin.IsEnhancedAI(kingdom)) return;
+    //
+    //         // Count current ranged vs melee units in this army
+    //
+    //         int rangedCount = 0;
+    //         int meleeCount = 0;
+    //
+    //         if (army.units != null)
+    //         {
+    //             foreach (var unit in army.units)
+    //             {
+    //                 if (unit?.def == null) continue;
+    //                 if (unit.def.is_ranged)
+    //                     rangedCount++;
+    //                 else if (unit.def.is_infantry)
+    //                     meleeCount++;
+    //             }
+    //         }
+    //
+    //         // Count total armies to determine if this is one of the first two
+    //         int totalArmies = kingdom.armies?.Count ?? 0;
+    //         bool isFirstTwoArmies = totalArmies <= GameBalance.FirstTwoArmiesCount;
+    //
+    //         bool isRanged = udef.is_ranged;
+    //         bool isMelee = udef.is_infantry;
+    //
+    //         if (isFirstTwoArmies)
+    //         {
+    //             // CRITICAL: Check if Swordsmith is built (required for melee units)
+    //             // If we have 4+ archers but few melee, and Swordsmith isn't built,
+    //             // block ALL hiring to force building Swordsmith first
+    //             bool hasSwordsmith = false;
+    //             if (kingdom.realms != null)
+    //             {
+    //                 foreach (var realm in kingdom.realms)
+    //                 {
+    //                     if (realm?.castle != null)
+    //                     {
+    //                         var buildings = realm.castle.buildings;
+    //                         if (buildings != null)
+    //                         {
+    //                             foreach (var building in buildings)
+    //                             {
+    //                                 if (building?.def?.id == BuildingUpgradeNames.Swordsmith)
+    //                                 {
+    //                                     hasSwordsmith = true;
+    //                                     break;
+    //                                 }
+    //                             }
+    //                         }
+    //                     }
+    //                     if (hasSwordsmith) break;
+    //                 }
+    //             }
+    //
+    //             // If we have imbalanced armies (lots of archers, few melee) and no Swordsmith,
+    //             // block ALL hiring until Swordsmith is built
+    //             if (!hasSwordsmith && rangedCount >= GameBalance.EarlyGameRangedCount && meleeCount < GameBalance.EarlyGameMeleeCount)
+    //             {
+    //                 AIOverhaulPlugin.LogDebug($"BLOCKING all unit hiring: ranged={rangedCount}, melee={meleeCount}, need Swordsmith first!", LogCategory.Military, kingdom);
+    //                 __result *= GameBalance.StrictBlockMultiplier;
+    //                 return;
+    //             }
+    //
+    //             // First two armies: 4 archers, 4 swordsmen target
+    //             if (isRanged && rangedCount >= GameBalance.EarlyGameRangedCount)
+    //             {
+    //                 __result *= GameBalance.StrictBlockMultiplier;
+    //             }
+    //             else if (isMelee && meleeCount >= GameBalance.EarlyGameMeleeCount)
+    //             {
+    //                 __result *= GameBalance.StrictBlockMultiplier;
+    //             }
+    //             else if (isRanged && rangedCount < GameBalance.EarlyGameRangedCount)
+    //             {
+    //                 __result *= GameBalance.StrongBoostMultiplier;
+    //             }
+    //             else if (isMelee && meleeCount < GameBalance.EarlyGameMeleeCount)
+    //             {
+    //                 __result *= GameBalance.MediumBoostMultiplier;
+    //             }
+    //         }
+    //         else
+    //         {
+    //             // Late game: 3-4 ranged for 4-5 melee (approximately 3.5:4.5 ratio = 0.778)
+    //             float currentRatio = meleeCount > 0 ? (float)rangedCount / meleeCount : (rangedCount > 0 ? 999f : 0.5f);
+    //             float targetRatio = GameBalance.LateGameRangedMeleeRatio;
+    //
+    //             if (isRanged)
+    //             {
+    //                 if (currentRatio > targetRatio * 1.1f) // Too many ranged
+    //                 {
+    //                     __result *= GameBalance.StrongPenaltyMultiplier;
+    //                 }
+    //                 else if (currentRatio < targetRatio * GameBalance.RatioToleranceLow) // Need more ranged
+    //                 {
+    //                     __result *= GameBalance.StrongBoostMultiplier;
+    //                 }
+    //             }
+    //             else if (isMelee)
+    //             {
+    //                 if (currentRatio < targetRatio * GameBalance.RatioToleranceLow) // Need more melee
+    //                 {
+    //                     __result *= 1.8f;
+    //                 }
+    //                 else if (currentRatio > targetRatio * 1.1f) // Too much melee
+    //                 {
+    //                     __result *= GameBalance.MediumPenaltyMultiplier;
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+    
     // Prioritize fortification upgrades when first two armies are established
     // "ConsiderUpgradeFortifications" decides if castle walls and defenses should be upgraded.
     // Intent: FortificationPriorityPatch
-    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderUpgradeFortifications")]
-    public class KingdomAI_ConsiderUpgradeFortifications
-    {
-        static bool Prefix(Logic.KingdomAI __instance, Logic.Castle castle, ref bool __result)
-        {
-            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
-
-            // Block fortifications if rushing tradition (save gold for Writing/Learning)
-            if (TraditionHelper.ShouldRushTradition(__instance.kingdom))
-            {
-                __result = false;
-                return false;
-            }
-
-            // Check if first two armies are ready (Strategy requirement)
-            bool firstTwoArmiesReady = KingdomHelper.HasTwoReadyArmies(__instance.kingdom);
-            if (!firstTwoArmiesReady)
-            {
-                __result = false;
-                return false;
-            }
-
-            // Make fortifications URGENT priority once armies are ready
-            Logic.Realm realm = castle?.GetRealm();
-            if (realm == null)
-            {
-                __result = false;
-                return false;
-            }
-
-            // Check affordability
-            if (!castle.CanUpgradeFortification() || !castle.CanAffordFortificationsUpgrade())
-            {
-                __result = false;
-                return false;
-            }
-
-            // Upgrade with URGENT priority
-            TraverseAPI.ConsiderExpense(__instance,
-                Logic.KingdomAI.Expense.Type.UpgradeFortifications,
-                null,
-                castle,
-                Logic.KingdomAI.Expense.Category.Military,
-                Logic.KingdomAI.Expense.Priority.Urgent,
-                null);
-
-            __result = true;
-            return false;
-        }
-    }
+    // [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderUpgradeFortifications")]
+    // public class KingdomAI_ConsiderUpgradeFortifications
+    // {
+    //     static bool Prefix(Logic.KingdomAI __instance, Logic.Castle castle, ref bool __result)
+    //     {
+    //         if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+    //
+    //         // Block fortifications if rushing tradition (save gold for Writing/Learning)
+    //         if (TraditionHelper.ShouldRushTradition(__instance.kingdom))
+    //         {
+    //             __result = false;
+    //             return false;
+    //         }
+    //
+    //         // Check if first two armies are ready (Strategy requirement)
+    //         bool firstTwoArmiesReady = KingdomHelper.HasTwoReadyArmies(__instance.kingdom);
+    //         if (!firstTwoArmiesReady)
+    //         {
+    //             __result = false;
+    //             return false;
+    //         }
+    //
+    //         // Make fortifications URGENT priority once armies are ready
+    //         Logic.Realm realm = castle?.GetRealm();
+    //         if (realm == null)
+    //         {
+    //             __result = false;
+    //             return false;
+    //         }
+    //
+    //         // Check affordability
+    //         if (!castle.CanUpgradeFortification() || !castle.CanAffordFortificationsUpgrade())
+    //         {
+    //             __result = false;
+    //             return false;
+    //         }
+    //
+    //         // Upgrade with URGENT priority
+    //         TraverseAPI.ConsiderExpense(__instance,
+    //             Logic.KingdomAI.Expense.Type.UpgradeFortifications,
+    //             null,
+    //             castle,
+    //             Logic.KingdomAI.Expense.Category.Military,
+    //             Logic.KingdomAI.Expense.Priority.Urgent,
+    //             null);
+    //
+    //         __result = true;
+    //         return false;
+    //     }
+    // }
 
 
 

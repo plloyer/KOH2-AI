@@ -9,7 +9,8 @@ namespace AIOverhaul.Constants
         War,          // War declarations, peace, surrenders
         Military,     // Army management, battles, fortifications
         Diplomacy,    // NAPs, alliances, trade agreements
-        Economy,      // Merchants, buildings, resources
+        Economy,      // Merchants, resources
+        Spending,     // About spending gold
         Knights,      // Character hiring (all court members)
         Tradition,    // Tradition selection and adoption
         RoyalFamily,  // Heirs, succession, family management

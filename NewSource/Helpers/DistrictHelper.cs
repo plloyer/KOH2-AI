@@ -8,7 +8,7 @@ namespace AIOverhaul.Helpers
         /// <summary>
         /// Get a district definition by name
         /// </summary>
-        public static Logic.District.Def GetDistrict(Logic.Game game, string districtName)
+        public static Logic.District.Def GetDistrictDefinition(Logic.Game game, string districtName)
         {
             return game?.defs?.Get<Logic.District.Def>(districtName);
         }
@@ -18,7 +18,7 @@ namespace AIOverhaul.Helpers
         /// </summary>
         public static bool HasDistrict(Logic.Castle castle, string districtName)
         {
-            var district = GetDistrict(castle?.game, districtName);
+            var district = GetDistrictDefinition(castle?.game, districtName);
             return district != null && castle.HasDistrict(district);
         }
     }

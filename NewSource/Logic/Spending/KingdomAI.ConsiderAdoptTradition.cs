@@ -21,7 +21,7 @@ namespace AIOverhaul
             var traditionOptions = __instance.kingdom.GetNewTraditionOptions();
             if (traditionOptions == null || traditionOptions.Count == 0) return true;
 
-            if (__instance == null || __instance.kingdom == null) return true;
+            if (__instance.kingdom == null) return true;
 
             // Safety checks for kingdom properties
             if (__instance.kingdom.traditions == null || __instance.kingdom.wars == null || __instance.kingdom.resources == null) return true;
@@ -51,11 +51,9 @@ namespace AIOverhaul
                     __result = true;
                     return false;
                 }
-                else
-                {
-                    // Wait for money
-                    return false;
-                }
+                
+                // Wait for money
+                return false;
             }
 
             // Default behavior for other cases
