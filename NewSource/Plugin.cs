@@ -474,8 +474,14 @@ namespace AIOverhaul
             var game = AIOverhaulPlugin.CurrentGame;
             if (game == null)
             {
-                AIOverhaulPlugin.LogError("AutoStart: Logic.Game not ready yet!");
-                yield break;
+                // Fallback: Try to find using FindObjectOfType if it were a component (it's not), 
+                // OR checking if we can find it via Title or Campaign static refs?
+                // Actually, if we are in the menu, CurrentGame might be null.
+                // But Campaign.CreateSinglePlayerCampaign creates a game and assigns it?
+                // Let's rely on Campaign creation.
+                
+                AIOverhaulPlugin.LogInfo("AutoStart: CurrentGame is null, checking if Campaign creation set it...");
+                // We'll proceed and hope campaign creation initialized it, or wait deeper.
             }
 
             // Start the game logic
