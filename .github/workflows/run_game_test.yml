@@ -44,7 +44,7 @@ jobs:
     - name: Run Game Test
       run: |
         $gamePath = $env:KOH_INSTALL_PATH
-        & "$gamePath\Sovereign.exe" -autoStart -kingdom Champagne -provinces 2 -difficulty 2
+        Start-Process -FilePath "$gamePath\Sovereign.exe" -ArgumentList "-autoStart", "-kingdom", "Champagne", "-provinces", "2", "-difficulty", "2" -WorkingDirectory "$gamePath" -Wait
       # Uses KOH_INSTALL_PATH environment variable set on the runner.
 
     - name: Upload Logs
