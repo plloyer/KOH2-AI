@@ -122,8 +122,25 @@ Note: When king dies, composition changes and AI must adapt to maintain target r
 
 ## Diplomacy
 
+### Expansion Target Selection
+- **Strategy**: AI identifies ONE neighbor as their expansion target and keeps diplomatic options open with all others
+- **Priority System**:
+  1. **Mortal Enemy** - Permanent grudge against first kingdom that declared war on them
+  2. **Current War** - If already at war with a neighbor, they become the expansion target
+  3. **Lowest Relation** - Among peaceful neighbors, select the one with worst relationship
+- **Re-evaluation**: Expansion target re-evaluates dynamically each diplomatic cycle (not locked in)
+  - If relations improve with current target, AI automatically switches to the next worst neighbor
+  - This allows NAPs to succeed when relations improve, keeping only the worst enemy as expansion target
+
+### Non-Aggression Pacts (NAP)
+- **Acceptance Logic**: Enhanced AI accepts NAPs from all neighbors EXCEPT:
+  - Mortal Enemies (permanent grudge)
+  - Current Expansion Target (keeps one enemy for expansion)
+  - Current War Enemies (obviously can't NAP during war)
+- **Result**: AI builds NAPs with 80-90% of neighbors, refuses only the single worst-relation neighbor
+
 ### War Declaration
-- **Mortal Enemies**: Strictly require 1.5x power advantage (Army + Castle Strength) before declaring war.
+- **Mortal Enemies**: Strictly require 1.5x power advantage (Army + Castle Strength) before declaring war
 - Consider defensive pacts against you in strength calculations (not yet implemented - see TODO.md)
 
 
@@ -143,6 +160,7 @@ All numerical values are defined in `GameBalance.cs`:
 ## Debug Tools
 - **Overlay**: Press **F9** to toggle the AI Debug Overlay.
     - Shows stats for the player kingdom (Gold, Piety, Books).
-    - Lists Mortal Enemies and Neighbors with relationship status.
+    - Lists Mortal Enemies (red) and Expansion Target (orange).
+    - Lists Neighbors with relationship status (color-coded: green = positive, white = neutral, red = negative).
     - Logs "Considered Expenses" in real-time to see what the AI is thinking.
 - **Spectator Mode**: Toggling the overlay also enables/disables Enhanced AI control for the player kingdom.

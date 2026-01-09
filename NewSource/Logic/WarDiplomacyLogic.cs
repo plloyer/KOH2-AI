@@ -360,7 +360,8 @@ namespace AIOverhaul
 
         /// <summary>
         /// Select the best neighbor to designate as expansion target
-        /// Strategy: MORTAL ENEMY first (never forgive), then current wars, then best target
+        /// Strategy: MORTAL ENEMY first (never forgive), then current wars, then LOWEST RELATION
+        /// Re-evaluates dynamically based on current relations (not locked in during peace)
         /// </summary>
         public static Logic.Kingdom SelectExpansionTarget(Logic.Kingdom k)
         {
@@ -384,6 +385,7 @@ namespace AIOverhaul
 
                 if (isStillNeighbor)
                 {
+                    AIOverhaulPlugin.LogDebug($"Expansion Target: {mortalEnemy.Name} (MORTAL ENEMY)", LogCategory.Diplomacy, k);
                     return mortalEnemy; // Revenge is priority #1
                 }
             }
@@ -393,14 +395,16 @@ namespace AIOverhaul
             {
                 if (neighbor is Logic.Kingdom nk && k.IsEnemy(nk) && !nk.IsDefeated())
                 {
+                    AIOverhaulPlugin.LogDebug($"Expansion Target: {nk.Name} (CURRENT WAR)", LogCategory.Diplomacy, k);
                     return nk;
                 }
             }
 
-            // Otherwise, select best expansion target from peaceful neighbors
-            Logic.Kingdom bestTarget = null;
-            float bestScore = -99999f;
-            float ownPower = GetTotalPower(k);
+            // PRIORITY 3: Select neighbor with LOWEST relationship (RE-EVALUATED EACH TIME)
+            // This ensures we only refuse NAPs with our worst enemy
+            // If relations improve with current target, we'll automatically switch to a worse neighbor
+            Logic.Kingdom worstNeighbor = null;
+            float lowestRelation = float.MaxValue;
 
             foreach (var neighbor in k.neighbors)
             {
@@ -412,35 +416,28 @@ namespace AIOverhaul
                     // Skip if allied (don't betray allies)
                     if (k.IsAlly(neighborKingdom)) continue;
 
-                    // Calculate expansion attractiveness score
-                    float targetPower = GetTotalPower(neighborKingdom);
-                    int targetRealms = neighborKingdom.realms?.Count ?? 0;
+                    // Get relationship value
                     float relationship = k.GetRelationship(neighborKingdom);
 
-                    // Prefer weaker neighbors (easier conquest)
-                    float powerRatio = ownPower > 0 ? targetPower / ownPower : 1f;
-
-                    // Score components:
-                    // 1. Weakness: prefer 0.5-1.0 power ratio (winnable but not trivial)
-                    float weaknessScore = (powerRatio >= 0.3f && powerRatio <= 1.0f) ? (1.0f - powerRatio) * 100f : -50f;
-
-                    // 2. Strategic value: more realms = better
-                    float valueScore = targetRealms * 10f;
-
-                    // 3. Relationship: prefer enemies/hostile (already bad relations)
-                    float relationScore = -relationship * 0.1f; // Negative relationship = positive score
-
-                    float totalScore = weaknessScore + valueScore + relationScore;
-
-                    if (totalScore > bestScore)
+                    // Find the neighbor with the WORST (lowest) relationship
+                    if (relationship < lowestRelation)
                     {
-                        bestScore = totalScore;
-                        bestTarget = neighborKingdom;
+                        lowestRelation = relationship;
+                        worstNeighbor = neighborKingdom;
                     }
                 }
             }
 
-            return bestTarget;
+            if (worstNeighbor != null)
+            {
+                AIOverhaulPlugin.LogDebug($"Expansion Target: {worstNeighbor.Name} (LOWEST RELATION: {lowestRelation:F0})", LogCategory.Diplomacy, k);
+            }
+            else
+            {
+                AIOverhaulPlugin.LogDebug($"Expansion Target: NONE (all neighbors are allies or defeated)", LogCategory.Diplomacy, k);
+            }
+
+            return worstNeighbor;
         }
 
         /// <summary>

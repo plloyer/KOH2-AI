@@ -274,6 +274,11 @@ namespace AIOverhaul
             string nemesisDisplay = nemesis != null ? $"<color=red>{nemesis.Name}</color>" : "None";
             GUILayout.Label($"Mortal Enemy: {nemesisDisplay}", style);
 
+            // Expansion Target
+            var expansionTarget = WarLogicHelper.SelectExpansionTarget(k);
+            string expansionDisplay = expansionTarget != null ? $"<color=orange>{expansionTarget.Name}</color>" : "None";
+            GUILayout.Label($"Expansion Target: {expansionDisplay}", style);
+
             // Neighbors - Combined into one label to avoid gaps
             if (k.neighbors != null)
             {
