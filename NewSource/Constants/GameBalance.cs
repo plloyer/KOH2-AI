@@ -109,13 +109,13 @@ namespace AIOverhaul.Constants
         public const float IronOreMilitaryBonus = 15f; // Bonus for Iron Ore in military potential calc
         public const float DistrictMilitaryMultiplier = 2f; // Multiplier for available slots in military potential calc
 
-        // Building Bonuses
-        // CRITICAL: Lower eval = higher priority. Use DIVISORS (> 1.0) to increase priority.
+        // Building Priority Multipliers
+        // CRITICAL: Lower eval = higher priority. Multiply eval by these values (eval *= multiplier) to increase priority.
         public const float ReligionBuildingBoostPerSlot = 0.2f; // Bonus per religion slot (used in 1.0 + slots*0.2 formula)
         public const float BarracksSlotBoostPerSlot = 0.25f; // Bonus per castle district slot for barracks placement
-        public const float BarracksBoost = 50f; // Divide eval by this for very high priority on first barracks
-        public const float SwordsmithBoost = 30f; // Divide eval by this for high priority on swordsmith upgrade
-        public const float FletcherBoost = 100f; // Divide eval by this for extremely high priority on fletcher
+        public const float BarracksPriorityMultiplier = 0.01f; // eval *= 0.01 (1% of original) for very high priority on first barracks
+        public const float SwordsmithPriorityMultiplier = 1/30f; // eval *= 0.0333 (1/30th) for high priority on swordsmith upgrade
+        public const float FletcherPriorityMultiplier = 0.01f; // eval *= 0.01 (1% of original) for extremely high priority on fletcher
 
         // Island Detection
         public const int IslandMaxNeighbors = 1;

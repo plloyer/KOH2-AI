@@ -95,7 +95,7 @@ namespace AIOverhaul
                     if (!hasSwordsmith)
                     {
                         // Very high priority for first Swordsmith in kingdom (lower eval = higher priority)
-                        option.eval /= GameBalance.SwordsmithBoost;
+                        option.eval *= GameBalance.SwordsmithPriorityMultiplier;
                         Castle.upgrade_options[i] = option;
                     }
                 }
@@ -123,7 +123,7 @@ namespace AIOverhaul
                     if (option.def.id == BuildingUpgradeNames.Fletcher_Barracks)
                     {
                         // VERY high priority for Fletcher after Swordsmith (lower eval = higher priority)
-                        option.eval /= GameBalance.FletcherBoost;
+                        option.eval *= GameBalance.FletcherPriorityMultiplier;
                         Castle.upgrade_options[i] = option;
                         fletcherOptionFound = true;
                         AIOverhaulPlugin.LogDebug($"BOOSTING Fletcher upgrade in {castle.name} (eval: {option.eval:F2})", LogCategory.Military, kingdom);
@@ -167,7 +167,7 @@ namespace AIOverhaul
                             {
                                 castle = castle,
                                 def = fletcherDef,
-                                eval = 1000f / GameBalance.FletcherBoost, // Base eval / divisor (lower = higher priority)
+                                eval = 1000f * GameBalance.FletcherPriorityMultiplier, // Base eval * multiplier (lower = higher priority)
                                 priority = Logic.KingdomAI.Expense.Priority.Urgent
                             };
 
@@ -220,18 +220,25 @@ namespace AIOverhaul
 
                 if (!kingdomHasBarracks)
                 {
-                    // First barracks in kingdom - high priority, extra boost for Castle districts (lower eval = higher priority)
-                    float divisor = GameBalance.BarracksBoost;
+                    // First barracks in kingdom - high priority, extra multiplier for Castle districts (lower eval = higher priority)
+                    float multiplier = GameBalance.BarracksPriorityMultiplier;
 
                     if (hasCastleDistrict)
                     {
-                        // Additional boost based on Castle district slots (higher divisor = even lower eval)
+                        // Additional boost based on Castle district slots (lower multiplier = even lower eval)
                         int slots = castleDistrict.buildings?.Count ?? 0;
-                        divisor *= (1.0f + (slots * GameBalance.BarracksSlotBoostPerSlot));
-                        AIOverhaulPlugin.LogDebug($"BOOSTING first Barracks in {castle.name} (Divisor: {divisor:F1}, Slots: {slots})", LogCategory.Military, kingdom);
+                        multiplier /= (1.0f + (slots * GameBalance.BarracksSlotBoostPerSlot));
+                        AIOverhaulPlugin.LogDebug($"BOOSTING first Barracks in {castle.name} (Multiplier: {multiplier:F4}, Slots: {slots})", LogCategory.Military, kingdom);
                     }
 
-                    option.eval /= divisor;
+                    option.eval *= multiplier;
+
+                    // Force URGENT priority for first barracks to bypass budget checks
+                    option.priority = Logic.KingdomAI.Expense.Priority.Urgent;
+
+                    // Cap eval at 1.0 (affordable in 1 turn or less) to ensure it's picked quickly
+                    if (option.eval > 1.0f) option.eval = 1.0f;
+
                     Castle.build_options[i] = option;
                 }
                 else

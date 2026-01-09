@@ -204,6 +204,19 @@ namespace AIOverhaul
                 }
             }
 
+            // URGENT BARRACKS CONSTRUCTION
+            if (expense.type == KingdomAI.Expense.Type.BuildStructure &&
+                expense.defParam is Logic.Building.Def bd &&
+                bd.id == BuildingNames.Barracks)
+            {
+                if (!BuildingHelper.HasBuilding(__instance.kingdom, BuildingNames.Barracks))
+                {
+                    expense.eval = 1.0f; // Force to 1.0 - Expense.Set() recalculates eval, so we must SET it, not multiply
+                    expense.priority = KingdomAI.Expense.Priority.Urgent;
+                    AIOverhaulPlugin.LogDebug("URGENT Barracks construction - Kingdom has no barracks", LogCategory.Economy, __instance.kingdom);
+                }
+            }
+
             if (expense.category == KingdomAI.Expense.Category.Diplomacy)
             {
                 // Trade is free, but lowering eval ensures it's prioritized over other free diplomatic actions

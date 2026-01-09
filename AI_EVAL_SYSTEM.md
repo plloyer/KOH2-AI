@@ -98,13 +98,13 @@ public float EvaluateCost()
 
 ## GameBalance Constants Reference
 
-### Boost Multipliers (Use with DIVISION to increase priority)
+### Building Priority Multipliers (Use with MULTIPLICATION to increase priority)
 
 ```csharp
-// These are DIVISORS - divide eval by these to increase priority
-public const float SwordsmithBoost = 30f;      // eval /= 30 → very high priority
-public const float FletcherBoost = 100f;       // eval /= 100 → extremely high priority
-public const float BarracksBoost = 50f;        // eval /= 50 → high priority
+// These are MULTIPLIERS - multiply eval by these to increase priority
+public const float SwordsmithPriorityMultiplier = 1/30f;    // eval *= 0.0333 (1/30th) → very high priority
+public const float FletcherPriorityMultiplier = 0.01f;      // eval *= 0.01 (1% of original) → extremely high priority
+public const float BarracksPriorityMultiplier = 0.01f;      // eval *= 0.01 (1% of original) → very high priority
 ```
 
 ### True Multipliers (values < 1.0 increase priority when multiplied)
@@ -133,10 +133,10 @@ public const float StrictBlockMultiplier = 100.0f;   // eval *= 100 → blocked 
 
 ```csharp
 // CORRECT ✅
-option.eval /= GameBalance.SwordsmithBoost;  // Divide by 30 → very low eval → high priority
+option.eval *= GameBalance.SwordsmithPriorityMultiplier;  // Multiply by 1/30 → very low eval → high priority
 
 // WRONG ❌
-option.eval *= GameBalance.SwordsmithBoost;  // Multiply by 30 → very high eval → low priority
+option.eval /= GameBalance.SwordsmithPriorityMultiplier;  // Divide by 1/30 → very high eval → low priority
 ```
 
 ### Example 2: Block Fletcher until Swordsmith
