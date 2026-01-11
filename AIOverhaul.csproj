@@ -109,6 +109,7 @@
         <Compile Include="NewSource\Logic\RoyalFamily.AddChild.cs" />
         <Compile Include="NewSource\Logic\WarDiplomacyLogic.cs" />
         <Compile Include="NewSource\Plugin.cs" />
+        <Compile Include="NewSource\AutoStarter.cs" />
         <Compile Include="NewSource\Debug\DebugOverlay.cs" />
         <Compile Include="NewSource\Debug\DebugPatches.cs" />
         <Compile Include="NewSource\TraverseAPI.cs" />
