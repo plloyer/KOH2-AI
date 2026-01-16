@@ -11,11 +11,24 @@ namespace AIOverhaul
     /// </summary>
     public class AutoStarter : MonoBehaviour
     {
-        private bool _hasStarted = false;
-        private string _targetKingdom = "Champagne";
-        private int _provinces = 2;
-        private int _difficulty = 2;
-        private bool _spectatorEnabled = false;
+        private static Logic.Game _capturedGame = null;
+
+        bool _hasStarted = false;
+        string _targetKingdom = "Champagne";
+        int _provinces = 2;
+        int _difficulty = 2;
+        bool _spectatorEnabled = false;
+
+        private bool _sceneMonitoringStarted = false;
+
+        /// <summary>
+        /// Called by GameCreateMultiplayerPatch to provide the Game instance
+        /// </summary>
+        public static void SetGameInstance(Logic.Game game)
+        {
+            _capturedGame = game;
+            AIOverhaulPlugin.LogInfo("[AutoStarter] Game instance received and stored");
+        }
 
         void OnEnable()
         {
@@ -62,7 +75,9 @@ namespace AIOverhaul
             if (_hasStarted)
             {
                 AIOverhaulPlugin.LogInfo($"=== AutoStart: ENABLED - kingdom '{_targetKingdom}', provinces {_provinces}, difficulty {_difficulty} ===");
-                StartCoroutine(AutoStartRoutine());
+                AIOverhaulPlugin.LogInfo("AutoStart: Will monitor for scene load before starting...");
+                // DON'T start coroutine immediately - wait for Update() to detect scene is ready
+                _sceneMonitoringStarted = true;
             }
             else
             {
@@ -70,103 +85,108 @@ namespace AIOverhaul
             }
         }
 
+        void Update()
+        {
+            // Monitor for scene loading
+            if (_sceneMonitoringStarted && !_hasRoutineStarted)
+            {
+                CheckSceneAndStart();
+            }
+
+            // Monitor game progress (day counter, etc.)
+            if (_hasStarted && _spectatorEnabled)
+            {
+                MonitorGameProgress();
+            }
+        }
+
+        private bool _hasRoutineStarted = false;
+        private float _sceneCheckStartTime = -1f;
+
+        void CheckSceneAndStart()
+        {
+            if (_sceneCheckStartTime < 0)
+            {
+                _sceneCheckStartTime = Time.realtimeSinceStartup;
+                AIOverhaulPlugin.LogInfo("AutoStart: Started monitoring for scene load...");
+            }
+
+            float elapsed = Time.realtimeSinceStartup - _sceneCheckStartTime;
+
+            // Wait at least 20 seconds for the main menu scene to load
+            // This gives Unity time to load all assets and initialize the UI
+            if (elapsed >= 20f)
+            {
+                AIOverhaulPlugin.LogInfo($"AutoStart: {elapsed:F1}s elapsed - Main menu should be ready. Starting routine...");
+                _hasRoutineStarted = true;
+                _sceneMonitoringStarted = false;
+                StartCoroutine(AutoStartRoutine());
+            }
+            else if (Mathf.FloorToInt(elapsed) % 5 == 0 && Mathf.FloorToInt(elapsed) != Mathf.FloorToInt(elapsed - Time.deltaTime))
+            {
+                // Log every 5 seconds
+                AIOverhaulPlugin.LogInfo($"AutoStart: Waiting for scene... ({elapsed:F0}s / 20s)");
+            }
+        }
+
         System.Collections.IEnumerator AutoStartRoutine()
         {
             AIOverhaulPlugin.LogInfo("=== AutoStart: Routine Started ===");
 
-            // STEP 1: Wait for game engine to initialize
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 1 - Waiting 10s for game engine initialization...");
-            yield return new WaitForSeconds(10f);
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 1 - Initial wait complete");
+            // STEP 1: Wait for main menu to load
+            AIOverhaulPlugin.LogInfo("AutoStart: Step 1 - Waiting 5s for main menu to load...");
+            yield return new WaitForSeconds(5f);
+            AIOverhaulPlugin.LogInfo("AutoStart: Step 1 - Main menu loaded");
 
-            // STEP 2: Find or wait for Game instance
+            // STEP 2: Wait a bit longer for game systems to be ready
+            AIOverhaulPlugin.LogInfo("AutoStart: Step 2 - Waiting additional 5s for game systems...");
+            yield return new WaitForSeconds(5f);
+
+            // STEP 3: Wait for Game instance to be captured by our patch
+            AIOverhaulPlugin.LogInfo("AutoStart: Step 3 - Waiting for Game instance to be captured...");
             Logic.Game game = null;
-            int maxAttempts = 30;
-            int attempt = 0;
 
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 2 - Searching for Game instance...");
-            while (game == null && attempt < maxAttempts)
+            // Wait for the game to be captured (CreateMultiplayer is called during engine init)
+            for (int i = 0; i < 30; i++)  // Wait up to 30 seconds
             {
-                attempt++;
-                AIOverhaulPlugin.LogInfo($"AutoStart: Step 2 - Attempt {attempt}/{maxAttempts} to find Game instance");
-
-                // Try to get game from CurrentGame
-                game = AIOverhaulPlugin.CurrentGame;
+                game = _capturedGame;
                 if (game != null)
                 {
-                    AIOverhaulPlugin.LogInfo("AutoStart: Step 2 - Found Game via CurrentGame");
+                    AIOverhaulPlugin.LogInfo($"AutoStart: Step 3 - Game instance captured after {i}s (State: {game.state})");
                     break;
                 }
 
-                // Try to find game through Unity's object system
-                // Logic.Game might be referenced by Unity components
-                try
+                if (i % 5 == 0)  // Log every 5 seconds
                 {
-                    var allMonoBehaviours = UnityEngine.Object.FindObjectsOfType<MonoBehaviour>();
-                    AIOverhaulPlugin.LogInfo($"AutoStart: Step 2 - Found {allMonoBehaviours.Length} MonoBehaviours, searching for Game reference");
-
-                    foreach (var mb in allMonoBehaviours)
-                    {
-                        var gameField = Traverse.Create(mb).Field("game").GetValue<Logic.Game>();
-                        if (gameField != null)
-                        {
-                            game = gameField;
-                            AIOverhaulPlugin.LogInfo($"AutoStart: Step 2 - Found Game via MonoBehaviour: {mb.GetType().Name}");
-                            break;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    AIOverhaulPlugin.LogWarning($"AutoStart: Step 2 - Exception while searching: {ex.Message}");
+                    AIOverhaulPlugin.LogInfo($"AutoStart: Step 3 - Waiting for Game... ({i}s / 30s)");
                 }
 
-                if (game == null)
-                {
-                    AIOverhaulPlugin.LogInfo("AutoStart: Step 2 - Game not found yet, waiting 2s...");
-                    yield return new WaitForSeconds(2f);
-                }
+                yield return new WaitForSeconds(1f);
             }
 
             if (game == null)
             {
-                AIOverhaulPlugin.LogError("AutoStart: Step 2 - FAILED - Could not find Game instance after all attempts!");
+                AIOverhaulPlugin.LogError("AutoStart: Step 3 - FAILED - Game instance was never captured");
+                AIOverhaulPlugin.LogError("AutoStart: Step 3 - This means CreateMultiplayer was never called, or our patch didn't run");
                 yield break;
             }
 
-            AIOverhaulPlugin.LogInfo($"AutoStart: Step 2 - SUCCESS - Game instance found (State: {game.state})");
-
-            // STEP 3: Create Campaign
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 3 - Creating single player campaign...");
+            // STEP 4: Create Campaign and assign to game
+            AIOverhaulPlugin.LogInfo("AutoStart: Step 4 - Creating Campaign for 'europe' map...");
+            Logic.Campaign campaign = null;
             try
             {
-                var campaign = Logic.Campaign.CreateSinglePlayerCampaign("europe", "1110_1");
+                campaign = Logic.Campaign.CreateSinglePlayerCampaign("europe", "1110_1");
                 if (campaign == null)
                 {
-                    AIOverhaulPlugin.LogError("AutoStart: Step 3 - FAILED - Campaign.CreateSinglePlayerCampaign returned null");
+                    AIOverhaulPlugin.LogError("AutoStart: Step 4 - FAILED - Campaign.CreateSinglePlayerCampaign returned null");
                     yield break;
                 }
-                AIOverhaulPlugin.LogInfo($"AutoStart: Step 3 - SUCCESS - Campaign created (ID: {campaign.id}, State: {campaign.state})");
+                AIOverhaulPlugin.LogInfo($"AutoStart: Step 4 - SUCCESS - Campaign created (ID: {campaign.id})");
 
-                // Assign campaign to game if not already set
-                if (game.campaign == null)
-                {
-                    AIOverhaulPlugin.LogInfo("AutoStart: Step 3 - Assigning campaign to game");
-                    game.campaign = campaign;
-                }
-            }
-            catch (Exception ex)
-            {
-                AIOverhaulPlugin.LogError($"AutoStart: Step 3 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
-                yield break;
-            }
-
-            // STEP 4: Start Game
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 4 - Calling game.StartGame()...");
-            try
-            {
-                game.StartGame(true, "europe");
-                AIOverhaulPlugin.LogInfo($"AutoStart: Step 4 - SUCCESS - StartGame called (State: {game.state})");
+                // Assign campaign to game
+                AIOverhaulPlugin.LogInfo("AutoStart: Step 4 - Assigning campaign to game...");
+                game.campaign = campaign;
             }
             catch (Exception ex)
             {
@@ -174,13 +194,26 @@ namespace AIOverhaul
                 yield break;
             }
 
-            // Wait for game to load
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 4 - Waiting 10s for game to load map...");
-            yield return new WaitForSeconds(10f);
-            AIOverhaulPlugin.LogInfo($"AutoStart: Step 4 - Load wait complete (State: {game.state})");
+            // STEP 5: Start the game
+            AIOverhaulPlugin.LogInfo("AutoStart: Step 5 - Calling game.StartGame()...");
+            try
+            {
+                game.StartGame(true, "europe");
+                AIOverhaulPlugin.LogInfo($"AutoStart: Step 5 - SUCCESS - StartGame called (State: {game.state})");
+            }
+            catch (Exception ex)
+            {
+                AIOverhaulPlugin.LogError($"AutoStart: Step 5 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
+                yield break;
+            }
 
-            // STEP 5: Create Shattered Map
-            AIOverhaulPlugin.LogInfo($"AutoStart: Step 5 - Creating Shattered Map with {_provinces} provinces...");
+            // Wait for map to load
+            AIOverhaulPlugin.LogInfo("AutoStart: Step 5 - Waiting 15s for map to load...");
+            yield return new WaitForSeconds(15f);
+            AIOverhaulPlugin.LogInfo($"AutoStart: Step 5 - Map load complete (State: {game.state})");
+
+            // STEP 6: Create Shattered Map
+            AIOverhaulPlugin.LogInfo($"AutoStart: Step 6 - Creating Shattered Map with {_provinces} provinces...");
             try
             {
                 var method = AccessTools.Method(typeof(Logic.Game), "CreateShatteredMap", new Type[] { typeof(int) });
@@ -286,18 +319,13 @@ namespace AIOverhaul
             AIOverhaulPlugin.LogInfo("=== AutoStart: Setup Complete - Game Running ===");
         }
 
-        private int _lastLoggedDay = -1;
-        private float _gameStartTime = -1f;
+        int _lastLoggedDay = -1;
+        float _gameStartTime = -1f;
 
-        void Update()
+        void MonitorGameProgress()
         {
-            if (!_hasStarted || !_spectatorEnabled) return;
-
             var game = AIOverhaulPlugin.CurrentGame;
-            if (game == null)
-            {
-                return;
-            }
+            if (game == null) return;
 
             // Try to find the day counter through multiple methods
             int currentDay = -1;
