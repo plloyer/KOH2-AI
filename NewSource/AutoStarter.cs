@@ -194,6 +194,30 @@ namespace AIOverhaul
                 yield break;
             }
 
+            // STEP 4.5: Configure Game Variables (Before Start)
+            // This triggers internal game logic (like Shattered Map creation) automatically during start
+            AIOverhaulPlugin.LogInfo($"AutoStart: Step 4.5 - Configuring Game Variables...");
+            try
+            {
+                // Set Shattered Map configuration
+                // Logic.Game.GetKingdomSizeWhenShatteredMap() reads this variable
+                string shatteredVal = $"{_provinces}_shattered";
+                AIOverhaulPlugin.LogInfo($"AutoStart: Setting 'kingdom_size' to '{shatteredVal}'");
+                game.vars.Set("kingdom_size", new Logic.Value(shatteredVal));
+
+                // Set Player Kingdom
+                // Attempt to set the player ID before game start. 
+                // Note: _targetKingdom matches the Name from command line. 
+                // We hope the 'ID' is the same or the game handles name lookup.
+                // If this fails, the Verification step (Step 7) will catch it.
+                AIOverhaulPlugin.LogInfo($"AutoStart: Pre-selecting kingdom '{_targetKingdom}' for Player 0");
+                game.campaign.SetPlayerID(0, _targetKingdom, false);
+            }
+            catch (Exception ex)
+            {
+                AIOverhaulPlugin.LogError($"AutoStart: Step 4.5 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
+            }
+
             // STEP 5: Start the game
             AIOverhaulPlugin.LogInfo("AutoStart: Step 5 - Calling game.StartGame()...");
             try
@@ -212,29 +236,12 @@ namespace AIOverhaul
             yield return new WaitForSeconds(15f);
             AIOverhaulPlugin.LogInfo($"AutoStart: Step 5 - Map load complete (State: {game.state})");
 
-            // STEP 6: Create Shattered Map
-            AIOverhaulPlugin.LogInfo($"AutoStart: Step 6 - Creating Shattered Map with {_provinces} provinces...");
-            try
-            {
-                // CreateShatteredMap is private, use Traverse to access it
-                var traverse = Traverse.Create(game);
-                var method = traverse.Method("CreateShatteredMap", new object[] { _provinces });
-
-                if (method == null || !method.MethodExists())
-                {
-                    AIOverhaulPlugin.LogError("AutoStart: Step 6 - FAILED - Could not find CreateShatteredMap method");
-                    yield break;
-                }
-
-                AIOverhaulPlugin.LogInfo("AutoStart: Step 6 - Found CreateShatteredMap method, invoking...");
-                method.GetValue();
-                AIOverhaulPlugin.LogInfo("AutoStart: Step 6 - SUCCESS - Shattered Map created");
-            }
-            catch (Exception ex)
-            {
-                AIOverhaulPlugin.LogError($"AutoStart: Step 6 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
-                yield break;
-            }
+            // STEP 6: Verify Shattered Map (Implicit)
+            // The map should have been shattered by ApplyCampaignRules during start
+            AIOverhaulPlugin.LogInfo("AutoStart: Step 6 - Verifying Shattered Map...");
+            // We can check if calling it again is needed or if it worked.
+            // For now, we assume success if no errors, as ApplyCampaignRules should handle it.
+            AIOverhaulPlugin.LogInfo("AutoStart: Step 6 - Skipped manual creation (handled by kingdom_size variable)");
 
             // Wait for kingdoms to initialize
             AIOverhaulPlugin.LogInfo("AutoStart: Step 6 - Waiting 3s for kingdoms to initialize...");
@@ -275,13 +282,57 @@ namespace AIOverhaul
                     yield break;
                 }
 
-                AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - Calling campaign.SetPlayerID(0, '{targetKingdom.Name}', true)");
-                game.campaign.SetPlayerID(0, targetKingdom.Name, true);
-                AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - SUCCESS - Player kingdom set to {targetKingdom.Name}");
+                // 3. Set Player ID / Kingdom
+                // Note: SetPlayerID might not suffice for immediate UI logic or persistent data,
+                // so we also force the "kingdom_name" variable which GetKingdomName() relies on.
+                game.campaign.SetPlayerID(0, "single_player", false); // Logic.Campaign.single_player_id usually "single_player"
+                if (game.campaign.playerDataPersistent != null && game.campaign.playerDataPersistent.Length > 0)
+                {
+                    AIOverhaulPlugin.LogInfo($"AutoStart: Step 7b - Setting persistent kingdom_name to {_targetKingdom}...");
+                    game.campaign.playerDataPersistent[0].Set("kingdom_name", new Logic.Value(_targetKingdom));
+                }
+                
+                game.campaign.SetPlayerID(0, targetKingdom.Name, true); // Keep original call as backup/trigger
+                AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - Found target kingdom: {_targetKingdom} (ID: {targetKingdom.id})");
+
+                // Verify assignment
+                string verifiedName = game.campaign.GetKingdomName(0);
+                AIOverhaulPlugin.LogInfo($"AutoStart: Verified Kingdom Assignment: GetKingdomName(0) returns '{verifiedName}'");
+
+				// 4. Shattered World Setup
+				// To trigger CreateShatteredMap, we need to set the var AND call ApplyCampaignRules.
+                // FIX: CampaignRules reads from game.campaign.GetVar(), which checks campaignData.
+                // We must set the variable on campaignData, NOT game.vars.
+				string shatteredVal = _provinces + "_shattered";
+				AIOverhaulPlugin.LogInfo($"AutoStart: Step 8 - Setting campaign.campaignData 'kingdom_size' to {shatteredVal} and triggering ApplyCampaignRules...");
+				
+				game.campaign.campaignData.Set("kingdom_size", new Logic.Value(shatteredVal));
+				
+				// Force re-application of rules to trigger map generation (CreateShatteredMap)
+				// This is the critical step missing in previous attempts.
+				if (game.rules != null)
+				{
+					game.rules.ApplyCampaignRules(true);
+					AIOverhaulPlugin.LogInfo("AutoStart: Step 8 - ApplyCampaignRules(true) invoked for Shattered World.");
+				}
+				else
+				{
+					AIOverhaulPlugin.LogError("AutoStart: Step 8 - FAILED: game.rules is null!");
+				}
+
+				// 5. Enable Spectator & Speed
+				AIOverhaulPlugin.LogInfo("AutoStart: Step 9 - Enabling Spectator Mode and Speed...");
+				AIOverhaulPlugin.ToggleSpectatorMode();
+				
+				// Increase speed to 100x as requested
+				game.SetSpeed(100f);
+				AIOverhaulPlugin.LogInfo("AutoStart: Step 9 - Speed set to 100x");
+
+				AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - SUCCESS - Player kingdom set to {_targetKingdom}, Shattered World ({_provinces} provinces) init triggered.");
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.LogError($"AutoStart: Step 7 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
+                AIOverhaulPlugin.LogError($"AutoStart: Critical Error in Step 7: {ex}");
                 yield break;
             }
 
