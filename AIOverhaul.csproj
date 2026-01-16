@@ -71,23 +71,25 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="NewSource\Constants\ActionNames.cs" />
         <Compile Include="NewSource\Constants\BattleTacticNames.cs" />
         <Compile Include="NewSource\Constants\BuildingNames.cs" />
-        <Compile Include="NewSource\Constants\ActionNames.cs" />
     <Compile Include="NewSource\Constants\BuildingUpgradeNames.cs" />
+    <Compile Include="NewSource\Constants\CampaignVarNames.cs" />
         <Compile Include="NewSource\Constants\CharacterClassNames.cs" />
         <Compile Include="NewSource\Constants\Constants.cs" />
         <Compile Include="NewSource\Constants\DistrictNames.cs" />
+        <Compile Include="NewSource\Constants\FeatureNames.cs" />
         <Compile Include="NewSource\Constants\GameBalance.cs" />
         <Compile Include="NewSource\Constants\GoodsNames.cs" />
-    <Compile Include="NewSource\Constants\FeatureNames.cs" />
+        <Compile Include="NewSource\Constants\KingdomNames.cs" />
+        <Compile Include="NewSource\Constants\LogCategory.cs" />
+        <Compile Include="NewSource\Constants\MapNames.cs" />
+        <Compile Include="NewSource\Constants\SkillNames.cs" />
     <Compile Include="NewSource\Helpers\FeatureHelper.cs" />
     <Compile Include="NewSource\Helpers\MilitaryHelper.cs" />
     <Compile Include="NewSource\Helpers\SkillHelper.cs" />
     <Compile Include="NewSource\Helpers\TraditionHelper.cs" />
-        <Compile Include="NewSource\Constants\LogCategory.cs" />
-        <Compile Include="NewSource\Constants\SkillNames.cs" />
-        <Compile Include="NewSource\Constants\KingdomNames.cs" />
         <Compile Include="NewSource\Constants\TraditionNames.cs" />
         <Compile Include="NewSource\Helpers\BuildingHelper.cs" />
         <Compile Include="NewSource\Helpers\CsvHelper.cs" />

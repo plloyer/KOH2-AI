@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using System.Linq;
+using AIOverhaul.Constants;
 using HarmonyLib;
 
 namespace AIOverhaul
@@ -11,15 +12,17 @@ namespace AIOverhaul
     /// </summary>
     public class AutoStarter : MonoBehaviour
     {
-        private static Logic.Game _capturedGame = null;
+        const string LogPrefix = "AutoStart";
+        
+        static Logic.Game _capturedGame = null;
 
         bool _hasStarted = false;
-        string _targetKingdom = "Champagne";
+        string _targetKingdom = KingdomNames.Champagne;
         int _provinces = 2;
         int _difficulty = 2;
         bool _spectatorEnabled = false;
 
-        private bool _sceneMonitoringStarted = false;
+        bool _sceneMonitoringStarted = false;
 
         /// <summary>
         /// Called by GameCreateMultiplayerPatch to provide the Game instance
@@ -100,8 +103,8 @@ namespace AIOverhaul
             }
         }
 
-        private bool _hasRoutineStarted = false;
-        private float _sceneCheckStartTime = -1f;
+        bool _hasRoutineStarted = false;
+        float _sceneCheckStartTime = -1f;
 
         void CheckSceneAndStart()
         {
@@ -133,244 +136,121 @@ namespace AIOverhaul
         {
             AIOverhaulPlugin.LogInfo("=== AutoStart: Routine Started ===");
 
-            // STEP 1: Wait for main menu to load
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 1 - Waiting 5s for main menu to load...");
-            yield return new WaitForSeconds(5f);
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 1 - Main menu loaded");
-
-            // STEP 2: Wait a bit longer for game systems to be ready
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 2 - Waiting additional 5s for game systems...");
-            yield return new WaitForSeconds(5f);
-
-            // STEP 3: Wait for Game instance to be captured by our patch
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 3 - Waiting for Game instance to be captured...");
+            // Wait for Game instance to be captured by our patch
+            AIOverhaulPlugin.LogInfo("AutoStart: Step 1 - Waiting for Game instance to be captured...");
             Logic.Game game = null;
 
             // Wait for the game to be captured (CreateMultiplayer is called during engine init)
-            for (int i = 0; i < 30; i++)  // Wait up to 30 seconds
+            int i = 0;
+            const int maxWaitSecond = 60;
+            while (game == null)
             {
                 game = _capturedGame;
-                if (game != null)
-                {
-                    AIOverhaulPlugin.LogInfo($"AutoStart: Step 3 - Game instance captured after {i}s (State: {game.state})");
-                    break;
-                }
-
-                if (i % 5 == 0)  // Log every 5 seconds
-                {
-                    AIOverhaulPlugin.LogInfo($"AutoStart: Step 3 - Waiting for Game... ({i}s / 30s)");
-                }
-
                 yield return new WaitForSeconds(1f);
-            }
 
-            if (game == null)
-            {
-                AIOverhaulPlugin.LogError("AutoStart: Step 3 - FAILED - Game instance was never captured");
-                AIOverhaulPlugin.LogError("AutoStart: Step 3 - This means CreateMultiplayer was never called, or our patch didn't run");
-                yield break;
+                if (i++ == maxWaitSecond)
+                {
+                    AIOverhaulPlugin.LogError("AutoStart: Failed to get the game instance.");
+                    yield break;
+                }
             }
+            
+            AIOverhaulPlugin.LogInfo("AutoStart: Game instance found. Waiting 5 sec (for luck!) to start game.");
+            yield return new WaitForSeconds(5f);
 
-            // STEP 4: Create Campaign and assign to game
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 4 - Creating Campaign for 'europe' map...");
+            // Create Campaign and assign to game
+            AIOverhaulPlugin.LogInfo($"{LogPrefix}: Step 2 - Creating Campaign...");
             Logic.Campaign campaign = null;
             try
             {
-                campaign = Logic.Campaign.CreateSinglePlayerCampaign("europe", "1110_1");
+                campaign = Logic.Campaign.CreateSinglePlayerCampaign(MapNames.Europe, PeriodNames.Early);
                 if (campaign == null)
                 {
-                    AIOverhaulPlugin.LogError("AutoStart: Step 4 - FAILED - Campaign.CreateSinglePlayerCampaign returned null");
+                    AIOverhaulPlugin.LogError($"{LogPrefix}: FAILED - Campaign.CreateSinglePlayerCampaign returned null");
                     yield break;
                 }
-                AIOverhaulPlugin.LogInfo($"AutoStart: Step 4 - SUCCESS - Campaign created (ID: {campaign.id})");
+                AIOverhaulPlugin.LogInfo($"{LogPrefix}: SUCCESS - Campaign created (ID: {campaign.id})");
 
                 // Assign campaign to game
-                AIOverhaulPlugin.LogInfo("AutoStart: Step 4 - Assigning campaign to game...");
                 game.campaign = campaign;
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.LogError($"AutoStart: Step 4 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
+                AIOverhaulPlugin.LogError($"{LogPrefix}: FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
                 yield break;
             }
 
-            // STEP 4.5: Configure Game Variables (Before Start)
+            // Configure Game Variables (Before Start)
             // This triggers internal game logic (like Shattered Map creation) automatically during start
-            AIOverhaulPlugin.LogInfo($"AutoStart: Step 4.5 - Configuring Game Variables...");
+            AIOverhaulPlugin.LogInfo($"{LogPrefix}: Step 3 - Configuring Game Variables...");
             try
             {
                 // Set Shattered Map configuration
-                // Logic.Game.GetKingdomSizeWhenShatteredMap() reads this variable
+                // Logic.Game.GetKingdomSizeWhenShatteredMap() reads this from campaignData, NOT game.vars
                 string shatteredVal = $"{_provinces}_shattered";
-                AIOverhaulPlugin.LogInfo($"AutoStart: Setting 'kingdom_size' to '{shatteredVal}'");
-                game.vars.Set("kingdom_size", new Logic.Value(shatteredVal));
+                AIOverhaulPlugin.LogInfo($"{LogPrefix}: Setting options on campaignData...");
+                var data = game.campaign.campaignData;
+                
+                data.Set(CampaignVarNames.KingdomSize, new Logic.Value(shatteredVal));
+                data.Set(CampaignVarNames.PickKingdom, new Logic.Value("pick")); // "pick" allows specific selection
+                data.Set(CampaignVarNames.MapSize, new Logic.Value("normal"));
+                data.Set(CampaignVarNames.StartPeriod, new Logic.Value(PeriodNames.Early));
+                data.Set(CampaignVarNames.AllowOffline, new Logic.Value(true));
+                data.Set(CampaignVarNames.MainGoal, new Logic.Value("domination")); // Default goal
 
-                // Set Player Kingdom
-                // Attempt to set the player ID before game start. 
-                // Note: _targetKingdom matches the Name from command line. 
-                // We hope the 'ID' is the same or the game handles name lookup.
-                // If this fails, the Verification step (Step 7) will catch it.
-                AIOverhaulPlugin.LogInfo($"AutoStart: Pre-selecting kingdom '{_targetKingdom}' for Player 0");
-                game.campaign.SetPlayerID(0, _targetKingdom, false);
+                // Set Player Kingdom (Pre-selection)
+                // We set the internal lists so that when StartGame runs, it picks up the correct player kingdom.
+                
+                // 1. Set ID
+                int localIndex = 0; 
+                AIOverhaulPlugin.LogInfo($"{LogPrefix}: Pre-selecting kingdom '{_targetKingdom}' for Player " + localIndex);
+                game.campaign.SetPlayerID(localIndex, Logic.Campaign.single_player_id, false);
+                if (game.campaign.playerIDs != null && game.campaign.playerIDs.Length > localIndex)
+                    game.campaign.playerIDs[localIndex] = Logic.Campaign.single_player_id;
+
+                // 2. Set persistent data name using API
+                // Using SetPlayerKingdomName as requested, which handles persistent data and other logic.
+                game.campaign.SetLocalPlayerKingdomName(_targetKingdom, "");
+
+                // 3. Set internal list override
+                if (game.campaign.player_kingdoms == null)
+                    game.campaign.player_kingdoms = new System.Collections.Generic.List<string>();
+                
+                if (game.campaign.player_kingdoms.Count <= localIndex)
+                {
+                    while (game.campaign.player_kingdoms.Count <= localIndex)
+                        game.campaign.player_kingdoms.Add("");
+                }
+                game.campaign.player_kingdoms[localIndex] = _targetKingdom;
+                
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.LogError($"AutoStart: Step 4.5 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
+                AIOverhaulPlugin.LogError($"{LogPrefix}: Step 3 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
             }
 
-            // STEP 5: Start the game
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 5 - Calling game.StartGame()...");
+            // STEP 4: Start the game
+            AIOverhaulPlugin.LogInfo($"{LogPrefix}: Step 4 - Calling game.StartGame()...");
             try
             {
-                game.StartGame(true, "europe");
-                AIOverhaulPlugin.LogInfo($"AutoStart: Step 5 - SUCCESS - StartGame called (State: {game.state})");
+                game.StartGame(true, MapNames.Europe);
+                AIOverhaulPlugin.LogInfo($"{LogPrefix}: Step 4 - SUCCESS - StartGame called (State: {game.state})");
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.LogError($"AutoStart: Step 5 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
+                AIOverhaulPlugin.LogError($"{LogPrefix}: Step 4 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
                 yield break;
             }
 
             // Wait for map to load
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 5 - Waiting 15s for map to load...");
-            yield return new WaitForSeconds(15f);
-            AIOverhaulPlugin.LogInfo($"AutoStart: Step 5 - Map load complete (State: {game.state})");
+            AIOverhaulPlugin.LogInfo($"{LogPrefix}: Step 5 - Waiting 15s for map to load...");
+            yield return new WaitForSeconds(10f);
+            AIOverhaulPlugin.LogInfo($"{LogPrefix}: Step 5 - Map load complete (State: {game.state})");
 
-            // STEP 6: Verify Shattered Map (Implicit)
-            // The map should have been shattered by ApplyCampaignRules during start
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 6 - Verifying Shattered Map...");
-            // We can check if calling it again is needed or if it worked.
-            // For now, we assume success if no errors, as ApplyCampaignRules should handle it.
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 6 - Skipped manual creation (handled by kingdom_size variable)");
-
-            // Wait for kingdoms to initialize
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 6 - Waiting 3s for kingdoms to initialize...");
-            yield return new WaitForSeconds(3f);
-
-            // STEP 7: Select Kingdom
-            AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - Selecting kingdom '{_targetKingdom}'...");
-            if (game.kingdoms == null)
-            {
-                AIOverhaulPlugin.LogError("AutoStart: Step 7 - FAILED - game.kingdoms is null");
-                yield break;
-            }
-
-            AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - Found {game.kingdoms.Count} kingdoms, searching for '{_targetKingdom}'...");
-            foreach (var kingdom in game.kingdoms)
-            {
-                if (kingdom != null)
-                {
-                    AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - Kingdom: {kingdom.Name} (ID: {kingdom.id})");
-                }
-            }
-
-            var targetKingdom = game.kingdoms.FirstOrDefault(x => x != null && x.Name.Contains(_targetKingdom));
-            if (targetKingdom == null)
-            {
-                AIOverhaulPlugin.LogError($"AutoStart: Step 7 - FAILED - Kingdom '{_targetKingdom}' not found!");
-                AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - Available kingdoms: {string.Join(", ", game.kingdoms.Where(k => k != null).Select(k => k.Name))}");
-                yield break;
-            }
-
-            AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - Found target kingdom: {targetKingdom.Name} (ID: {targetKingdom.id})");
-
-            try
-            {
-                if (game.campaign == null)
-                {
-                    AIOverhaulPlugin.LogError("AutoStart: Step 7 - FAILED - game.campaign is null");
-                    yield break;
-                }
-
-                // 3. Set Player ID / Kingdom
-                // Note: SetPlayerID might not suffice for immediate UI logic or persistent data,
-                // so we also force the "kingdom_name" variable which GetKingdomName() relies on.
-                game.campaign.SetPlayerID(0, "single_player", false); // Logic.Campaign.single_player_id usually "single_player"
-                if (game.campaign.playerDataPersistent != null && game.campaign.playerDataPersistent.Length > 0)
-                {
-                    AIOverhaulPlugin.LogInfo($"AutoStart: Step 7b - Setting persistent kingdom_name to {_targetKingdom}...");
-                    game.campaign.playerDataPersistent[0].Set("kingdom_name", new Logic.Value(_targetKingdom));
-                }
-                
-                game.campaign.SetPlayerID(0, targetKingdom.Name, true); // Keep original call as backup/trigger
-                AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - Found target kingdom: {_targetKingdom} (ID: {targetKingdom.id})");
-
-                // Verify assignment
-                string verifiedName = game.campaign.GetKingdomName(0);
-                AIOverhaulPlugin.LogInfo($"AutoStart: Verified Kingdom Assignment: GetKingdomName(0) returns '{verifiedName}'");
-
-				// 4. Shattered World Setup
-				// To trigger CreateShatteredMap, we need to set the var AND call ApplyCampaignRules.
-                // FIX: CampaignRules reads from game.campaign.GetVar(), which checks campaignData.
-                // We must set the variable on campaignData, NOT game.vars.
-				string shatteredVal = _provinces + "_shattered";
-				AIOverhaulPlugin.LogInfo($"AutoStart: Step 8 - Setting campaign.campaignData 'kingdom_size' to {shatteredVal} and triggering ApplyCampaignRules...");
-				
-				game.campaign.campaignData.Set("kingdom_size", new Logic.Value(shatteredVal));
-				
-				// Force re-application of rules to trigger map generation (CreateShatteredMap)
-				// This is the critical step missing in previous attempts.
-				if (game.rules != null)
-				{
-					game.rules.ApplyCampaignRules(true);
-					AIOverhaulPlugin.LogInfo("AutoStart: Step 8 - ApplyCampaignRules(true) invoked for Shattered World.");
-				}
-				else
-				{
-					AIOverhaulPlugin.LogError("AutoStart: Step 8 - FAILED: game.rules is null!");
-				}
-
-				// 5. Enable Spectator & Speed
-				AIOverhaulPlugin.LogInfo("AutoStart: Step 9 - Enabling Spectator Mode and Speed...");
-				AIOverhaulPlugin.ToggleSpectatorMode();
-				
-				// Increase speed to 100x as requested
-				game.SetSpeed(100f);
-				AIOverhaulPlugin.LogInfo("AutoStart: Step 9 - Speed set to 100x");
-
-				AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - SUCCESS - Player kingdom set to {_targetKingdom}, Shattered World ({_provinces} provinces) init triggered.");
-            }
-            catch (Exception ex)
-            {
-                AIOverhaulPlugin.LogError($"AutoStart: Critical Error in Step 7: {ex}");
-                yield break;
-            }
-
-            yield return new WaitForSeconds(2f);
-
-            // STEP 8: Enable Spectator Mode
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 8 - Enabling Spectator Mode...");
-            try
-            {
-                if (!AIOverhaulPlugin.SpectatorMode)
-                {
-                    AIOverhaulPlugin.ToggleSpectatorMode();
-                    AIOverhaulPlugin.LogInfo("AutoStart: Step 8 - SUCCESS - Spectator Mode enabled");
-                }
-                else
-                {
-                    AIOverhaulPlugin.LogInfo("AutoStart: Step 8 - Spectator Mode already enabled");
-                }
-                _spectatorEnabled = true;
-            }
-            catch (Exception ex)
-            {
-                AIOverhaulPlugin.LogError($"AutoStart: Step 8 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
-            }
-
-            // STEP 9: Set Game Speed
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 9 - Setting game speed to 3.0x...");
-            try
-            {
-                game.SetSpeed(3f);
-                AIOverhaulPlugin.LogInfo("AutoStart: Step 9 - SUCCESS - Game speed set to 3.0x");
-            }
-            catch (Exception ex)
-            {
-                AIOverhaulPlugin.LogError($"AutoStart: Step 9 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
-            }
-
-            AIOverhaulPlugin.LogInfo("=== AutoStart: Setup Complete - Game Running ===");
+            // Enable Spectator & Speed
+            AIOverhaulPlugin.LogInfo($"{LogPrefix}: Step 6 - Enabling Spectator Mode and Speed...");
+            AIOverhaulPlugin.ToggleSpectatorMode();
+            game.SetSpeed(100f);
         }
 
         int _lastLoggedDay = -1;
@@ -394,19 +274,19 @@ namespace AIOverhaul
                     // Log progress every 10 days
                     if (_lastLoggedDay == -1)
                     {
-                        AIOverhaulPlugin.LogInfo($"AutoStart: Day counter found. Starting day: {currentDay}");
+                        AIOverhaulPlugin.LogInfo($"{LogPrefix}: Day counter found. Starting day: {currentDay}");
                         _lastLoggedDay = currentDay;
                     }
                     else if (currentDay >= _lastLoggedDay + 10)
                     {
-                        AIOverhaulPlugin.LogInfo($"AutoStart: Progress - Day {currentDay}");
+                        AIOverhaulPlugin.LogInfo($"{LogPrefix}: Progress - Day {currentDay}");
                         _lastLoggedDay = currentDay;
                     }
 
                     // Check if 100 days reached
                     if (currentDay >= 100)
                     {
-                        AIOverhaulPlugin.LogInfo($"AutoStart: Target reached - Day {currentDay}/100. Quitting game...");
+                        AIOverhaulPlugin.LogInfo($"{LogPrefix}: Target reached - Day {currentDay}/100. Quitting game...");
                         Application.Quit();
                         return;
                     }
@@ -423,8 +303,8 @@ namespace AIOverhaul
                 if (_gameStartTime < 0)
                 {
                     _gameStartTime = Time.realtimeSinceStartup;
-                    AIOverhaulPlugin.LogInfo("AutoStart: Day counter not found. Using time-based tracking instead.");
-                    AIOverhaulPlugin.LogInfo($"AutoStart: Game will run for approximately 10 minutes (600s) as a safety limit.");
+                    AIOverhaulPlugin.LogInfo($"{LogPrefix}: Day counter not found. Using time-based tracking instead.");
+                    AIOverhaulPlugin.LogInfo($"{LogPrefix}: Game will run for approximately 10 minutes (600s) as a safety limit.");
                 }
 
                 float elapsedTime = Time.realtimeSinceStartup - _gameStartTime;
@@ -433,14 +313,14 @@ namespace AIOverhaul
                 int elapsedMinutes = Mathf.FloorToInt(elapsedTime / 60f);
                 if (elapsedMinutes > _lastLoggedDay)
                 {
-                    AIOverhaulPlugin.LogInfo($"AutoStart: Progress - {elapsedMinutes} minutes elapsed ({elapsedTime:F0}s)");
+                    AIOverhaulPlugin.LogInfo($"{LogPrefix}: Progress - {elapsedMinutes} minutes elapsed ({elapsedTime:F0}s)");
                     _lastLoggedDay = elapsedMinutes;
                 }
 
                 // Quit after 10 minutes (safety limit if day counter doesn't work)
                 if (elapsedTime >= 600f)
                 {
-                    AIOverhaulPlugin.LogInfo($"AutoStart: Time limit reached - {elapsedTime:F0}s. Quitting game...");
+                    AIOverhaulPlugin.LogInfo($"{LogPrefix}: Time limit reached - {elapsedTime:F0}s. Quitting game...");
                     Application.Quit();
                     return;
                 }
