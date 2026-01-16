@@ -216,65 +216,19 @@ namespace AIOverhaul
             AIOverhaulPlugin.LogInfo($"AutoStart: Step 6 - Creating Shattered Map with {_provinces} provinces...");
             try
             {
-                var method = AccessTools.Method(typeof(Logic.Game), "CreateShatteredMap", new Type[] { typeof(int) });
-                if (method == null)
+                // CreateShatteredMap is private, use Traverse to access it
+                var traverse = Traverse.Create(game);
+                var method = traverse.Method("CreateShatteredMap", new object[] { _provinces });
+
+                if (method == null || !method.MethodExists())
                 {
-                    AIOverhaulPlugin.LogError("AutoStart: Step 5 - FAILED - Could not find CreateShatteredMap method via reflection");
+                    AIOverhaulPlugin.LogError("AutoStart: Step 6 - FAILED - Could not find CreateShatteredMap method");
                     yield break;
                 }
 
-                AIOverhaulPlugin.LogInfo("AutoStart: Step 5 - Found CreateShatteredMap method, invoking...");
-                method.Invoke(game, new object[] { _provinces });
-                AIOverhaulPlugin.LogInfo("AutoStart: Step 5 - SUCCESS - Shattered Map created");
-            }
-            catch (Exception ex)
-            {
-                AIOverhaulPlugin.LogError($"AutoStart: Step 5 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
-                yield break;
-            }
-
-            // Wait for kingdoms to initialize
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 5 - Waiting 3s for kingdoms to initialize...");
-            yield return new WaitForSeconds(3f);
-
-            // STEP 6: Select Kingdom
-            AIOverhaulPlugin.LogInfo($"AutoStart: Step 6 - Selecting kingdom '{_targetKingdom}'...");
-            if (game.kingdoms == null)
-            {
-                AIOverhaulPlugin.LogError("AutoStart: Step 6 - FAILED - game.kingdoms is null");
-                yield break;
-            }
-
-            AIOverhaulPlugin.LogInfo($"AutoStart: Step 6 - Found {game.kingdoms.Count} kingdoms, searching for '{_targetKingdom}'...");
-            foreach (var kingdom in game.kingdoms)
-            {
-                if (kingdom != null)
-                {
-                    AIOverhaulPlugin.LogInfo($"AutoStart: Step 6 - Kingdom: {kingdom.Name} (ID: {kingdom.id})");
-                }
-            }
-
-            var targetKingdom = game.kingdoms.FirstOrDefault(x => x != null && x.Name.Contains(_targetKingdom));
-            if (targetKingdom == null)
-            {
-                AIOverhaulPlugin.LogError($"AutoStart: Step 6 - FAILED - Kingdom '{_targetKingdom}' not found!");
-                AIOverhaulPlugin.LogInfo($"AutoStart: Step 6 - Available kingdoms: {string.Join(", ", game.kingdoms.Where(k => k != null).Select(k => k.Name))}");
-                yield break;
-            }
-
-            AIOverhaulPlugin.LogInfo($"AutoStart: Step 6 - Found target kingdom: {targetKingdom.Name} (ID: {targetKingdom.id})");
-
-            try
-            {
-                if (game.campaign == null)
-                {
-                    AIOverhaulPlugin.LogError("AutoStart: Step 6 - FAILED - game.campaign is null");
-                    yield break;
-                }
-
-                AIOverhaulPlugin.LogInfo($"AutoStart: Step 6 - Calling campaign.SetPlayerID(0, '{targetKingdom.Name}', true)");
-                game.campaign.SetPlayerID(0, targetKingdom.Name, true);
-                AIOverhaulPlugin.LogInfo($"AutoStart: Step 6 - SUCCESS - Player kingdom set to {targetKingdom.Name}");
+                AIOverhaulPlugin.LogInfo("AutoStart: Step 6 - Found CreateShatteredMap method, invoking...");
+                method.GetValue();
+                AIOverhaulPlugin.LogInfo("AutoStart: Step 6 - SUCCESS - Shattered Map created");
             }
             catch (Exception ex)
             {
@@ -282,38 +236,87 @@ namespace AIOverhaul
                 yield break;
             }
 
+            // Wait for kingdoms to initialize
+            AIOverhaulPlugin.LogInfo("AutoStart: Step 6 - Waiting 3s for kingdoms to initialize...");
+            yield return new WaitForSeconds(3f);
+
+            // STEP 7: Select Kingdom
+            AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - Selecting kingdom '{_targetKingdom}'...");
+            if (game.kingdoms == null)
+            {
+                AIOverhaulPlugin.LogError("AutoStart: Step 7 - FAILED - game.kingdoms is null");
+                yield break;
+            }
+
+            AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - Found {game.kingdoms.Count} kingdoms, searching for '{_targetKingdom}'...");
+            foreach (var kingdom in game.kingdoms)
+            {
+                if (kingdom != null)
+                {
+                    AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - Kingdom: {kingdom.Name} (ID: {kingdom.id})");
+                }
+            }
+
+            var targetKingdom = game.kingdoms.FirstOrDefault(x => x != null && x.Name.Contains(_targetKingdom));
+            if (targetKingdom == null)
+            {
+                AIOverhaulPlugin.LogError($"AutoStart: Step 7 - FAILED - Kingdom '{_targetKingdom}' not found!");
+                AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - Available kingdoms: {string.Join(", ", game.kingdoms.Where(k => k != null).Select(k => k.Name))}");
+                yield break;
+            }
+
+            AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - Found target kingdom: {targetKingdom.Name} (ID: {targetKingdom.id})");
+
+            try
+            {
+                if (game.campaign == null)
+                {
+                    AIOverhaulPlugin.LogError("AutoStart: Step 7 - FAILED - game.campaign is null");
+                    yield break;
+                }
+
+                AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - Calling campaign.SetPlayerID(0, '{targetKingdom.Name}', true)");
+                game.campaign.SetPlayerID(0, targetKingdom.Name, true);
+                AIOverhaulPlugin.LogInfo($"AutoStart: Step 7 - SUCCESS - Player kingdom set to {targetKingdom.Name}");
+            }
+            catch (Exception ex)
+            {
+                AIOverhaulPlugin.LogError($"AutoStart: Step 7 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
+                yield break;
+            }
+
             yield return new WaitForSeconds(2f);
 
-            // STEP 7: Enable Spectator Mode
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 7 - Enabling Spectator Mode...");
+            // STEP 8: Enable Spectator Mode
+            AIOverhaulPlugin.LogInfo("AutoStart: Step 8 - Enabling Spectator Mode...");
             try
             {
                 if (!AIOverhaulPlugin.SpectatorMode)
                 {
                     AIOverhaulPlugin.ToggleSpectatorMode();
-                    AIOverhaulPlugin.LogInfo("AutoStart: Step 7 - SUCCESS - Spectator Mode enabled");
+                    AIOverhaulPlugin.LogInfo("AutoStart: Step 8 - SUCCESS - Spectator Mode enabled");
                 }
                 else
                 {
-                    AIOverhaulPlugin.LogInfo("AutoStart: Step 7 - Spectator Mode already enabled");
+                    AIOverhaulPlugin.LogInfo("AutoStart: Step 8 - Spectator Mode already enabled");
                 }
                 _spectatorEnabled = true;
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.LogError($"AutoStart: Step 7 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
+                AIOverhaulPlugin.LogError($"AutoStart: Step 8 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
             }
 
-            // STEP 8: Set Game Speed
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 8 - Setting game speed to 3.0x...");
+            // STEP 9: Set Game Speed
+            AIOverhaulPlugin.LogInfo("AutoStart: Step 9 - Setting game speed to 3.0x...");
             try
             {
                 game.SetSpeed(3f);
-                AIOverhaulPlugin.LogInfo("AutoStart: Step 8 - SUCCESS - Game speed set to 3.0x");
+                AIOverhaulPlugin.LogInfo("AutoStart: Step 9 - SUCCESS - Game speed set to 3.0x");
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.LogError($"AutoStart: Step 8 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
+                AIOverhaulPlugin.LogError($"AutoStart: Step 9 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
             }
 
             AIOverhaulPlugin.LogInfo("=== AutoStart: Setup Complete - Game Running ===");
