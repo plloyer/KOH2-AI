@@ -3,6 +3,9 @@ using System;
 
 namespace AIOverhaul.Patches.Diplomacy
 {
+    /// <summary>
+    /// This patch is used to accept, in spectator mode, diplomacy like if it was a normal AI (instant).
+    /// </summary>
     [HarmonyPatch(typeof(Logic.Offer), "Resolve")]
     public class Offer_Resolve
     {

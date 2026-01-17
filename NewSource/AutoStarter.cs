@@ -154,8 +154,8 @@ namespace AIOverhaul
                 }
             }
             
-            AIOverhaulPlugin.LogInfo("AutoStart: Game instance found. Waiting 5 sec (for luck!) to start game.");
-            yield return new WaitForSeconds(5f);
+            AIOverhaulPlugin.LogInfo("AutoStart: Game instance found. Waiting 10 sec (for luck!) to start game.");
+            yield return new WaitForSeconds(10f);
 
             // Create Campaign and assign to game
             AIOverhaulPlugin.LogInfo($"{LogPrefix}: Step 2 - Creating Campaign...");
