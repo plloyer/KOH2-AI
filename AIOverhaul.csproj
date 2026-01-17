@@ -111,6 +111,8 @@
         <Compile Include="NewSource\Patches\Governor.Eval.cs" />
         <Compile Include="NewSource\Patches\Military\BuddySystem.cs" />
         <Compile Include="NewSource\Patches\Military\Castle.EvalHireUnits.cs" />
+        <Compile Include="NewSource\Patches\Military\KingdomAI.AssignArmy.cs" />
+        <Compile Include="NewSource\Patches\Military\KingdomAI.CanAssign.cs" />
         <Compile Include="NewSource\Patches\Military\KingdomAI.ThinkArmy.cs" />
         <Compile Include="NewSource\Patches\Military\KingdomAI.ThinkAssaultSiege.cs" />
         <Compile Include="NewSource\Patches\Military\KingdomAI.ThinkFight.cs" />

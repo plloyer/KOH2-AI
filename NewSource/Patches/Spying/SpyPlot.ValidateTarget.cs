@@ -1,7 +1,5 @@
 using HarmonyLib;
-using Logic;
 using System;
-using AIOverhaul;
 
 namespace AIOverhaul.Patches.Spying
 {

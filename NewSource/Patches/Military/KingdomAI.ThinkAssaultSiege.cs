@@ -11,11 +11,17 @@ namespace AIOverhaul.Patches.Military
         {
             if (__instance == null || __instance.kingdom == null) return true;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
-            
-            // Paranoid check for army and battle
-            if (a == null) return true;
-            // Accessing a.battle might technically throw if 'a' is in a weird state, but usually property access is safe-ish
-            if (a.battle == null) return true;
+            if (a == null || a.battle == null) return true;
+
+            // BUDDY SYSTEM: Followers should NOT decide to assault independently.
+            // They follow the Leader's lead (which is handled by the battle mechanic or tactical follow).
+            if (BuddySystem.IsFollower(a))
+            {
+                // return false to skip assault logic -> Stay in siege?
+                // OR should we check if leader is assaulting?
+                // Usually better to be passive and let leader drive.
+                return false; 
+            }
 
             // Fix: Battle.castle -> Battle.settlement as Castle
             var castle = a.battle.settlement as Logic.Castle;
