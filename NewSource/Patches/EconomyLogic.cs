@@ -1,11 +1,7 @@
  using System;
-using HarmonyLib;
-using Logic;
-using UnityEngine;
-using AIOverhaul.Constants;
-using AIOverhaul.Helpers;
+ using UnityEngine;
 
-namespace AIOverhaul
+ namespace AIOverhaul
 {
 
     // "ChooseNewSkill" picks a new skill for a character when they gain a level or slot.

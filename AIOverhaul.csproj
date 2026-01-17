@@ -85,6 +85,7 @@
         <Compile Include="NewSource\Constants\KingdomNames.cs" />
         <Compile Include="NewSource\Constants\LogCategory.cs" />
         <Compile Include="NewSource\Constants\MapNames.cs" />
+        <Compile Include="NewSource\Constants\DiplomacyConstants.cs" />
         <Compile Include="NewSource\Constants\SkillNames.cs" />
     <Compile Include="NewSource\Helpers\FeatureHelper.cs" />
     <Compile Include="NewSource\Helpers\MilitaryHelper.cs" />
@@ -111,6 +112,7 @@
         <Compile Include="NewSource\Patches\MilitaryLogic.cs" />
         <Compile Include="NewSource\Patches\RoyalFamily.AddChild.cs" />
         <Compile Include="NewSource\Patches\WarDiplomacyLogic.cs" />
+        <Compile Include="NewSource\Patches\Diplomacy\Offer.Resolve.cs" />
         <Compile Include="NewSource\Plugin.cs" />
         <Compile Include="NewSource\AutoStarter.cs" />
         <Compile Include="NewSource\Debug\DebugOverlay.cs" />

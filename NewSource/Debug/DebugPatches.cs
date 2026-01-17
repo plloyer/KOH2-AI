@@ -1,6 +1,4 @@
 using HarmonyLib;
-using AIOverhaul;
-using Logic;
 using UnityEngine;
 
 namespace AIOverhaul
