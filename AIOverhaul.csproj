@@ -120,6 +120,7 @@
         <Compile Include="NewSource\Patches\RoyalFamily.AddChild.cs" />
         <Compile Include="NewSource\Patches\WarDiplomacyLogic.cs" />
         <Compile Include="NewSource\Patches\Diplomacy\Offer.Resolve.cs" />
+        <Compile Include="NewSource\Patches\Diplomacy\DemandLand.BorderException.cs" />
         <Compile Include="NewSource\Patches\Spying\SpyPlot.ValidateTarget.cs" />
         <Compile Include="NewSource\Plugin.cs" />
         <Compile Include="NewSource\AutoStarter.cs" />
