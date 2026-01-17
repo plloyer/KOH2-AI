@@ -11,6 +11,8 @@ namespace AIOverhaul.Patches.Court
     [HarmonyPatch(new Type[] { typeof(Logic.KingdomAI.Expense.Type), typeof(Logic.BaseObject), typeof(Logic.Object), typeof(Logic.KingdomAI.Expense.Category), typeof(Logic.KingdomAI.Expense.Priority), typeof(System.Collections.Generic.List<Logic.Value>) })]
     public class KingdomAI_HireSpy
     {
+        const float k_MinIncomeToHireSpy = 300f;
+        
         static bool Prefix(Logic.KingdomAI __instance, Logic.KingdomAI.Expense.Type type, Logic.BaseObject defParam)
         {
             if (__instance == null || __instance.kingdom == null) return true;
@@ -26,9 +28,9 @@ namespace AIOverhaul.Patches.Court
                 {
                     // Restriction: Must have at least 300 gold income
                     float income = __instance.kingdom.income[Logic.ResourceType.Gold];
-                    if (income < 300f)
+                    if (income < k_MinIncomeToHireSpy)
                     {
-                        AIOverhaulPlugin.LogInfo($"[HireSpy] Blocking Spy hiring for {__instance.kingdom.name}: Income {income:F1} < 300", LogCategory.Court);
+                        AIOverhaulPlugin.LogDebug($"[HireSpy] Blocking Spy hiring for {__instance.kingdom}: Income {income:F1} < {k_MinIncomeToHireSpy}", LogCategory.Knights);
                         return false; // Skip execution (don't consider this expense)
                     }
                 }
