@@ -26,7 +26,7 @@ namespace AIOverhaul.Patches.Military
 
                 if (readyArmies < 2)
                 {
-                    AIOverhaulPlugin.LogInfo($"[AssignArmy] Blocking offensive assignment to {threat.realm?.name}: waiting for 2 full armies (have {readyArmies})", Constants.LogCategory.Military, __instance.kingdom);
+                    AIOverhaulPlugin.LogDebug($"[AssignArmy] Blocking offensive assignment to {threat.realm?.name}: waiting for 2 full armies (have {readyArmies})", Constants.LogCategory.Military, __instance.kingdom);
                     __result = false; // Failed to assign
                     return false;     // Skip original method
                 }

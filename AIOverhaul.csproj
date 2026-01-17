@@ -102,6 +102,7 @@
         <Compile Include="NewSource\Patches\Spending\Castle.AddBuildOption.cs" />
         <Compile Include="NewSource\Patches\Spending\KingdomAI.ConsiderAdoptTradition.cs" />
         <Compile Include="NewSource\Patches\Spending\KingdomAI.ConsiderExpense.cs" />
+        <Compile Include="NewSource\Patches\Court\KingdomAI.HireSpy.cs" />
         <Compile Include="NewSource\Log\EnhancedPerformanceLogger.cs" />
         <Compile Include="NewSource\Log\KingdomBaseline.cs" />
         <Compile Include="NewSource\Patches\AIEvaluationEvents.cs" />
