@@ -109,7 +109,11 @@
     <Compile Include="NewSource\Patches\Kingdom.HireCharacter.cs" />
         <Compile Include="NewSource\Patches\EconomyLogic.cs" />
         <Compile Include="NewSource\Patches\Governor.Eval.cs" />
-        <Compile Include="NewSource\Patches\MilitaryLogic.cs" />
+        <Compile Include="NewSource\Patches\Military\BuddySystem.cs" />
+        <Compile Include="NewSource\Patches\Military\Castle.EvalHireUnits.cs" />
+        <Compile Include="NewSource\Patches\Military\KingdomAI.ThinkArmy.cs" />
+        <Compile Include="NewSource\Patches\Military\KingdomAI.ThinkAssaultSiege.cs" />
+        <Compile Include="NewSource\Patches\Military\KingdomAI.ThinkFight.cs" />
         <Compile Include="NewSource\Patches\RoyalFamily.AddChild.cs" />
         <Compile Include="NewSource\Patches\WarDiplomacyLogic.cs" />
         <Compile Include="NewSource\Patches\Diplomacy\Offer.Resolve.cs" />
