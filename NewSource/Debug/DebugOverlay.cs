@@ -239,8 +239,8 @@ namespace AIOverhaul
             GUILayout.Label($"Tradition Rushing: <color={rushingColor}>{isRushingTradition}</color> | Has Barracks: <color={barracksColor}>{barracksStatus}</color>", style);
             
             // Build Options stats
-            int buildCount = Castle.build_options.Count;
-            int upgradeCount = Castle.upgrade_options.Count;
+            int buildCount = Castle.last_build_options.Count;
+            int upgradeCount = Castle.last_upgrade_options.Count;
             GUILayout.Label($"Build Options: <color=white>{buildCount}</color> | Upgrade Options: <color=white>{upgradeCount}</color>", style);
 
             if (buildCount > 0)
@@ -248,7 +248,7 @@ namespace AIOverhaul
                 string topBuilds = "Top Builds: ";
                 for (int i = 0; i < System.Math.Min(buildCount, 3); i++)
                 {
-                    var opt = Castle.build_options[i];
+                    var opt = Castle.last_build_options[i];
                     topBuilds += $"{opt.def.id}({opt.eval:F0}) ";
                 }
                 GUILayout.Label(topBuilds, style);
@@ -259,7 +259,7 @@ namespace AIOverhaul
                 string topUpgrades = "Top Upgrades: ";
                 for (int i = 0; i < System.Math.Min(upgradeCount, 3); i++)
                 {
-                    var opt = Castle.upgrade_options[i];
+                    var opt = Castle.last_upgrade_options[i];
                     topUpgrades += $"{opt.def.id}({opt.eval:F0}) ";
                 }
                 GUILayout.Label(topUpgrades, style);

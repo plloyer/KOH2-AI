@@ -30,15 +30,15 @@ namespace AIOverhaul.Constants
         public const int MinFullArmyUnits = 4;
 
         // Evaluation Multipliers
-        // CRITICAL: Lower eval = higher priority. To INCREASE priority, DIVIDE eval or multiply by values < 1.0
-        public const float StrongBoostMultiplier = 0.5f;    // Multiply to halve eval (strong priority increase)
-        public const float MediumBoostMultiplier = 0.67f;   // Multiply to reduce eval by 33% (medium priority increase)
-        public const float WeakBoostMultiplier = 0.77f;     // Multiply to reduce eval by 23% (weak priority increase)
-        public const float StrongPenaltyMultiplier = 10.0f; // Multiply to increase eval 10x (strong priority decrease)
-        public const float MediumPenaltyMultiplier = 5.0f;  // Multiply to increase eval 5x (medium priority decrease)
-        public const float HighPriorityMultiplier = 0.7f;   // Multiply to reduce eval by 30%
-        public const float StrictBlockMultiplier = 100.0f;  // Multiply to exceed MAX_EVAL and block expense
-        public const float UrgentPriorityMultiplier = 0.01f; // Multiply to reduce eval to 1% (extreme priority)
+        // CRITICAL: Higher eval = higher priority. Multiply eval by these values to increase priority.
+        public const float StrongBoostMultiplier = 2.0f;    // Multiply to double eval (strong priority increase)
+        public const float MediumBoostMultiplier = 1.5f;   // Multiply to increase eval by 50% (medium priority increase)
+        public const float WeakBoostMultiplier = 1.3f;     // Multiply to increase eval by 30% (weak priority increase)
+        public const float StrongPenaltyMultiplier = 0.1f; // Multiply to reduce eval to 10% (strong priority decrease)
+        public const float MediumPenaltyMultiplier = 0.2f;  // Multiply to reduce eval to 20% (medium priority decrease)
+        public const float HighPriorityMultiplier = 1.4f;   // Multiply to increase eval by 40%
+        public const float StrictBlockMultiplier = 0.01f;  // Multiply to reduce eval to 1% (effectively block)
+        public const float UrgentPriorityMultiplier = 100.0f; // Multiply to increase eval 100x (extreme priority)
 
         // War Score Thresholds (negative = losing)
         public const float WarScorePeaceSeeking = -15f;
@@ -110,12 +110,12 @@ namespace AIOverhaul.Constants
         public const float DistrictMilitaryMultiplier = 2f; // Multiplier for available slots in military potential calc
 
         // Building Priority Multipliers
-        // CRITICAL: Lower eval = higher priority. Multiply eval by these values (eval *= multiplier) to increase priority.
+        // CRITICAL: Higher eval = higher priority. Multiply eval by these values (eval *= multiplier) to increase priority.
         public const float ReligionBuildingBoostPerSlot = 0.2f; // Bonus per religion slot (used in 1.0 + slots*0.2 formula)
         public const float BarracksSlotBoostPerSlot = 0.25f; // Bonus per castle district slot for barracks placement
-        public const float BarracksPriorityMultiplier = 0.01f; // eval *= 0.01 (1% of original) for very high priority on first barracks
-        public const float SwordsmithPriorityMultiplier = 1/30f; // eval *= 0.0333 (1/30th) for high priority on swordsmith upgrade
-        public const float FletcherPriorityMultiplier = 0.01f; // eval *= 0.01 (1% of original) for extremely high priority on fletcher
+        public const float BarracksPriorityMultiplier = 100.0f; // eval *= 100 (100x original) for very high priority on first barracks
+        public const float SwordsmithPriorityMultiplier = 30.0f; // eval *= 30 (30x original) for high priority on swordsmith upgrade
+        public const float FletcherPriorityMultiplier = 100.0f; // eval *= 100 (100x original) for extremely high priority on fletcher
 
         // Island Detection
         public const int IslandMaxNeighbors = 1;
