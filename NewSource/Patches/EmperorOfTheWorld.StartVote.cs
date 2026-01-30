@@ -1,11 +1,8 @@
 using HarmonyLib;
-using Logic;
-using AIOverhaul;
 using AIOverhaul.Constants;
-using System.Collections.Generic;
 using UnityEngine;
 
-namespace AIOverhaul.Patches.Logic
+namespace AIOverhaul.Patches
 {
     [HarmonyPatch(typeof(global::Logic.EmperorOfTheWorld), "StartVote")]
     public static class EmperorOfTheWorld_StartVote
