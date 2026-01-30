@@ -8,6 +8,8 @@ namespace AIOverhaul.Patches.Military
     [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkArmy")]
     public class KingdomAI_ThinkArmy
     {
+        private const float SallyOutStrengthRatio = 1.1f;
+
         static bool Prefix(Logic.KingdomAI __instance, Logic.Army army)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
@@ -163,6 +165,38 @@ namespace AIOverhaul.Patches.Military
                              return;
                          }
                      }
+                }
+
+
+                // SALLY OUT LOGIC (For Garrisoned Armies)
+                if (army.castle != null)
+                {
+                    var realm = army.castle.GetRealm();
+                    if (realm != null)
+                    {
+                        var threat = TraverseAPI.GetThreat(__instance, realm);
+                        // Check if under Siege
+                        if (threat != null && threat.level == Logic.KingdomAI.Threat.Level.Siege)
+                        {
+                            float myStrength = army.EvalStrength();
+                            float enemyStrength = threat.enemies_in.eval;
+
+                            // If we are stronger (with buffer), attack!
+                            if (enemyStrength > 0 && myStrength > enemyStrength * SallyOutStrengthRatio)
+                            {
+                                // Find the battle (Siege) attached to the castle
+                                // Using Reflection to access 'battle' field on Castle/Settlement to be safe
+                                var siegeBattle = Traverse.Create(army.castle).Field("battle").GetValue<Logic.Battle>();
+                                
+                                if (siegeBattle != null)
+                                {
+                                    AIOverhaulPlugin.LogDebug($"[ThinkArmy] Garrison {army.GetNid()} SALLYING OUT from {army.castle.name}! (Str: {myStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
+                                    TraverseAPI.SendArmy(__instance, army, siegeBattle, "attack", null);
+                                    return;
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
