@@ -17,34 +17,62 @@ namespace AIOverhaul.Patches.Military
             if (army.battle != null) return true;
 
             // Check if any realm is under urgent threat (Invaded or Siege) AND we're stronger
-            bool shouldDefendInstead = false;
+            if (__instance.kingdom.realms == null) return true;
+
             float armyStrength = army.EvalStrength();
 
-            if (__instance.kingdom.realms != null)
+            foreach (var r in __instance.kingdom.realms)
             {
-                foreach (var r in __instance.kingdom.realms)
+                var threat = TraverseAPI.GetThreat(__instance, r);
+                if (threat == null || threat.level < Logic.KingdomAI.Threat.Level.Invaded)
+                    continue;
+
+                float enemyStrength = threat.enemies_in.eval;
+
+                // Log siege situations for debugging
+                if (threat.level == Logic.KingdomAI.Threat.Level.Siege)
                 {
-                    var threat = TraverseAPI.GetThreat(__instance, r);
-                    if (threat != null && threat.level >= Logic.KingdomAI.Threat.Level.Invaded)
+                    AIOverhaulPlugin.LogDebug($"[ThinkArmy] SIEGE detected at {r.name}! Army {army.GetNid()} Str: {armyStrength:F0}, Enemy: {enemyStrength:F0}, Stronger: {armyStrength >= enemyStrength}", LogCategory.Military, __instance.kingdom);
+                }
+
+                // Only prioritize defense if we're stronger than the enemy
+                if (armyStrength < enemyStrength)
+                    continue;
+
+                // Override: Instead of yielding to vanilla (which might camp for recruits), FORCE ATTACK
+
+                // 1. Check for Siege Battle
+                if (threat.level == Logic.KingdomAI.Threat.Level.Siege && r.castle != null)
+                {
+                    var siegeBattle = Traverse.Create(r.castle).Field("battle").GetValue<Logic.Battle>();
+                    if (siegeBattle != null && army.battle != siegeBattle)
                     {
-                        float enemyStrength = threat.enemies_in.eval;
-                        // Only prioritize defense if we're stronger than the enemy
-                        if (armyStrength >= enemyStrength)
-                        {
-                            shouldDefendInstead = true;
-                            break;
-                        }
+                        AIOverhaulPlugin.LogDebug($"[ThinkArmy] FORCE DEFEND: Army {army.GetNid()} breaking siege at {r.name}! (Str: {armyStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
+                        TraverseAPI.SendArmy(__instance, army, siegeBattle, "attack", null);
+                        return false;
                     }
+
+                    // No siege battle object - try to find and attack the besieging army directly
+                    var besiegingArmy = AIOverhaul.Helpers.MilitaryHelper.FindEnemyInRealm(r, __instance.kingdom);
+                    if (besiegingArmy != null && army.GetTarget() != besiegingArmy)
+                    {
+                        AIOverhaulPlugin.LogDebug($"[ThinkArmy] FORCE DEFEND: Army {army.GetNid()} attacking besieging army at {r.name}! (Str: {armyStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
+                        TraverseAPI.SendArmy(__instance, army, besiegingArmy, "attack", null);
+                        return false;
+                    }
+                }
+
+                // 2. Check for Invading Army
+                var invadingArmy = AIOverhaul.Helpers.MilitaryHelper.FindEnemyInRealm(r, __instance.kingdom);
+                if (invadingArmy != null && army.GetTarget() != invadingArmy)
+                {
+                    AIOverhaulPlugin.LogDebug($"[ThinkArmy] FORCE DEFEND: Army {army.GetNid()} intercepting invader {invadingArmy.GetNid()} at {r.name}! (Str: {armyStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
+                    TraverseAPI.SendArmy(__instance, army, invadingArmy, "attack", null);
+                    return false;
                 }
             }
 
-            // If we should defend and are stronger, skip camping - let the army move
-            if (shouldDefendInstead)
-            {
-                return true;
-            }
-
-            // 1. In Own Territory
+            // In Own Territory
             var realm = army.realm_in;
             bool inOwnTerritory = realm != null && realm.GetKingdom() == __instance.kingdom;
 
@@ -84,11 +112,6 @@ namespace AIOverhaul.Patches.Military
 
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return;
 
-            // Access private field via reflection if needed, but usually public?
-            // Actually ai_status is likely internal/private. 
-            // Assuming "idle" check is correct from decompilation context.
-            // If status is not accessible, we skip.
-            
             // Logic: If we are idle OR if strict buddy system overrides us
             // If we are a Follower, we MUST do what the leader does.
             if (BuddySystem.IsFollower(army))
@@ -96,30 +119,40 @@ namespace AIOverhaul.Patches.Military
                 Logic.Army leader = BuddySystem.GetBuddy(army, __instance.kingdom);
                 if (leader != null && leader.IsValid())
                 {
-                    // STRICT BUDDY SYSTEM: Always copy target
-                    var leaderTargetRealm = leader.GetTargetRealm(); // Use GetTargetRealm() not tgt_realm directly to be safe
-                    // Or army.tgt_realm is the strategic target.
-                    
-                    // 1. Strategic Sync: If Leader is going to a realm, we go too.
-                    if (leader.tgt_realm != null && army.tgt_realm != leader.tgt_realm)
+                    // If leader is garrisoned (inside a castle), check if castle is under siege
+                    if (leader.castle != null)
                     {
-                         // This is handled by AssignArmy Postfix mostly, but if it desyncs:
-                         // TraverseAPI.SendArmy(__instance, army, leader.tgt_realm.castle, "follow_buddy_strat", null);
-                         // But that sends to castle... we might just correct the tgt_realm variable?
-                         // Better to let tactical logic handle the movement.
+                        var leaderRealm = leader.castle.GetRealm();
+                        if (leaderRealm != null)
+                        {
+                            var threat = TraverseAPI.GetThreat(__instance, leaderRealm);
+                            if (threat != null && threat.level == Logic.KingdomAI.Threat.Level.Siege)
+                            {
+                                // Leader's castle is under siege - follower should help break it!
+                                var siegeBattle = Traverse.Create(leader.castle).Field("battle").GetValue<Logic.Battle>();
+                                if (siegeBattle != null && army.GetTarget() != siegeBattle)
+                                {
+                                    AIOverhaulPlugin.LogDebug($"[ThinkArmy] Follower {army.GetNid()} rushing to break siege on leader's castle {leader.castle.name}!", LogCategory.Military, __instance.kingdom);
+                                    TraverseAPI.SendArmy(__instance, army, siegeBattle, "rescue_leader_siege", null);
+                                    return;
+                                }
+                            }
+                        }
+                        // Leader is idle in castle (not under siege), follower does its own thing
+                        return;
                     }
 
-                    // 2. Tactical Sync: Copy Leader's concrete target (Enemy Army, Castle, Position)
+                    // 1. Tactical Sync: Copy Leader's concrete target (Enemy Army, Castle, Position)
                     Logic.MapObject leaderTarget = leader.GetTarget(); // The object leader is interacting with
-                    
+
                     // If Leader has a target, we copy it.
                     if (leaderTarget != null && army.GetTarget() != leaderTarget)
                     {
                         TraverseAPI.SendArmy(__instance, army, leaderTarget, "follow_buddy_force", null);
                         return;
                     }
-                    
-                    // 3. Movement Sync: If Leader is moving (and not to a specific target we already copied), follow him.
+
+                    // 2. Movement Sync: If Leader is moving (and not to a specific target we already copied), follow him.
                     // This handles empty terrain movement
                     if (leader.movement.IsMoving() && army.GetTarget() != leader && leaderTarget == null)
                     {
@@ -127,13 +160,8 @@ namespace AIOverhaul.Patches.Military
                         return;
                     }
 
-                    // 4. Idle Sync: If Leader is idle/waiting, we wait near him.
-                    // If we are not doing anything, go to leader.
-                    if ((status == "idle" || status == "wait_orders") && army.GetTarget() != leader)
-                    {
-                         TraverseAPI.SendArmy(__instance, army, leader, "follow_buddy_idle", null);
-                         return;
-                    }
+                    // 3. If leader is idle (no target, not moving), follower should also be idle
+                    // Do NOT chase the leader - just let the follower do its own thing (return to garrison, etc.)
                 }
             }
             else

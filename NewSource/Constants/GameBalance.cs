@@ -21,6 +21,7 @@ namespace AIOverhaul.Constants
 
         // Army Composition - Late Game
         public const int FullArmySize = 8;
+        public const int MaxRangedUnitsPerArmy = 4; // Hard cap on ranged units per army
         public const float LateGameRangedMeleeRatio = 0.8f; // 4:5 ratio (3.5:4.5)
         public const float RatioToleranceLow = 0.9f; // 90% of target ratio
 

@@ -251,12 +251,12 @@ namespace AIOverhaul
             game.SetSpeed(100f);
         }
 
-        float _lastLoggedYear = -1f;
+        float _lastLoggedHour = -1f;
         float _gameStartTime = -1f;
-        float _startingGameYears = -1f;
+        float _startingGameHours = -1f;
 
-        // Target game duration: 10 game years
-        const float TargetGameYears = 10f;
+        // Target game duration: 5 game hours
+        const float TargetGameHours = 5f;
         // Real-time safety limit: 5 minutes
         const float RealTimeLimit = 300f;
 
@@ -271,30 +271,41 @@ namespace AIOverhaul
                 _gameStartTime = Time.realtimeSinceStartup;
             }
 
-            // Calculate years elapsed using session_time (same formula as KingdomBaseline)
+
+            // Calculate hours elapsed using session_time
             float gameHours = game.session_time.hours;
-            float gameYears = gameHours / GameBalance.HoursPerDay / GameBalance.DaysPerYear;
-
-            // Capture starting years on first valid reading
-            if (_startingGameYears < 0 && gameYears > 0)
+            
+            // Capture starting hours on first valid reading
+            if (_startingGameHours < 0 && gameHours > 0)
             {
-                _startingGameYears = gameYears;
-                AIOverhaulPlugin.LogInfo($"{LogPrefix}: Game time tracking started. Current year: {gameYears:F2}");
+                _startingGameHours = gameHours;
+                int hStart = Mathf.FloorToInt(gameHours);
+                int mStart = Mathf.FloorToInt((gameHours - hStart) * 60);
+                AIOverhaulPlugin.LogInfo($"{LogPrefix}: Game time tracking started. Current time: {hStart}h {mStart}m");
+                return;
             }
 
-            float yearsPlayed = gameYears - _startingGameYears;
+            float hoursPlayed = gameHours - _startingGameHours;
 
-            // Log progress every game year
-            if (yearsPlayed >= 0 && Mathf.Floor(yearsPlayed) > _lastLoggedYear)
+            // Log progress every game hour
+            if (hoursPlayed >= 0 && Mathf.Floor(hoursPlayed) > _lastLoggedHour)
             {
-                _lastLoggedYear = Mathf.Floor(yearsPlayed);
-                AIOverhaulPlugin.LogInfo($"{LogPrefix}: Progress - Year {_lastLoggedYear:F0}/{TargetGameYears:F0} (Total: {gameYears:F1})");
+                _lastLoggedHour = Mathf.Floor(hoursPlayed);
+                int hPlayed = Mathf.FloorToInt(hoursPlayed);
+                int mPlayed = Mathf.FloorToInt((hoursPlayed - hPlayed) * 60);
+                
+                int hTotal = Mathf.FloorToInt(gameHours);
+                int mTotal = Mathf.FloorToInt((gameHours - hTotal) * 60);
+
+                AIOverhaulPlugin.LogInfo($"{LogPrefix}: Progress - Played {hPlayed}h {mPlayed}m / Target {TargetGameHours:F0}h (Total Game Time: {hTotal}h {mTotal}m)");
             }
 
-            // Check if target years reached
-            if (yearsPlayed >= TargetGameYears)
+            // Check if target hours reached
+            if (hoursPlayed >= TargetGameHours)
             {
-                AIOverhaulPlugin.LogInfo($"{LogPrefix}: Target reached - {yearsPlayed:F1} game years played. Quitting...");
+                int hPlayed = Mathf.FloorToInt(hoursPlayed);
+                int mPlayed = Mathf.FloorToInt((hoursPlayed - hPlayed) * 60);
+                AIOverhaulPlugin.LogInfo($"{LogPrefix}: Target reached - {hPlayed}h {mPlayed}m played. Quitting...");
                 Application.Quit();
                 return;
             }
@@ -303,10 +314,16 @@ namespace AIOverhaul
             float realTimeElapsed = Time.realtimeSinceStartup - _gameStartTime;
             if (realTimeElapsed >= RealTimeLimit)
             {
-                AIOverhaulPlugin.LogInfo($"{LogPrefix}: Real-time limit reached ({realTimeElapsed:F0}s). Years played: {yearsPlayed:F1}. Quitting...");
+            if (realTimeElapsed >= RealTimeLimit)
+            {
+                // Re-calculate hoursPlayed for the log message since it might not be in scope if we didn't just calculate it
+                float currentHoursPlayed = (game.session_time.hours) - _startingGameHours;
+                int hPlayed = Mathf.FloorToInt(currentHoursPlayed);
+                int mPlayed = Mathf.FloorToInt((currentHoursPlayed - hPlayed) * 60);
+                AIOverhaulPlugin.LogInfo($"{LogPrefix}: Real-time limit reached ({realTimeElapsed:F0}s). Played: {hPlayed}h {mPlayed}m. Quitting...");
                 Application.Quit();
                 return;
-            }
+            }}
         }
     }
 }

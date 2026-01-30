@@ -192,10 +192,41 @@ namespace AIOverhaul
                 {
                     activeLinks++;
                     string relation = isFollower ? "<color=cyan>FOLLOWING</color>" : "<color=green>LEADING</color>";
-                    string leaderName = army.leader?.Name ?? "Unknown";
-                    string buddyName = buddy.leader?.Name ?? "Unknown";
+                    string armyGenName = army.leader?.Name ?? "Unknown";
+                    string buddyGenName = buddy.leader?.Name ?? "Unknown";
                     
-                    GUILayout.Label($"{leaderName} is {relation} {buddyName}", style);
+                    // Identify the actual Leader Army in the relationship to show its target
+                    Logic.Army leaderArmy = isFollower ? buddy : army;
+                    
+                    // Get Target Info
+                    string targetInfo = "";
+                    var tgtObj = leaderArmy.GetTarget();
+                    var tgtRealm = leaderArmy.tgt_realm;
+                    
+                    if (tgtObj != null)
+                    {
+                        string tName = "Unknown";
+                        if (tgtObj is Logic.Castle c) tName = c.name; 
+                        else if (tgtObj is Logic.Army a) tName = "Army " + (a.leader?.Name ?? "?");
+                        else if (tgtObj is Logic.Battle b) tName = "Battle";
+                        else tName = tgtObj.ToString();
+
+                        targetInfo = $" <color=yellow>[Target: {tName}]</color>";
+                    }
+                    else if (tgtRealm != null)
+                    {
+                        targetInfo = $" <color=yellow>[MoveTo: {tgtRealm.name}]</color>";
+                    }
+                    else
+                    {
+                        targetInfo = " <color=grey>[Idle]</color>";
+                    }
+
+                    // User asked for info "next to the army leader"
+                    // If isFollower:  "A FOLLOWING B [Info]"
+                    // If !isFollower: "B LEADING A [Info]"
+                    
+                    GUILayout.Label($"{armyGenName} is {relation} {buddyGenName}{targetInfo}", style);
                 }
             }
 
@@ -282,18 +313,20 @@ namespace AIOverhaul
                 for (int i = 0; i < System.Math.Min(buildCount, 3); i++)
                 {
                     var opt = Castle.last_build_options[i];
-                    topBuilds += $"{opt.def.id}({opt.eval:F0}) ";
+                    string castleName = opt.castle?.name ?? "?";
+                    topBuilds += $"{opt.def.id}@{castleName}({opt.eval:F0}) ";
                 }
                 GUILayout.Label(topBuilds, style);
             }
-            
+
             if (upgradeCount > 0)
             {
                 string topUpgrades = "Top Upgrades: ";
                 for (int i = 0; i < System.Math.Min(upgradeCount, 3); i++)
                 {
                     var opt = Castle.last_upgrade_options[i];
-                    topUpgrades += $"{opt.def.id}({opt.eval:F0}) ";
+                    string castleName = opt.castle?.name ?? "?";
+                    topUpgrades += $"{opt.def.id}@{castleName}({opt.eval:F0}) ";
                 }
                 GUILayout.Label(topUpgrades, style);
             }

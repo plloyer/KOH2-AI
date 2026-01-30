@@ -275,9 +275,14 @@ namespace AIOverhaul
             float baselineSurvivalRate = totalBaseline > 0 ? (float)(totalBaseline - baselineDefeated) / totalBaseline : 0;
 
             string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            float currentYear = KingdomBaseline.GetGameYear(game);
+            float currentHour = game.session_time.hours;
+            
+            // Format time as "Xh Ym"
+            int h = (int)Math.Floor(currentHour);
+            int m = (int)Math.Floor((currentHour - h) * 60);
+            string timeStr = $"{h}h {m}m";
 
-            string line = $"{timestamp},{currentYear:F1}," +
+            string line = $"{timestamp},{timeStr}," +
                          $"{enhanced.Count},{baseline.Count}," +
                          $"{enhancedAvgRealms:F1},{baselineAvgRealms:F1},{realmsRatio:F2}," +
                          $"{enhancedAvgStrength:F0},{baselineAvgStrength:F0},{strengthRatio:F2}," +
@@ -296,7 +301,7 @@ namespace AIOverhaul
             }
 
             // Also log to console for immediate feedback
-            AIOverhaulPlugin.LogInfo($"[AI-Stats] Year {currentYear:F0}: Enhanced vs Baseline | " +
+            AIOverhaulPlugin.LogInfo($"[AI-Stats] Time {timeStr}: Enhanced vs Baseline | " +
                                          $"Realms: {enhancedAvgRealms:F1} vs {baselineAvgRealms:F1} ({realmsRatio:P0}) | " +
                                          $"Strength: {enhancedAvgStrength:F0} vs {baselineAvgStrength:F0} ({strengthRatio:P0}) | " +
                                          $"Survival: {enhancedSurvivalRate:P0} vs {baselineSurvivalRate:P0}", LogCategory.General);

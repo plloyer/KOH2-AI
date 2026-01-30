@@ -14,6 +14,11 @@ namespace AIOverhaul.Helpers
             return k?.resources?[Logic.ResourceType.Gold] ?? 0f;
         }
 
+        public static float GetFood(Logic.Kingdom k)
+        {
+            return k?.resources?[Logic.ResourceType.Food] ?? 0f;
+        }
+
         public static float GetBooks(Logic.Kingdom k)
         {
             return k?.resources?.Get(Logic.ResourceType.Books) ?? 0f;

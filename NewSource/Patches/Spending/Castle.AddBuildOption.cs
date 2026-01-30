@@ -1,9 +1,7 @@
-using System;
 using AIOverhaul.Constants;
 using AIOverhaul.Helpers;
 using HarmonyLib;
 using Logic;
-using UnityEngine;
 
 namespace AIOverhaul
 {
@@ -13,6 +11,8 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Castle), "AddBuildOptions", typeof(bool), typeof(Resource))]
     public class Castle_AddBuildOptions
     {
+        const float FOOD_SECURITY_EVAL = 100000f;
+
         static void Postfix(Castle __instance)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
@@ -24,6 +24,7 @@ namespace AIOverhaul
             ApplySwordsmithLogic(__instance);
             ApplyFletcherLogic(__instance);
             ApplyReligiousSettlementConstraint(__instance);
+            ApplyFoodSecurityLogic(__instance);
             // ApplyBarracksLogic(__instance);
             // ApplyReligionLogic(__instance);
         }
@@ -42,6 +43,65 @@ namespace AIOverhaul
                     {
                         Castle.build_options.RemoveAt(i);
                         //AIOverhaulPlugin.LogDebug($"Removed {option.def.id} from {castle.name} (No Religious Settlement)", LogCategory.Spending, castle.GetKingdom());
+                    }
+                }
+            }
+        }
+
+        static void ApplyFoodSecurityLogic(Castle castle)
+        {
+            var kingdom = castle.GetKingdom();
+            if (kingdom == null) return;
+
+            float food = KingdomHelper.GetFood(kingdom);
+
+            if (food <= 0)
+            {
+                var realm = castle.GetRealm();
+                int farmCount = DistrictHelper.GetFarmCount(realm);
+                int coastalCount = DistrictHelper.GetCoastalCount(realm);
+
+                AIOverhaulPlugin.LogDebug($"Food CRITICAL ({food}), boosting food production in {castle.name}. Farms: {farmCount}, Coastal: {coastalCount}", LogCategory.Spending, kingdom);
+
+                // Boost building options
+                for (int i = 0; i < Castle.build_options.Count; i++)
+                {
+                    var option = Castle.build_options[i];
+                    if (option.def == null) continue;
+
+                    if (option.def.id == BuildingNames.CropFarming)
+                    {
+                        // Boost based on Farm count
+                        option.eval = FOOD_SECURITY_EVAL * (1 + farmCount) * 2; // Prioritize farm over harbor
+                        option.priority = Logic.KingdomAI.Expense.Priority.Urgent;
+                        Castle.build_options[i] = option;
+                    }
+                    else if (option.def.id == BuildingNames.Harbor)
+                    {
+                        // Boost based on Coastal count
+                        option.eval = FOOD_SECURITY_EVAL * (1 + coastalCount);
+                        option.priority = Logic.KingdomAI.Expense.Priority.Urgent;
+                        Castle.build_options[i] = option;
+                    }
+                }
+
+                // Boost upgrade options (CropsRotation for farms, Docks for harbors)
+                for (int i = 0; i < Castle.upgrade_options.Count; i++)
+                {
+                    var option = Castle.upgrade_options[i];
+                    if (option.def == null) continue;
+
+                    if (option.def.id == BuildingUpgradeNames.CropsRotation)
+                    {
+                        option.eval = FOOD_SECURITY_EVAL * (1 + farmCount) * 2;
+                        option.priority = Logic.KingdomAI.Expense.Priority.Urgent;
+                        Castle.upgrade_options[i] = option;
+                    }
+                    else if (option.def.id == BuildingUpgradeNames.Docks)
+                    {
+                        option.eval = FOOD_SECURITY_EVAL * (1 + coastalCount);
+                        option.priority = Logic.KingdomAI.Expense.Priority.Urgent;
+                        Castle.upgrade_options[i] = option;
                     }
                 }
             }

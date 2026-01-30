@@ -62,17 +62,26 @@ namespace AIOverhaul
             return (Logic.KingdomAI.Expense.Category)Traverse.Create(instance).Method(METHOD_GET_EXPENSE_CATEGORY).GetValue();
         }
 
-        public static void SendArmy(Logic.KingdomAI ai, Logic.Army army, object target, string aiStatus, object extraParam = null)
+        public static bool SendArmy(Logic.KingdomAI ai, Logic.Army army, Logic.MapObject target, string aiStatus, Logic.Battle battleViewBattle = null)
         {
-            // Vanilla "Send" method has 3 arguments: Send(Army army, Object target, string status)
-            // Cast target to Logic.Object to match the exact method signature
+            // Vanilla "Send" method signature: private bool Send(Army army, MapObject target, string status, Battle battle_view_battle = null)
             try
             {
-                Traverse.Create(ai).Method(METHOD_SEND, army, (Logic.Object)target, aiStatus).GetValue();
+                var method = AccessTools.Method(typeof(Logic.KingdomAI), METHOD_SEND, new System.Type[] { typeof(Logic.Army), typeof(Logic.MapObject), typeof(string), typeof(Logic.Battle) });
+                if (method != null)
+                {
+                    return (bool)method.Invoke(ai, new object[] { army, target, aiStatus, battleViewBattle });
+                }
+                else
+                {
+                    AIOverhaulPlugin.LogError($"Could not find method {METHOD_SEND} with params (Army, MapObject, string, Battle)", LogCategory.General);
+                    return false;
+                }
             }
             catch (System.Exception ex)
             {
                 AIOverhaulPlugin.LogError($"Could not invoke method {METHOD_SEND}: {ex.Message}", LogCategory.General);
+                return false;
             }
         }
 
