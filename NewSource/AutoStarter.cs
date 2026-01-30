@@ -1,7 +1,6 @@
 using UnityEngine;
 using System;
 using AIOverhaul.Constants;
-using HarmonyLib;
 
 namespace AIOverhaul
 {
@@ -252,77 +251,61 @@ namespace AIOverhaul
             game.SetSpeed(100f);
         }
 
-        int _lastLoggedDay = -1;
+        float _lastLoggedYear = -1f;
         float _gameStartTime = -1f;
+        float _startingGameYears = -1f;
+
+        // Target game duration: 10 game years
+        const float TargetGameYears = 10f;
+        // Real-time safety limit: 5 minutes
+        const float RealTimeLimit = 300f;
 
         void MonitorGameProgress()
         {
             var game = AIOverhaulPlugin.CurrentGame;
             if (game == null) return;
 
-            // Try to find the day counter through multiple methods
-            int currentDay = -1;
-            var traverse = Traverse.Create(game);
-
-            // Method 1: Try 'day' field
-            try
+            // Initialize tracking on first call
+            if (_gameStartTime < 0)
             {
-                currentDay = traverse.Field("day").GetValue<int>();
-                if (currentDay > 0)
-                {
-                    // Log progress every 10 days
-                    if (_lastLoggedDay == -1)
-                    {
-                        AIOverhaulPlugin.LogInfo($"{LogPrefix}: Day counter found. Starting day: {currentDay}");
-                        _lastLoggedDay = currentDay;
-                    }
-                    else if (currentDay >= _lastLoggedDay + 10)
-                    {
-                        AIOverhaulPlugin.LogInfo($"{LogPrefix}: Progress - Day {currentDay}");
-                        _lastLoggedDay = currentDay;
-                    }
-
-                    // Check if 100 days reached
-                    if (currentDay >= 100)
-                    {
-                        AIOverhaulPlugin.LogInfo($"{LogPrefix}: Target reached - Day {currentDay}/100. Quitting game...");
-                        Application.Quit();
-                        return;
-                    }
-                }
-            }
-            catch
-            {
-                // Field doesn't exist or error accessing it
+                _gameStartTime = Time.realtimeSinceStartup;
             }
 
-            // Method 2: Fallback - Track real time if day counter not found
-            if (currentDay <= 0)
+            // Calculate years elapsed using session_time (same formula as KingdomBaseline)
+            float gameHours = game.session_time.hours;
+            float gameYears = gameHours / GameBalance.HoursPerDay / GameBalance.DaysPerYear;
+
+            // Capture starting years on first valid reading
+            if (_startingGameYears < 0 && gameYears > 0)
             {
-                if (_gameStartTime < 0)
-                {
-                    _gameStartTime = Time.realtimeSinceStartup;
-                    AIOverhaulPlugin.LogInfo($"{LogPrefix}: Day counter not found. Using time-based tracking instead.");
-                    AIOverhaulPlugin.LogInfo($"{LogPrefix}: Game will run for approximately 10 minutes (600s) as a safety limit.");
-                }
+                _startingGameYears = gameYears;
+                AIOverhaulPlugin.LogInfo($"{LogPrefix}: Game time tracking started. Current year: {gameYears:F2}");
+            }
 
-                float elapsedTime = Time.realtimeSinceStartup - _gameStartTime;
+            float yearsPlayed = gameYears - _startingGameYears;
 
-                // Log progress every 60 seconds
-                int elapsedMinutes = Mathf.FloorToInt(elapsedTime / 60f);
-                if (elapsedMinutes > _lastLoggedDay)
-                {
-                    AIOverhaulPlugin.LogInfo($"{LogPrefix}: Progress - {elapsedMinutes} minutes elapsed ({elapsedTime:F0}s)");
-                    _lastLoggedDay = elapsedMinutes;
-                }
+            // Log progress every game year
+            if (yearsPlayed >= 0 && Mathf.Floor(yearsPlayed) > _lastLoggedYear)
+            {
+                _lastLoggedYear = Mathf.Floor(yearsPlayed);
+                AIOverhaulPlugin.LogInfo($"{LogPrefix}: Progress - Year {_lastLoggedYear:F0}/{TargetGameYears:F0} (Total: {gameYears:F1})");
+            }
 
-                // Quit after 10 minutes (safety limit if day counter doesn't work)
-                if (elapsedTime >= 600f)
-                {
-                    AIOverhaulPlugin.LogInfo($"{LogPrefix}: Time limit reached - {elapsedTime:F0}s. Quitting game...");
-                    Application.Quit();
-                    return;
-                }
+            // Check if target years reached
+            if (yearsPlayed >= TargetGameYears)
+            {
+                AIOverhaulPlugin.LogInfo($"{LogPrefix}: Target reached - {yearsPlayed:F1} game years played. Quitting...");
+                Application.Quit();
+                return;
+            }
+
+            // Real-time safety limit
+            float realTimeElapsed = Time.realtimeSinceStartup - _gameStartTime;
+            if (realTimeElapsed >= RealTimeLimit)
+            {
+                AIOverhaulPlugin.LogInfo($"{LogPrefix}: Real-time limit reached ({realTimeElapsed:F0}s). Years played: {yearsPlayed:F1}. Quitting...");
+                Application.Quit();
+                return;
             }
         }
     }

@@ -12,14 +12,11 @@ namespace AIOverhaul.Patches.Military
         {
             if (__instance == null || __instance.kingdom == null) return true;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+            if (threat == null) return true;
 
-            // Check if this is an OFFENSIVE threat (Attacking enemy territory)
-            // Level.Attack means we are targeting a realm that is NOT ours (or occupied by us but contested?)
-            // Logic: KingdomAI.Recalc sets level=Attack if realm.GetKingdom() != k.
-            if (threat != null && threat.level >= Logic.KingdomAI.Threat.Level.Attack)
+            // OFFENSIVE: Attacking enemy territory - require 2 full armies
+            if (threat.level == Logic.KingdomAI.Threat.Level.Attack)
             {
-                // Requirement: Must have at least 2 FULL armies to launch an attack
-                // We count how many armies are valid and "Full"
                 int readyArmies = 0;
                 if (__instance.kingdom.armies != null)
                     readyArmies = __instance.kingdom.armies.Count(a => a != null && a.IsValid() && Logic.KingdomAI.IsFull(a));
@@ -27,8 +24,28 @@ namespace AIOverhaul.Patches.Military
                 if (readyArmies < 2)
                 {
                     AIOverhaulPlugin.LogDebug($"[AssignArmy] Blocking offensive assignment to {threat.realm?.name}: waiting for 2 full armies (have {readyArmies})", Constants.LogCategory.Military, __instance.kingdom);
-                    __result = false; // Failed to assign
-                    return false;     // Skip original method
+                    __result = false;
+                    return false;
+                }
+            }
+            // DEFENSIVE: Our territory is invaded - defend if we're stronger than the enemy
+            else if (threat.level >= Logic.KingdomAI.Threat.Level.Invaded)
+            {
+                float ourStrength = threat.assigned.eval;
+                float enemyStrength = threat.enemies_in.eval;
+
+                // Allow defense if we have any assigned strength and are stronger than enemy
+                if (ourStrength > 0 && ourStrength >= enemyStrength)
+                {
+                    AIOverhaulPlugin.LogDebug($"[AssignArmy] Allowing defensive assignment to {threat.realm?.name}: our strength {ourStrength:F0} >= enemy {enemyStrength:F0}", Constants.LogCategory.Military, __instance.kingdom);
+                    // Let vanilla handle the assignment
+                    return true;
+                }
+                // If we're weaker but it's critical (Siege), still allow defense
+                else if (threat.level == Logic.KingdomAI.Threat.Level.Siege)
+                {
+                    AIOverhaulPlugin.LogDebug($"[AssignArmy] Allowing siege defense at {threat.realm?.name} despite weaker strength ({ourStrength:F0} vs {enemyStrength:F0})", Constants.LogCategory.Military, __instance.kingdom);
+                    return true;
                 }
             }
 

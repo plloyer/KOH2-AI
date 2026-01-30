@@ -11,7 +11,7 @@ namespace AIOverhaul
         public static DebugOverlay Instance;
 
         // Configuration
-        Rect windowRect = new Rect(20, 150, 800, 600);
+        Rect windowRect = new Rect(20, 150, 800, 800);
         Vector2 scrollPosition;
         bool isVisible = false;
 
@@ -65,7 +65,7 @@ namespace AIOverhaul
             if (isVisible && !wasVisible)
             {
                 // Reset to default position if toggled on
-                windowRect = new Rect(50, 250, 800, 600);
+                windowRect = new Rect(50, 150, 800, 800);
                 AIOverhaulPlugin.LogInfo("Overlay toggled ON via Event.");
             }
         }
@@ -166,6 +166,7 @@ namespace AIOverhaul
                 else
                 {
                     DrawKingdomStats(k, style);
+                    DrawRealmSettlements(k, style);
                     DrawExpenseLog(style);
                 }
             }
@@ -338,7 +339,7 @@ namespace AIOverhaul
             // Sort by Score descending
             var sorted = consideredExpenses.OrderByDescending(e => e.Score).ToList();
 
-            scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.Height(400));
+            scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.Height(300));
             
             foreach (var record in sorted)
             {
@@ -348,6 +349,52 @@ namespace AIOverhaul
             }
 
             GUILayout.EndScrollView();
+        }
+        
+        void DrawRealmSettlements(Logic.Kingdom k, GUIStyle style)
+        {
+            GUILayout.Label($"<b>--- Province Settlements ---</b>", style);
+
+            if (k.realms == null) return;
+
+            foreach (var r in k.realms)
+            {
+                if (r == null) continue;
+
+                // Get counts using DistrictHelper - Order: Keeps, Village, Religious, Farm, Coastal
+                int keeps = DistrictHelper.GetKeepCount(r);
+                int villages = DistrictHelper.GetVillageCount(r);
+                int religious = DistrictHelper.GetReligiousCount(r);
+                int farms = DistrictHelper.GetFarmCount(r);
+                int coastal = DistrictHelper.GetCoastalCount(r);
+
+                // Format the output string with color coding
+                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                string realmName = !string.IsNullOrEmpty(r.town_name) ? r.town_name : r.name;
+                sb.Append($"<b>{realmName}</b>: ");
+
+                var parts = new List<string>();
+
+                // Order: Keeps, Village, Religious, Farm, Coastal
+                if (keeps > 0)
+                    parts.Add($"<color=orange>{keeps} Keep</color>");
+                if (villages > 0)
+                    parts.Add($"<color=#66FF66>{villages} Village</color>");
+                if (religious > 0)
+                    parts.Add($"<color=cyan>{religious} Religious</color>");
+                if (farms > 0)
+                    parts.Add($"<color=yellow>{farms} Farm</color>");
+                if (coastal > 0)
+                    parts.Add($"<color=#6699FF>{coastal} Coastal</color>");
+
+                if (parts.Count > 0)
+                    sb.Append(string.Join(", ", parts));
+                else
+                    sb.Append("<color=grey>Empty</color>");
+
+                GUILayout.Label(sb.ToString(), style);
+            }
+            GUILayout.Space(5);
         }
     }
 }

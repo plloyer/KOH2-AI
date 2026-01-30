@@ -86,6 +86,7 @@
         <Compile Include="NewSource\Constants\LogCategory.cs" />
         <Compile Include="NewSource\Constants\MapNames.cs" />
         <Compile Include="NewSource\Constants\DiplomacyConstants.cs" />
+        <Compile Include="NewSource\Constants\SettlementNames.cs" />
         <Compile Include="NewSource\Constants\SkillNames.cs" />
     <Compile Include="NewSource\Helpers\FeatureHelper.cs" />
     <Compile Include="NewSource\Helpers\MilitaryHelper.cs" />

@@ -23,8 +23,28 @@ namespace AIOverhaul
 
             ApplySwordsmithLogic(__instance);
             ApplyFletcherLogic(__instance);
+            ApplyReligiousSettlementConstraint(__instance);
             // ApplyBarracksLogic(__instance);
             // ApplyReligionLogic(__instance);
+        }
+
+        static void ApplyReligiousSettlementConstraint(Castle castle)
+        {
+            var realm = castle.GetRealm();
+            // Check if Province has Monastery/Mosque/Shrine
+            if (!DistrictHelper.HasReligiousSettlement(realm))
+            {
+                // If not, remove Religious Buildings from options
+                for (int i = Castle.build_options.Count - 1; i >= 0; i--)
+                {
+                    var option = Castle.build_options[i];
+                    if (option.def != null && BuildingHelper.IsReligiousBuilding(option.def.id))
+                    {
+                        Castle.build_options.RemoveAt(i);
+                        //AIOverhaulPlugin.LogDebug($"Removed {option.def.id} from {castle.name} (No Religious Settlement)", LogCategory.Spending, castle.GetKingdom());
+                    }
+                }
+            }
         }
 
         static void ApplySwordsmithLogic(Castle castle)

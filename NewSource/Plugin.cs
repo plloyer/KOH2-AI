@@ -374,7 +374,7 @@ namespace AIOverhaul
             // Update cache for fast lookups this session
             AIOverhaulPlugin.MortalEnemies[k2.id] = k1.id;
 
-            AIOverhaulPlugin.LogInfo($"MORTAL ENEMY: will never forgive {k1.Name} for attacking first!", LogCategory.War, k2);
+            AIOverhaulPlugin.LogDebug($"MORTAL ENEMY: will never forgive {k1.Name} for attacking first!", LogCategory.War, k2);
         }
     }
 

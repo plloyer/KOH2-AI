@@ -14,10 +14,38 @@ namespace AIOverhaul.Patches.Military
             if (army == null || !army.IsValid()) return true;
             if (army.battle != null) return true;
 
+            // Check if any realm is under urgent threat (Invaded or Siege) AND we're stronger
+            bool shouldDefendInstead = false;
+            float armyStrength = army.EvalStrength();
+
+            if (__instance.kingdom.realms != null)
+            {
+                foreach (var r in __instance.kingdom.realms)
+                {
+                    var threat = TraverseAPI.GetThreat(__instance, r);
+                    if (threat != null && threat.level >= Logic.KingdomAI.Threat.Level.Invaded)
+                    {
+                        float enemyStrength = threat.enemies_in.eval;
+                        // Only prioritize defense if we're stronger than the enemy
+                        if (armyStrength >= enemyStrength)
+                        {
+                            shouldDefendInstead = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // If we should defend and are stronger, skip camping - let the army move
+            if (shouldDefendInstead)
+            {
+                return true;
+            }
+
             // 1. In Own Territory
             var realm = army.realm_in;
             bool inOwnTerritory = realm != null && realm.GetKingdom() == __instance.kingdom;
-            
+
             bool needsHeal = false;
             if (inOwnTerritory)
             {

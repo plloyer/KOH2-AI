@@ -122,5 +122,13 @@ namespace AIOverhaul
         {
             return Traverse.Create(character).Method(METHOD_GET_KINGDOM).GetValue<Logic.Kingdom>();
         }
+
+        // Threat Methods
+        public const string METHOD_GET_THREAT = "GetThreat";
+
+        public static Logic.KingdomAI.Threat GetThreat(Logic.KingdomAI ai, Logic.Realm realm)
+        {
+            return Traverse.Create(ai).Method(METHOD_GET_THREAT, new object[] { realm }).GetValue<Logic.KingdomAI.Threat>();
+        }
     }
 }
