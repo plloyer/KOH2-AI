@@ -67,6 +67,7 @@ namespace AIOverhaul.Constants
         // Diplomacy Thresholds
         public const float MinGoldForDiplomacy = 5000f;
         public const float FriendlyRelationshipThreshold = 200f;
+        public const float NeutralRelationThreshold = 0f; // Assumed 0 based on Reserved = -200
         public const int MaxAlliesCount = 2;
         public const int MaxWarsCount = 2;
         public const int MinTradeCountForNAP = 3;
@@ -79,6 +80,8 @@ namespace AIOverhaul.Constants
         public const float MortalEnemyDistractedPowerRatio = 0.8f; // Attack mortal enemy if distracted and we're 80%+ their power
         public const float StrongerEnemyAllianceThreshold = 1.2f; // Seek allies if enemy is 1.2x+ stronger
         public const float FullHealthThreshold = 1.0f; // Unit must be at 100% health to be considered "fully replenished"
+        public const int AggressiveWarMinArmies = 3; // Minimum full armies for aggressive war logic
+        public const float AggressiveWarPowerRatio = 1.5f; // Power ratio required for aggressive war logic
 
         // Diplomacy - Alliance Scoring
         public const int AllianceScoreFightingMortalEnemy = 10; // Ally already fighting our mortal enemy

@@ -416,6 +416,9 @@ namespace AIOverhaul
                 Logic.Kingdom worstNeighbor = null;
                 float lowestRelation = float.MaxValue;
 
+                Logic.Kingdom weakestHostile = null;
+                float minPower = float.MaxValue;
+
                 foreach (var neighbor in k.neighbors)
                 {
                     if (neighbor is Logic.Kingdom neighborKingdom)
@@ -428,19 +431,37 @@ namespace AIOverhaul
 
                         // Get relationship value
                         float relationship = k.GetRelationship(neighborKingdom);
+                        float power = WarLogicHelper.GetTotalPower(neighborKingdom);
 
-                        // Find the neighbor with the WORST (lowest) relationship
+                        // Track WORST relationship (fallback)
                         if (relationship < lowestRelation)
                         {
                             lowestRelation = relationship;
                             worstNeighbor = neighborKingdom;
                         }
+
+                        // Track WEAKEST below Neutral threshold (primary)
+                        if (relationship < GameBalance.NeutralRelationThreshold)
+                        {
+                            if (power < minPower)
+                            {
+                                minPower = power;
+                                weakestHostile = neighborKingdom;
+                            }
+                        }
                     }
                 }
 
-                selectedTarget = worstNeighbor;
-                if (worstNeighbor != null)
+                // Primary: Weakest neighbor with bad relations
+                if (weakestHostile != null)
                 {
+                    selectedTarget = weakestHostile;
+                    reason = $"WEAKEST < NEUTRAL ({minPower:F0})";
+                }
+                // Fallback: Neighbor with worst relations
+                else if (worstNeighbor != null)
+                {
+                    selectedTarget = worstNeighbor;
                     reason = $"LOWEST RELATION: {lowestRelation:F0}";
                 }
             }
@@ -720,6 +741,18 @@ namespace AIOverhaul
 
             // NEW: Mortal Enemy priority - when well-prepared, prioritize attacking mortal enemies
             bool isMortalEnemy = WarLogicHelper.IsMortalEnemy(__instance.kingdom, k);
+
+            // AGGRESSIVE WAR LOGIC (User Request): If 3+ full armies and 1.5x stronger -> FORCE WAR on expansion target
+            if (fullArmies >= GameBalance.AggressiveWarMinArmies)
+            {
+                Logic.Kingdom expansionTarget = WarLogicHelper.SelectExpansionTarget(__instance.kingdom);
+                if (k == expansionTarget && powerRatio >= GameBalance.AggressiveWarPowerRatio)
+                {
+                    AIOverhaulPlugin.LogDebug($"FORCING WAR on Expansion Target {k.Name} (AGGRESSIVE: {GameBalance.AggressiveWarMinArmies}+ Armies, {powerRatio:F2}x stronger)", LogCategory.War, __instance.kingdom);
+                    __result = true;
+                    return false;
+                }
+            }
 
             // If well-prepared and this is mortal enemy, prioritize but be smart
             if (isWellPrepared && isMortalEnemy)
