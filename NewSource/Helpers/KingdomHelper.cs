@@ -28,28 +28,7 @@ namespace AIOverhaul.Helpers
             return k?.income?.Get(Logic.ResourceType.Gold) ?? 0f;
         }
 
-        // Army Checks
-        public static bool HasTwoReadyArmies(Logic.Kingdom kingdom)
-        {
-            if (kingdom?.armies == null || kingdom.armies.Count < GameBalance.FirstTwoArmiesCount)
-                return false;
 
-            int readyArmies = 0;
-            for (int i = 0; i < System.Math.Min(GameBalance.FirstTwoArmiesCount, kingdom.armies.Count); i++)
-            {
-                var army = kingdom.armies[i];
-                if (army == null) continue;
-
-                bool isFull = army.units.Count >= GameBalance.FullArmySize;
-                int strength = army.EvalStrength();
-                bool hasStrength = strength >= GameBalance.MinArmyStrengthForFortification;
-
-                if (isFull && hasStrength)
-                    readyArmies++;
-            }
-
-            return readyArmies >= GameBalance.FirstTwoArmiesCount;
-        }
 
         // Validation Helpers
         public static bool IsValidKingdom(Logic.Kingdom k) => k != null && !k.IsDefeated();
