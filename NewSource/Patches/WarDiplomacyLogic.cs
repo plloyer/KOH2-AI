@@ -727,12 +727,12 @@ namespace AIOverhaul
                 // Only attack if we're clearly stronger (1.5x power)
                 if (ownPower >= targetPower * GameBalance.MortalEnemyWarPowerRatio)
                 {
-                    AIOverhaulPlugin.LogInfo($"Declaring war on MORTAL ENEMY {k.Name} (well-prepared, {GameBalance.MortalEnemyWarPowerRatio}x stronger). Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
+                    AIOverhaulPlugin.LogDebug($"Declaring war on MORTAL ENEMY {k.Name} (well-prepared, {GameBalance.MortalEnemyWarPowerRatio}x stronger). Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
                     return true;
                 }
 
                 // If mortal enemy is equal or stronger: Form coalition FIRST
-                AIOverhaulPlugin.LogInfo($"DEFERRING war against equal/stronger MORTAL ENEMY {k.Name} - seeking allies first. Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
+                AIOverhaulPlugin.LogDebug($"DEFERRING war against equal/stronger MORTAL ENEMY {k.Name} - seeking allies first. Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
                 __result = false;
                 return false;
             }
@@ -743,12 +743,12 @@ namespace AIOverhaul
                 // Attack if we're stronger or if they're distracted
                 if (ownPower >= targetPower || targetAtWar || commonEnemy)
                 {
-                    AIOverhaulPlugin.LogInfo($"Declaring war on {k.Name} (well-prepared). Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
+                    AIOverhaulPlugin.LogDebug($"Declaring war on {k.Name} (well-prepared). Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
                     return true;
                 }
             }
 
-            AIOverhaulPlugin.LogInfo($"Declaring war on {k.Name}. Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
+            AIOverhaulPlugin.LogDebug($"Declaring war on {k.Name}. Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
             return true;
         }
     }
@@ -792,18 +792,6 @@ namespace AIOverhaul
 
                 // Check if expansion target is mortal enemy for logging
                 Logic.Kingdom mortalEnemy = AIOverhaulPlugin.GetMortalEnemy(actor, actor.game);
-                string targetInfo = "";
-                if (expansionTarget != null)
-                {
-                    if (mortalEnemy != null && expansionTarget == mortalEnemy)
-                    {
-                        targetInfo = $" (MORTAL ENEMY: {expansionTarget.Name})";
-                    }
-                    else
-                    {
-                        targetInfo = $" (Expansion target: {expansionTarget.Name})";
-                    }
-                }
 
                 // TRADE RUSH (Priority over NAP)
                 // If we have few trade partners, try to sign trade agreements first
@@ -822,10 +810,6 @@ namespace AIOverhaul
                         __result = RunTradeAgreementProposal(__instance, napTarget);
                         return false;
                     }
-                }
-                else
-                {
-                    targetInfo = " (No expansion target)";
                 }
 
                 __result = RunNonAggressionProposal(__instance, napTarget);
@@ -885,7 +869,7 @@ namespace AIOverhaul
 
                 if (target != null)
                 {
-                    AIOverhaulPlugin.LogInfo($"In survival mode. Focusing on {target.Name}", LogCategory.Diplomacy, actor);
+                    AIOverhaulPlugin.LogDebug($"In survival mode. Focusing on {target.Name}", LogCategory.Diplomacy, actor);
                     __result = RunDiplomacyWithTarget(__instance, target);
                     return false;
                 }
@@ -942,7 +926,7 @@ namespace AIOverhaul
                 {
                     if (OfferHelper.TrySendOffer("ClaimIndependence", __instance, k))
                     {
-                        AIOverhaulPlugin.LogInfo($"Claiming independence from {k.Name}", LogCategory.War, actor);
+                        AIOverhaulPlugin.LogDebug($"Claiming independence from {k.Name}", LogCategory.War, actor);
                         __result = true;
                         return false;
                     }
@@ -963,7 +947,7 @@ namespace AIOverhaul
                         peace.AI = true;
                         if (peace.Validate() == "ok")
                         {
-                            AIOverhaulPlugin.LogInfo($"SURRENDERING to {k.Name} as vassal!", LogCategory.War, actor);
+                            AIOverhaulPlugin.LogDebug($"SURRENDERING to {k.Name} as vassal!", LogCategory.War, actor);
                             peace.Send();
                             if (k.is_player)
                             {

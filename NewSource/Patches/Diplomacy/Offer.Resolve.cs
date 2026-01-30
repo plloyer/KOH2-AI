@@ -1,5 +1,6 @@
 using HarmonyLib;
 using System;
+using AIOverhaul.Constants;
 
 namespace AIOverhaul.Patches.Diplomacy
 {
@@ -45,7 +46,7 @@ namespace AIOverhaul.Patches.Diplomacy
                     __instance.Answer(finalAnswer);
                 }
 
-                AIOverhaulPlugin.LogInfo($"[Spectator] Auto-answered offer {__instance} with '{answer}' for {kingdom.Name}");
+                AIOverhaulPlugin.LogDebug($"[Spectator] Auto-answered offer {__instance} with '{answer}'", LogCategory.Diplomacy, kingdom);
 
                 __result = true; // Signal that resolution occurred
                 return false;    // Skip original method

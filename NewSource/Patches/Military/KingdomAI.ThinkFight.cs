@@ -77,6 +77,16 @@ namespace AIOverhaul.Patches.Military
 
                 if (buddy != null && !buddyPresent && enemyStrength > 0)
                 {
+                    // CRITICAL RESCUE LOGIC:
+                    // If buddy is already fighting, we MUST engage to help them.
+                    // Do not wait, do not retreat.
+                    if (buddy.battle != null)
+                    {
+                        AIOverhaulPlugin.LogDebug($"[ThinkFight] Force engaging to help buddy {buddy.GetNid()} in battle!", LogCategory.Military, __instance.kingdom);
+                        __result = true; // Fight!
+                        return false; // Skip vanilla calc
+                    }
+
                     // Check if buddy is available to help
                     bool isBuddyAvailable = buddy.battle == null;
                     // Check distance

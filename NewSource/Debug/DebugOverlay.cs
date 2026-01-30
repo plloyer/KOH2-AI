@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AIOverhaul.Helpers;
 using Logic;
+using AIOverhaul.Patches.Military;
 
 namespace AIOverhaul
 {
@@ -167,9 +168,42 @@ namespace AIOverhaul
                 {
                     DrawKingdomStats(k, style);
                     DrawRealmSettlements(k, style);
+                    DrawBuddySystem(k, style);
                     DrawExpenseLog(style);
                 }
             }
+        }
+
+        void DrawBuddySystem(Logic.Kingdom k, GUIStyle style)
+        {
+            GUILayout.Label($"<b>--- Buddy System (Military) ---</b>", style);
+            if (k.armies == null) return;
+
+            int activeLinks = 0;
+            foreach (var army in k.armies)
+            {
+                if (army == null || !army.IsValid()) continue;
+
+                // Check referencing BuddySystem
+                var buddy = BuddySystem.GetBuddy(army, k);
+                bool isFollower = BuddySystem.IsFollower(army);
+
+                if (buddy != null)
+                {
+                    activeLinks++;
+                    string relation = isFollower ? "<color=cyan>FOLLOWING</color>" : "<color=green>LEADING</color>";
+                    string leaderName = army.leader?.Name ?? "Unknown";
+                    string buddyName = buddy.leader?.Name ?? "Unknown";
+                    
+                    GUILayout.Label($"{leaderName} is {relation} {buddyName}", style);
+                }
+            }
+
+            if (activeLinks == 0)
+            {
+                GUILayout.Label("<color=grey>No active buddy links</color>", style);
+            }
+            GUILayout.Space(5);
         }
 
         void DrawRealmNeighborsDebug(Logic.Kingdom k, GUIStyle style)

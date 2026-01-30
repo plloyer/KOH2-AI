@@ -92,7 +92,7 @@ namespace AIOverhaul.Patches.Military
                         if (!buddyInThreat)
                         {
                             // FORCE ASSIGN BUDDY
-                            // AIOverhaulPlugin.LogInfo($"[AssignArmy] Leader {army.GetNid()} dragging Buddy {buddy.GetNid()} to {threat.realm.name}", LogCategory.Military);
+                            // AIOverhaulPlugin.LogDebug($"[AssignArmy] Leader {army.GetNid()} dragging Buddy {buddy.GetNid()} to {threat.realm.name}", LogCategory.Military);
                             
                             // Remove from old threat if any
                             if (buddy.tgt_realm != null)

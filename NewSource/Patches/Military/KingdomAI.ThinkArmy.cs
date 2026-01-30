@@ -134,13 +134,44 @@ namespace AIOverhaul.Patches.Military
                     }
                 }
             }
+            else
+            {
+                // LEADER LOGIC: Rescue Follower if they are in trouble
+                Logic.Army buddy = BuddySystem.GetBuddy(army, __instance.kingdom);
+                if (buddy != null && buddy.IsValid())
+                {
+                     // If Buddy is in battle and we are NOT, go help!
+                     if (buddy.battle != null && army.battle == null)
+                     {
+                         // We are the leader, our buddy is fighting.
+                         // Check distance or feasibility? 
+                         // For now, if within reasonable range (e.g. same realm or nearby), RUSH.
+                         
+                         // Check if we are already moving to the battle
+                         var currentTarget = army.GetTarget();
+                         // The battle object itself might be the target? Or the enemy army?
+                         // buddy.battle is a BattleView object usually associated with location.
+                         
+                         // Simplest rescue: Move to buddy's position (which is the battle)
+                         // But we want to JOIN. SendArmy to buddy should work if buddy is in battle?
+                         // Or send to buddy.battle.
+                         
+                         if (currentTarget != buddy && currentTarget != buddy.battle)
+                         {
+                             AIOverhaulPlugin.LogDebug($"[ThinkArmy] Leader {army.GetNid()} RESCUING Buddy {buddy.GetNid()} in battle!", LogCategory.Military, __instance.kingdom);
+                             TraverseAPI.SendArmy(__instance, army, buddy, "rescue_buddy", null);
+                             return;
+                         }
+                     }
+                }
+            }
 
             if (status == "idle" && army.castle == null)
             {
                 Logic.Castle nearest = TraverseAPI.FindNearestOwnCastle(__instance, army, true);
                 if (nearest != null)
                 {
-                    AIOverhaulPlugin.LogInfo($" Idle Knight - Returning to garrison at {nearest.name}", LogCategory.Military);
+                    AIOverhaulPlugin.LogDebug($" Idle Knight - Returning to garrison at {nearest.name}", LogCategory.Military, __instance.kingdom);
                     TraverseAPI.SendArmy(__instance, army, nearest, "go_inside", null);
                 }
             }
