@@ -109,83 +109,133 @@ namespace AIOverhaul.Patches.Military
             if (army.IsHiredMercenary() || army.battle != null) return;
 
             string status = army.ai_status;
+            string armyName = army.leader?.Name ?? $"Army#{army.GetNid()}";
 
-            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return;
+            // Log current army state
+            var currentTarget = army.GetTarget();
+            string currentTargetName = DescribeTarget(currentTarget);
+            string tgtRealmName = army.tgt_realm?.name ?? "None";
+            bool isMoving = army.movement?.IsMoving() ?? false;
 
-            // Logic: If we are idle OR if strict buddy system overrides us
-            // If we are a Follower, we MUST do what the leader does.
-            if (BuddySystem.IsFollower(army))
+            AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: Status={status}, InCastle={army.castle?.name ?? "No"}, Target={currentTargetName}, TgtRealm={tgtRealmName}, Moving={isMoving}", LogCategory.Military, __instance.kingdom);
+
+            // Check buddy relationship
+            bool isFollower = BuddySystem.IsFollower(army);
+            Logic.Army buddy = BuddySystem.GetBuddy(army, __instance.kingdom);
+
+            if (buddy == null)
             {
-                Logic.Army leader = BuddySystem.GetBuddy(army, __instance.kingdom);
-                if (leader != null && leader.IsValid())
+                AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: No buddy assigned", LogCategory.Military, __instance.kingdom);
+            }
+            else
+            {
+                string buddyName = buddy.leader?.Name ?? $"Army#{buddy.GetNid()}";
+                string role = isFollower ? "FOLLOWER" : "LEADER";
+                AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: Role={role}, Buddy={buddyName}", LogCategory.Military, __instance.kingdom);
+            }
+
+            if (isFollower && buddy != null && buddy.IsValid())
+            {
+                string leaderName = buddy.leader?.Name ?? $"Army#{buddy.GetNid()}";
+
+                // Log leader state
+                var leaderTarget = buddy.GetTarget();
+                string leaderTargetName = DescribeTarget(leaderTarget);
+                string leaderTgtRealm = buddy.tgt_realm?.name ?? "None";
+                bool leaderMoving = buddy.movement?.IsMoving() ?? false;
+                bool leaderInCastle = buddy.castle != null;
+
+                AIOverhaulPlugin.LogDebug($"[Buddy] Leader {leaderName} state: InCastle={buddy.castle?.name ?? "No"}, Target={leaderTargetName}, TgtRealm={leaderTgtRealm}, Moving={leaderMoving}", LogCategory.Military, __instance.kingdom);
+
+                // If leader is garrisoned (inside a castle), check if castle is under siege
+                if (leaderInCastle)
                 {
-                    // If leader is garrisoned (inside a castle), check if castle is under siege
-                    if (leader.castle != null)
+                    var leaderRealm = buddy.castle.GetRealm();
+                    if (leaderRealm != null)
                     {
-                        var leaderRealm = leader.castle.GetRealm();
-                        if (leaderRealm != null)
+                        var threat = TraverseAPI.GetThreat(__instance, leaderRealm);
+                        if (threat != null && threat.level == Logic.KingdomAI.Threat.Level.Siege)
                         {
-                            var threat = TraverseAPI.GetThreat(__instance, leaderRealm);
-                            if (threat != null && threat.level == Logic.KingdomAI.Threat.Level.Siege)
+                            var siegeBattle = Traverse.Create(buddy.castle).Field("battle").GetValue<Logic.Battle>();
+                            if (siegeBattle != null && army.GetTarget() != siegeBattle)
                             {
-                                // Leader's castle is under siege - follower should help break it!
-                                var siegeBattle = Traverse.Create(leader.castle).Field("battle").GetValue<Logic.Battle>();
-                                if (siegeBattle != null && army.GetTarget() != siegeBattle)
-                                {
-                                    AIOverhaulPlugin.LogDebug($"[ThinkArmy] Follower {army.GetNid()} rushing to break siege on leader's castle {leader.castle.name}!", LogCategory.Military, __instance.kingdom);
-                                    TraverseAPI.SendArmy(__instance, army, siegeBattle, "rescue_leader_siege", null);
-                                    return;
-                                }
+                                AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: ACTION=rescue_leader_siege (Leader's castle {buddy.castle.name} under siege!)", LogCategory.Military, __instance.kingdom);
+                                TraverseAPI.SendArmy(__instance, army, siegeBattle, "rescue_leader_siege", null);
+                                return;
                             }
                         }
-                        // Leader is idle in castle (not under siege), follower does its own thing
-                        return;
                     }
-
-                    // 1. Tactical Sync: Copy Leader's concrete target (Enemy Army, Castle, Position)
-                    Logic.MapObject leaderTarget = leader.GetTarget(); // The object leader is interacting with
-
-                    // If Leader has a target, we copy it.
-                    if (leaderTarget != null && army.GetTarget() != leaderTarget)
-                    {
-                        TraverseAPI.SendArmy(__instance, army, leaderTarget, "follow_buddy_force", null);
-                        return;
-                    }
-
-                    // 2. Movement Sync: If Leader is moving (and not to a specific target we already copied), follow him.
-                    // This handles empty terrain movement
-                    if (leader.movement.IsMoving() && army.GetTarget() != leader && leaderTarget == null)
-                    {
-                        TraverseAPI.SendArmy(__instance, army, leader, "follow_buddy_move", null);
-                        return;
-                    }
-
-                    // 3. If leader is idle (no target, not moving), follower should also be idle
-                    // Do NOT chase the leader - just let the follower do its own thing (return to garrison, etc.)
+                    AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: Leader in castle (no siege) -> follower acts independently", LogCategory.Military, __instance.kingdom);
+                    return;
                 }
+
+                // Check if leader's target is a military target
+                bool isMilitaryTarget = false;
+                string targetType = "None";
+                if (leaderTarget != null)
+                {
+                    if (leaderTarget is Logic.Battle)
+                    {
+                        isMilitaryTarget = true;
+                        targetType = "Battle";
+                    }
+                    else if (leaderTarget is Logic.Army targetArmy)
+                    {
+                        bool isEnemy = targetArmy.IsEnemy(__instance.kingdom);
+                        isMilitaryTarget = isEnemy;
+                        targetType = isEnemy ? "EnemyArmy" : "FriendlyArmy";
+                    }
+                    else if (leaderTarget is Logic.Castle targetCastle)
+                    {
+                        var castleKingdom = targetCastle.GetKingdom();
+                        bool isEnemy = castleKingdom != null && castleKingdom.IsEnemy(__instance.kingdom.id);
+                        isMilitaryTarget = isEnemy;
+                        targetType = isEnemy ? "EnemyCastle" : "FriendlyCastle";
+                    }
+                    else
+                    {
+                        targetType = leaderTarget.GetType().Name;
+                    }
+                }
+
+                AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: Leader target type={targetType}, IsMilitary={isMilitaryTarget}", LogCategory.Military, __instance.kingdom);
+
+                // Only copy target if it's a military target
+                if (isMilitaryTarget && army.GetTarget() != leaderTarget)
+                {
+                    AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: ACTION=follow_buddy_force (copying leader's military target)", LogCategory.Military, __instance.kingdom);
+                    TraverseAPI.SendArmy(__instance, army, leaderTarget, "follow_buddy_force", null);
+                    return;
+                }
+
+                // Movement Sync: Only follow if leader is moving toward enemy territory
+                if (leaderMoving && leaderTarget == null && buddy.tgt_realm != null)
+                {
+                    var tgtRealmKingdom = buddy.tgt_realm.GetKingdom();
+                    bool isEnemyTerritory = tgtRealmKingdom != null && tgtRealmKingdom.IsEnemy(__instance.kingdom.id);
+
+                    AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: Leader moving to {buddy.tgt_realm.name} (Owner: {tgtRealmKingdom?.Name ?? "None"}, IsEnemy={isEnemyTerritory})", LogCategory.Military, __instance.kingdom);
+
+                    if (isEnemyTerritory && army.GetTarget() != buddy)
+                    {
+                        AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: ACTION=follow_buddy_move (following leader to enemy territory)", LogCategory.Military, __instance.kingdom);
+                        TraverseAPI.SendArmy(__instance, army, buddy, "follow_buddy_move", null);
+                        return;
+                    }
+                }
+
+                AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: No action taken - leader not doing military action", LogCategory.Military, __instance.kingdom);
             }
             else
             {
                 // LEADER LOGIC: Rescue Follower if they are in trouble
-                Logic.Army buddy = BuddySystem.GetBuddy(army, __instance.kingdom);
+                // (buddy was already retrieved above at line 124)
                 if (buddy != null && buddy.IsValid())
                 {
                      // If Buddy is in battle and we are NOT, go help!
                      if (buddy.battle != null && army.battle == null)
                      {
-                         // We are the leader, our buddy is fighting.
-                         // Check distance or feasibility? 
-                         // For now, if within reasonable range (e.g. same realm or nearby), RUSH.
-                         
-                         // Check if we are already moving to the battle
-                         var currentTarget = army.GetTarget();
-                         // The battle object itself might be the target? Or the enemy army?
-                         // buddy.battle is a BattleView object usually associated with location.
-                         
-                         // Simplest rescue: Move to buddy's position (which is the battle)
-                         // But we want to JOIN. SendArmy to buddy should work if buddy is in battle?
-                         // Or send to buddy.battle.
-                         
+                         // Check if we are already moving to the battle (reuse currentTarget from line 115)
                          if (currentTarget != buddy && currentTarget != buddy.battle)
                          {
                              AIOverhaulPlugin.LogDebug($"[ThinkArmy] Leader {army.GetNid()} RESCUING Buddy {buddy.GetNid()} in battle!", LogCategory.Military, __instance.kingdom);
@@ -237,6 +287,18 @@ namespace AIOverhaul.Patches.Military
                     TraverseAPI.SendArmy(__instance, army, nearest, "go_inside", null);
                 }
             }
+        }
+
+        static string DescribeTarget(object target)
+        {
+            if (target == null) return "None";
+
+            if (target is Logic.Castle c) return $"Castle:{c.name}";
+            if (target is Logic.Army a) return $"Army:{a.leader?.Name ?? a.GetNid().ToString()}";
+            if (target is Logic.Battle) return "Battle";
+            if (target is Logic.Realm r) return $"Realm:{r.name}";
+
+            return target.GetType().Name;
         }
     }
 }

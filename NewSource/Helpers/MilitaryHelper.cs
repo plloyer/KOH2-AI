@@ -1,7 +1,45 @@
+using AIOverhaul.Constants;
+
 namespace AIOverhaul.Helpers
 {
     public static class MilitaryHelper
     {
+        public static bool HasTwoReadyArmies(Logic.Kingdom kingdom)
+        {
+            if (kingdom?.armies == null || kingdom.armies.Count < GameBalance.FirstTwoArmiesCount)
+                return false;
+
+            int readyArmies = 0;
+            for (int i = 0; i < System.Math.Min(GameBalance.FirstTwoArmiesCount, kingdom.armies.Count); i++)
+            {
+                var army = kingdom.armies[i];
+                if (army == null) continue;
+
+                bool isFull = army.units.Count >= GameBalance.FullArmySize;
+                int strength = army.EvalStrength();
+                bool hasStrength = strength >= GameBalance.MinArmyStrengthForFortification;
+
+                if (isFull && hasStrength)
+                    readyArmies++;
+            }
+
+            return readyArmies >= GameBalance.FirstTwoArmiesCount;
+        }
+
+        public static int CountRangedUnits(Logic.Army army)
+        {
+            int count = 0;
+            if (army?.units != null)
+            {
+                foreach (var unit in army.units)
+                {
+                    if (unit?.def != null && unit.def.is_ranged)
+                        count++;
+                }
+            }
+            return count;
+        }
+
         public static bool IsDamaged(Logic.Army army)
         {
             if (army.units == null) return false;

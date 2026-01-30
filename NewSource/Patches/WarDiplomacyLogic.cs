@@ -169,7 +169,7 @@ namespace AIOverhaul
 
             // EARLY GAME PREVENTION: Must have baseline economy established first
             // 1. Must have 2 merchants (baseline commercial capacity)
-            int merchants = KingdomHelper.CountMerchants(k);
+            int merchants = CourtHelper.CountMerchants(k);
             if (merchants < GameBalance.RequiredMerchantCount)
             {
                 AIOverhaulPlugin.LogDebug($"BLOCKING diplomat: need {GameBalance.RequiredMerchantCount} merchants first (have {merchants})", LogCategory.Diplomacy, k);
@@ -177,7 +177,7 @@ namespace AIOverhaul
             }
 
             // 2. Must have at least 2 armies ready (military foundation)
-            if (!KingdomHelper.HasTwoReadyArmies(k))
+            if (!MilitaryHelper.HasTwoReadyArmies(k))
             {
                 AIOverhaulPlugin.LogDebug($"BLOCKING diplomat: need 2 ready armies first", LogCategory.Diplomacy, k);
                 return false;
@@ -235,7 +235,7 @@ namespace AIOverhaul
             if (k == null) return false;
 
             // PREVENT EARLY HIRING: Spies are mid-game luxury characters
-            int merchants = KingdomHelper.CountMerchants(k);
+            int merchants = CourtHelper.CountMerchants(k);
 
             // Must have economy established (at least 2 merchants)
             if (merchants < GameBalance.RequiredMerchantCount) return false;

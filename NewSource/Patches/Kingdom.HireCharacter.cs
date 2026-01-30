@@ -1,4 +1,3 @@
-using AIOverhaul.Constants;
 using HarmonyLib;
 using AIOverhaul.Helpers;
 
@@ -14,7 +13,7 @@ namespace AIOverhaul
             if (__instance == null || __result == null) return;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance)) return;
             
-            KingdomHelper.OrganizeCourt(__instance);
+            CourtHelper.OrganizeCourt(__instance);
         }
     }
 }

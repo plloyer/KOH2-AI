@@ -291,16 +291,16 @@ namespace AIOverhaul
             float gold = KingdomHelper.GetGold(k);
             float goldIncome = KingdomHelper.GetGoldIncome(k);
             float books = KingdomHelper.GetBooks(k);
-            int merchants = KingdomHelper.CountMerchants(k);
-            bool isRushingTradition = TraditionHelper.ShouldRushTradition(k);
+            int merchants = CourtHelper.CountMerchants(k);
+
             bool hasBarracks = BuildingHelper.HasBuilding(k, BuildingNames.Barracks);
 
             string barracksStatus = hasBarracks ? "True" : "False";
-            string rushingColor = isRushingTradition ? "cyan" : "white";
+
             string barracksColor = hasBarracks ? "green" : "red";
 
             GUILayout.Label($"Gold: <color=yellow>{gold:F0}</color> (+{goldIncome:F1}/s) | Books: <color=cyan>{books:F0}</color> | Merchants: <color=white>{merchants}</color>", style);
-            GUILayout.Label($"Tradition Rushing: <color={rushingColor}>{isRushingTradition}</color> | Has Barracks: <color={barracksColor}>{barracksStatus}</color>", style);
+            GUILayout.Label($"Has Barracks: <color={barracksColor}>{barracksStatus}</color>", style);
             
             // Build Options stats
             int buildCount = Castle.last_build_options.Count;

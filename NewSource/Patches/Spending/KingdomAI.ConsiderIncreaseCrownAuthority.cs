@@ -27,12 +27,7 @@ namespace AIOverhaul
                 return false; // Block Crown Authority
             }
 
-            // Block CA if rushing tradition (400+ books, Writing/Learning available)
-            if (TraditionHelper.ShouldRushTradition(__instance.kingdom))
-            {
-                __result = false;
-                return false;
-            }
+
 
             // Block CA if any province can upgrade fortifications to level 1
             if (__instance.kingdom.realms != null)

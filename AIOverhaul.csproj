@@ -94,6 +94,7 @@
     <Compile Include="NewSource\Helpers\TraditionHelper.cs" />
         <Compile Include="NewSource\Constants\TraditionNames.cs" />
         <Compile Include="NewSource\Helpers\BuildingHelper.cs" />
+        <Compile Include="NewSource\Helpers\CourtHelper.cs" />
         <Compile Include="NewSource\Helpers\CsvHelper.cs" />
         <Compile Include="NewSource\Helpers\DistrictHelper.cs" />
         <Compile Include="NewSource\Helpers\KingdomHelper.cs" />
@@ -112,8 +113,11 @@
         <Compile Include="NewSource\Patches\EconomyLogic.cs" />
         <Compile Include="NewSource\Patches\Governor.Eval.cs" />
         <Compile Include="NewSource\Patches\Military\BuddySystem.cs" />
+        <Compile Include="NewSource\Patches\Military\Army.AddUnit.cs" />
+        <Compile Include="NewSource\Patches\Military\Castle.CanHireUnit.cs" />
         <Compile Include="NewSource\Patches\Military\Castle.EvalHireUnits.cs" />
         <Compile Include="NewSource\Patches\Military\KingdomAI.AssignArmy.cs" />
+        <Compile Include="NewSource\Patches\Military\KingdomAI.EvalHireUnit.cs" />
         <Compile Include="NewSource\Patches\Military\KingdomAI.CanAssign.cs" />
         <Compile Include="NewSource\Patches\Military\KingdomAI.ThinkArmy.cs" />
         <Compile Include="NewSource\Patches\Military\KingdomAI.ThinkAssaultSiege.cs" />
@@ -140,9 +144,7 @@
         <None Include="PERFORMANCE_LOGGING_GUIDE.md" />
         <None Include="Sources\**\*.cs" />
     </ItemGroup>
-    <ItemGroup>
-      <Compile Include="NewSource\Patches\Spending\KingdomAI.ConsiderIncreaseCrownAuthority.cs" />
-    </ItemGroup>
+
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
     <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="Exists('..\BepInEx\plugins\')">
         <Exec Command="copy /Y &quot;$(TargetDir)$(TargetName).dll&quot; &quot;..\BepInEx\plugins\$(TargetName).dll&quot;" ContinueOnError="true" />

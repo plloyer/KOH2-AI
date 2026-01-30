@@ -111,8 +111,7 @@ namespace AIOverhaul.Constants
         public const float ReligionBuildingBoostPerSlot = 0.2f; // Bonus per religion slot (used in 1.0 + slots*0.2 formula)
         public const float BarracksSlotBoostPerSlot = 0.25f; // Bonus per castle district slot for barracks placement
         public const float BarracksPriorityMultiplier = 100.0f; // eval *= 100 (100x original) for very high priority on first barracks
-        public const float SwordsmithPriorityMultiplier = 30.0f; // eval *= 30 (30x original) for high priority on swordsmith upgrade
-        public const float FletcherPriorityMultiplier = 30.0f; // eval *= 100 (100x original) for extremely high priority on fletcher
+        public const float HighPriorityBuildingMultiplier = 100.0f;
 
         // Island Detection
         public const int IslandMaxNeighbors = 1;

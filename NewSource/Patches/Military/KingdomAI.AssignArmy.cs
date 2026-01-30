@@ -8,6 +8,7 @@ namespace AIOverhaul.Patches.Military
     [HarmonyPatch(typeof(Logic.KingdomAI), "AssignArmy")]
     public class KingdomAI_AssignArmy
     {
+        const float PowerRatioToFight = 1.3f;
         static bool Prefix(Logic.KingdomAI __instance, Logic.KingdomAI.Threat threat, int pass, ref bool __result)
         {
             if (__instance == null || __instance.kingdom == null) return true;
@@ -23,7 +24,7 @@ namespace AIOverhaul.Patches.Military
 
                 if (readyArmies < 2)
                 {
-                    AIOverhaulPlugin.LogDebug($"[AssignArmy] Blocking offensive assignment to {threat.realm?.name}: waiting for 2 full armies (have {readyArmies})", Constants.LogCategory.Military, __instance.kingdom);
+                    //AIOverhaulPlugin.LogDebug($"[AssignArmy] Blocking offensive assignment to {threat.realm?.name}: waiting for 2 full armies (have {readyArmies})", Constants.LogCategory.Military, __instance.kingdom);
                     __result = false;
                     return false;
                 }
@@ -35,16 +36,10 @@ namespace AIOverhaul.Patches.Military
                 float enemyStrength = threat.enemies_in.eval;
 
                 // Allow defense if we have any assigned strength and are stronger than enemy
-                if (ourStrength > 0 && ourStrength >= enemyStrength)
+                if (ourStrength > 0 && ourStrength >= enemyStrength * PowerRatioToFight)
                 {
                     AIOverhaulPlugin.LogDebug($"[AssignArmy] Allowing defensive assignment to {threat.realm?.name}: our strength {ourStrength:F0} >= enemy {enemyStrength:F0}", Constants.LogCategory.Military, __instance.kingdom);
                     // Let vanilla handle the assignment
-                    return true;
-                }
-                // If we're weaker but it's critical (Siege), still allow defense
-                else if (threat.level == Logic.KingdomAI.Threat.Level.Siege)
-                {
-                    AIOverhaulPlugin.LogDebug($"[AssignArmy] Allowing siege defense at {threat.realm?.name} despite weaker strength ({ourStrength:F0} vs {enemyStrength:F0})", Constants.LogCategory.Military, __instance.kingdom);
                     return true;
                 }
             }

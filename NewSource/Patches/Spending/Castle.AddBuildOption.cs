@@ -11,7 +11,8 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Castle), "AddBuildOptions", typeof(bool), typeof(Resource))]
     public class Castle_AddBuildOptions
     {
-        const float FOOD_SECURITY_EVAL = 100000f;
+        const float HighPriorityEval = 100000f;
+        const int MinVillagesForMilitia = 2;
 
         static void Postfix(Castle __instance)
         {
@@ -24,9 +25,9 @@ namespace AIOverhaul
             ApplySwordsmithLogic(__instance);
             ApplyFletcherLogic(__instance);
             ApplyReligiousSettlementConstraint(__instance);
+            ApplyVillageMilitiaLogic(__instance);
             ApplyFoodSecurityLogic(__instance);
             // ApplyBarracksLogic(__instance);
-            // ApplyReligionLogic(__instance);
         }
 
         static void ApplyReligiousSettlementConstraint(Castle castle)
@@ -72,14 +73,14 @@ namespace AIOverhaul
                     if (option.def.id == BuildingNames.CropFarming)
                     {
                         // Boost based on Farm count
-                        option.eval = FOOD_SECURITY_EVAL * (1 + farmCount) * 2; // Prioritize farm over harbor
+                        option.eval = HighPriorityEval * (1 + farmCount) * 2; // Prioritize farm over harbor
                         option.priority = Logic.KingdomAI.Expense.Priority.Urgent;
                         Castle.build_options[i] = option;
                     }
                     else if (option.def.id == BuildingNames.Harbor)
                     {
                         // Boost based on Coastal count
-                        option.eval = FOOD_SECURITY_EVAL * (1 + coastalCount);
+                        option.eval = HighPriorityEval * (1 + coastalCount);
                         option.priority = Logic.KingdomAI.Expense.Priority.Urgent;
                         Castle.build_options[i] = option;
                     }
@@ -93,15 +94,74 @@ namespace AIOverhaul
 
                     if (option.def.id == BuildingUpgradeNames.CropsRotation)
                     {
-                        option.eval = FOOD_SECURITY_EVAL * (1 + farmCount) * 2;
+                        option.eval = HighPriorityEval * (1 + farmCount) * 2;
                         option.priority = Logic.KingdomAI.Expense.Priority.Urgent;
                         Castle.upgrade_options[i] = option;
                     }
-                    else if (option.def.id == BuildingUpgradeNames.Docks)
+                    else if (option.def.id == BuildingUpgradeNames.Docks_Harbor)
                     {
-                        option.eval = FOOD_SECURITY_EVAL * (1 + coastalCount);
+                        option.eval = HighPriorityEval * (1 + coastalCount);
                         option.priority = Logic.KingdomAI.Expense.Priority.Urgent;
                         Castle.upgrade_options[i] = option;
+                    }
+                }
+            }
+        }
+
+        static void ApplyVillageMilitiaLogic(Castle castle)
+        {
+            var kingdom = castle.GetKingdom();
+            if (kingdom == null) return;
+
+            // If we already have Village Militia, boost TrainingGrounds upgrade
+            if (BuildingHelper.HasBuilding(kingdom, BuildingNames.VillageMilitia))
+            {
+                if (!BuildingHelper.HasBuildingUpgrade(kingdom, BuildingUpgradeNames.TrainingGrounds))
+                {
+                    MultiplyUpgradeOption(BuildingUpgradeNames.TrainingGrounds, GameBalance.HighPriorityBuildingMultiplier);
+                }
+                return;
+            }
+
+            // Find the best castle for Village Militia (Most villages, >= 2)
+            Castle bestCastle = null;
+            int maxVillages = -1;
+
+            if (kingdom.realms != null)
+            {
+                foreach (var r in kingdom.realms)
+                {
+                    if (r == null || r.castle == null) continue;
+
+                    int vCount = DistrictHelper.GetVillageCount(r);
+                    if (vCount >= MinVillagesForMilitia)
+                    {
+                        if (vCount > maxVillages)
+                        {
+                            maxVillages = vCount;
+                            bestCastle = r.castle;
+                        }
+                    }
+                }
+            }
+
+            // If no suitable castle found, do nothing
+            if (bestCastle == null) return;
+
+            // If THIS is the best castle, boost the option
+            if (castle == bestCastle)
+            {
+                for (int i = 0; i < Castle.build_options.Count; i++)
+                {
+                    var option = Castle.build_options[i];
+                    if (option.def != null && option.def.id == BuildingNames.VillageMilitia)
+                    {
+                        option.eval = HighPriorityEval;
+                        option.priority = Logic.KingdomAI.Expense.Priority.Urgent;
+                        Castle.build_options[i] = option;
+
+                        AIOverhaulPlugin.LogDebug($"BOOSTING VillageMilitia in {castle.name} (Best location with {maxVillages} villages)", LogCategory.Spending, kingdom);
+                        return;
                     }
                 }
             }
@@ -113,7 +173,7 @@ namespace AIOverhaul
             if (kingdom == null) return;
 
             if (!BuildingHelper.HasBuildingUpgrade(kingdom, BuildingUpgradeNames.Swordsmith))
-                MultiplyUpgradeOption(BuildingUpgradeNames.Swordsmith, GameBalance.SwordsmithPriorityMultiplier);
+                MultiplyUpgradeOption(BuildingUpgradeNames.Swordsmith, GameBalance.HighPriorityBuildingMultiplier);
         }
 
         static void ApplyFletcherLogic(Castle castle)
@@ -125,7 +185,7 @@ namespace AIOverhaul
             bool hasFletcher = BuildingHelper.HasBuildingUpgrade(kingdom, BuildingUpgradeNames.Fletcher_Barracks);
 
             if (hasSwordsmith && !hasFletcher)
-                MultiplyUpgradeOption(BuildingUpgradeNames.Fletcher, GameBalance.FletcherPriorityMultiplier);
+                MultiplyUpgradeOption(BuildingUpgradeNames.Fletcher, GameBalance.HighPriorityBuildingMultiplier);
         }
 
         static void ApplyBarracksLogic(Castle castle)
@@ -201,69 +261,6 @@ namespace AIOverhaul
                 }
 
                 Castle.build_options[i] = option;
-            }
-        }
-
-        static void ApplyReligionLogic(Castle castle)
-        {
-            // Get Religion district definition
-            District.Def religionDistrict = DistrictHelper.GetDistrictDefinition(castle.game, DistrictNames.Religion);
-            if (religionDistrict == null) return;
-
-            // Check if this castle has the Religion district
-            bool hasReligionDistrict = castle.HasDistrict(religionDistrict);
-
-            // Find all religious buildings in build options
-            for (int i = Castle.build_options.Count - 1; i >= 0; i--)
-            {
-                var option = Castle.build_options[i];
-                if (option.def == null) continue;
-
-                bool isReligiousBuilding = BuildingHelper.IsReligiousBuilding(option.def.id);
-
-                if (isReligiousBuilding)
-                {
-                    if (!hasReligionDistrict)
-                    {
-                        // Block building if no religion district
-                        Castle.build_options.RemoveAt(i);
-                    }
-                    else
-                    {
-                        // Boost priority for castles with religion district (Higher eval = Higher priority)
-                        // Further boost based on how many religion slots available
-                        int religionSlots = BuildingHelper.CountReligionSlots(castle, religionDistrict);
-                        float multiplier = 1.0f + (religionSlots * GameBalance.ReligionBuildingBoostPerSlot);
-                        option.eval *= multiplier;
-                        Castle.build_options[i] = option;
-                    }
-                }
-            }
-
-            // Do the same for upgrade options
-            for (int i = Castle.upgrade_options.Count - 1; i >= 0; i--)
-            {
-                var option = Castle.upgrade_options[i];
-                if (option.def == null) continue;
-
-                bool isReligiousBuilding = BuildingHelper.IsReligiousBuilding(option.def.id);
-
-                if (isReligiousBuilding)
-                {
-                    if (!hasReligionDistrict)
-                    {
-                        // Block building if no religion district
-                        Castle.upgrade_options.RemoveAt(i);
-                    }
-                    else
-                    {
-                        // Boost priority for castles with religion district (Higher eval = Higher priority)
-                        int religionSlots = BuildingHelper.CountReligionSlots(castle, religionDistrict);
-                        float multiplier = 1.0f + (religionSlots * GameBalance.ReligionBuildingBoostPerSlot);
-                        option.eval *= multiplier;
-                        Castle.upgrade_options[i] = option;
-                    }
-                }
             }
         }
 
