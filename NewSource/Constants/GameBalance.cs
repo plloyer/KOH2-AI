@@ -95,10 +95,6 @@ namespace AIOverhaul.Constants
 
         // Economy - Resource Thresholds
         public const float MinBooksForFirstTradition = 400f;
-        public const float HighBooksThreshold = 350f;
-        public const float LowGoldThreshold = 2000f;
-        public const float HighBuildingEvalBoost = 20f;
-        public const float EconomyBuildingPriorityMultiplier = 1.3f; // Priority multiplier for economy buildings
 
         // Kingdom Selection
         public const float EnhancedAISelectionPercentage = 0.30f;
@@ -115,7 +111,7 @@ namespace AIOverhaul.Constants
         public const float BarracksSlotBoostPerSlot = 0.25f; // Bonus per castle district slot for barracks placement
         public const float BarracksPriorityMultiplier = 100.0f; // eval *= 100 (100x original) for very high priority on first barracks
         public const float SwordsmithPriorityMultiplier = 30.0f; // eval *= 30 (30x original) for high priority on swordsmith upgrade
-        public const float FletcherPriorityMultiplier = 100.0f; // eval *= 100 (100x original) for extremely high priority on fletcher
+        public const float FletcherPriorityMultiplier = 30.0f; // eval *= 100 (100x original) for extremely high priority on fletcher
 
         // Island Detection
         public const int IslandMaxNeighbors = 1;

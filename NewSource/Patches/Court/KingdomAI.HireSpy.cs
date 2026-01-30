@@ -30,7 +30,7 @@ namespace AIOverhaul.Patches.Court
                     float income = __instance.kingdom.income[Logic.ResourceType.Gold];
                     if (income < k_MinIncomeToHireSpy)
                     {
-                        AIOverhaulPlugin.LogDebug($"[HireSpy] Blocking Spy hiring for {__instance.kingdom}: Income {income:F1} < {k_MinIncomeToHireSpy}", LogCategory.Knights);
+                        AIOverhaulPlugin.LogDebug($"[HireSpy] Blocking Spy hiring: Income {income:F1} < {k_MinIncomeToHireSpy}", LogCategory.Knights, __instance.kingdom);
                         return false; // Skip execution (don't consider this expense)
                     }
                 }
