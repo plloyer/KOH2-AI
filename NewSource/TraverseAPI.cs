@@ -1,6 +1,8 @@
-using HarmonyLib;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using HarmonyLib;
+using Logic;
 
 namespace AIOverhaul
 {
@@ -41,79 +43,77 @@ namespace AIOverhaul
             return Traverse.Create(kingdom).Method(METHOD_GET_MAX_COMMERCE).GetValue<float>();
         }
 
-        public static void ConsiderExpense(Logic.KingdomAI ai, Logic.KingdomAI.Expense.Type type, object defParam, object objectParam, Logic.KingdomAI.Expense.Category category, Logic.KingdomAI.Expense.Priority priority = Logic.KingdomAI.Expense.Priority.Normal, List<Logic.Value> args = null)
+        public static void ConsiderExpense(KingdomAI ai, KingdomAI.Expense.Type type, object defParam, object objectParam, KingdomAI.Expense.Category category, KingdomAI.Expense.Priority priority = KingdomAI.Expense.Priority.Normal, List<Value> args = null)
         {
             // Use AccessTools to find the specific overload with 6 parameters to avoid ambiguity
             // private void ConsiderExpense(Expense.Type type, BaseObject defParam, Object objectParam, Expense.Category category, Expense.Priority priority, List<Value> args)
-            var method = AccessTools.FirstMethod(typeof(Logic.KingdomAI), m => m.Name == METHOD_CONSIDER_EXPENSE && m.GetParameters().Length == 6);
+            var method = AccessTools.FirstMethod(typeof(KingdomAI), m => m.Name == METHOD_CONSIDER_EXPENSE && m.GetParameters().Length == 6);
             if (method != null)
             {
-                method.Invoke(ai, new object[] { type, defParam, objectParam, category, priority, args });
+                method.Invoke(ai, new[] { type, defParam, objectParam, category, priority, args });
             }
             else
             {
-                AIOverhaulPlugin.LogError($"Could not find method {METHOD_CONSIDER_EXPENSE} with 6 params", LogCategory.General);
+                AIOverhaulPlugin.LogError($"Could not find method {METHOD_CONSIDER_EXPENSE} with 6 params");
             }
         }
 
-        public static Logic.KingdomAI.Expense.Category GetExpenseCategory(object instance)
+        public static KingdomAI.Expense.Category GetExpenseCategory(object instance)
         {
-            return (Logic.KingdomAI.Expense.Category)Traverse.Create(instance).Method(METHOD_GET_EXPENSE_CATEGORY).GetValue();
+            return (KingdomAI.Expense.Category)Traverse.Create(instance).Method(METHOD_GET_EXPENSE_CATEGORY).GetValue();
         }
 
-        public static bool SendArmy(Logic.KingdomAI ai, Logic.Army army, Logic.MapObject target, string aiStatus, Logic.Battle battleViewBattle = null)
+        public static bool SendArmy(KingdomAI ai, Logic.Army army, MapObject target, string aiStatus, Logic.Battle battleViewBattle = null)
         {
             // Vanilla "Send" method signature: private bool Send(Army army, MapObject target, string status, Battle battle_view_battle = null)
             try
             {
-                var method = AccessTools.Method(typeof(Logic.KingdomAI), METHOD_SEND, new System.Type[] { typeof(Logic.Army), typeof(Logic.MapObject), typeof(string), typeof(Logic.Battle) });
+                var method = AccessTools.Method(typeof(KingdomAI), METHOD_SEND, new[] { typeof(Logic.Army), typeof(MapObject), typeof(string), typeof(Logic.Battle) });
                 if (method != null)
                 {
                     return (bool)method.Invoke(ai, new object[] { army, target, aiStatus, battleViewBattle });
                 }
-                else
-                {
-                    AIOverhaulPlugin.LogError($"Could not find method {METHOD_SEND} with params (Army, MapObject, string, Battle)", LogCategory.General);
-                    return false;
-                }
+
+                AIOverhaulPlugin.LogError($"Could not find method {METHOD_SEND} with params (Army, MapObject, string, Battle)");
+                return false;
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                AIOverhaulPlugin.LogError($"Could not invoke method {METHOD_SEND}: {ex.Message}", LogCategory.General);
+                AIOverhaulPlugin.LogError($"Could not invoke method {METHOD_SEND}: {ex.Message}");
                 return false;
             }
         }
 
-        public static Logic.Castle FindNearestOwnCastle(Logic.KingdomAI ai, Logic.Army army, bool allowGarrisoned)
+        public static Castle FindNearestOwnCastle(KingdomAI ai, Logic.Army army, bool allowGarrisoned)
         {
-            return (Logic.Castle)Traverse.Create(ai).Method(METHOD_FIND_NEAREST_OWN_CASTLE, new object[] { army, allowGarrisoned }).GetValue();
+            return (Castle)Traverse.Create(ai).Method(METHOD_FIND_NEAREST_OWN_CASTLE, army, allowGarrisoned).GetValue();
         }
 
-        public static IEnumerator ThinkProposeOfferThread(Logic.KingdomAI ai, Logic.Kingdom target, string offerRelChangeType)
+        public static IEnumerator ThinkProposeOfferThread(KingdomAI ai, Logic.Kingdom target, string offerRelChangeType)
         {
-            return (IEnumerator)Traverse.Create(ai).Method(METHOD_THINK_PROPOSE_OFFER_THREAD, new object[] { target, offerRelChangeType }).GetValue();
+            return (IEnumerator)Traverse.Create(ai).Method(METHOD_THINK_PROPOSE_OFFER_THREAD, target, offerRelChangeType).GetValue();
         }
 
         // War Methods
-        public static int GetWarSide(Logic.War war, Logic.Kingdom kingdom)
+        public static int GetWarSide(War war, Logic.Kingdom kingdom)
         {
-            return Traverse.Create(war).Method(METHOD_GET_SIDE, new object[] { kingdom }).GetValue<int>();
+            return Traverse.Create(war).Method(METHOD_GET_SIDE, kingdom).GetValue<int>();
         }
 
-        public static float GetWarScore(Logic.War war, int side)
+        public static float GetWarScore(War war, int side)
         {
-            return Traverse.Create(war).Method(METHOD_GET_WAR_SCORE, new object[] { side }).GetValue<float>();
+            return Traverse.Create(war).Method(METHOD_GET_WAR_SCORE, side).GetValue<float>();
         }
 
         // Field Accessors
-        public static List<Logic.Skill> GetSkills(object instance)
+        public static List<Skill> GetSkills(object instance)
         {
-            return Traverse.Create(instance).Field(FIELD_SKILLS).GetValue<List<Logic.Skill>>();
+            return Traverse.Create(instance).Field(FIELD_SKILLS).GetValue<List<Skill>>();
         }
 
-        public static Logic.KingdomAI.CategoryData[] GetCategories(Logic.KingdomAI ai)
+        public static KingdomAI.CategoryData[] GetCategories(KingdomAI ai)
         {
-            return Traverse.Create(ai).Field(FIELD_CATEGORIES).GetValue<Logic.KingdomAI.CategoryData[]>();
+            return Traverse.Create(ai).Field(FIELD_CATEGORIES).GetValue<KingdomAI.CategoryData[]>();
         }
         // Character Accessors
         public static bool GetCharacterIsKing(Logic.Character character)
@@ -134,9 +134,9 @@ namespace AIOverhaul
         // Threat Methods
         public const string METHOD_GET_THREAT = "GetThreat";
 
-        public static Logic.KingdomAI.Threat GetThreat(Logic.KingdomAI ai, Logic.Realm realm)
+        public static KingdomAI.Threat GetThreat(KingdomAI ai, Logic.Realm realm)
         {
-            return Traverse.Create(ai).Method(METHOD_GET_THREAT, new object[] { realm }).GetValue<Logic.KingdomAI.Threat>();
+            return Traverse.Create(ai).Method(METHOD_GET_THREAT, realm).GetValue<KingdomAI.Threat>();
         }
     }
 }

@@ -1,3 +1,5 @@
+using System;
+
 namespace AIOverhaul
 {
     /// <summary>
@@ -69,20 +71,19 @@ namespace AIOverhaul
 
         // Diplomacy Thresholds
         public const float MinGoldForDiplomacy = 5000f;
-        public const float FriendlyRelationshipThreshold = 200f;
-        public const float NeutralRelationThreshold = 0f; // Assumed 0 based on Reserved = -200
-        public const int MaxAlliesCount = 2;
         public const int MaxWarsCount = 2;
-        public const int MinTradeCountForNAP = 3;
+        public const float NeutralRelationThreshold = 0f; // Assumed 0 based on Reserved = -200
+        public const float MinRelationToInviteToWar = 5f; // Minimum relation to invite neighbor to war (Trusting = 200+)
+        public const float FriendlyRelationshipThreshold = 200f;
 
         // Diplomacy - War Preparation
-        public const int MinArmiesForWar = 2;
+        public const int MinArmiesToDeclareWar = 2; // Was MinArmiesForWar
         public const int MinFortifiedProvincesForAggression = 1; // Need at least 1 fortified province to be "well-prepared"
-        public const float MinGoldForAggression = 2000f; // Need 2000+ gold to be "well-prepared"
+        public const float MinGoldForAggression = 1000f; // Reduced from 2000f
         public const float MortalEnemyWarPowerRatio = 1.5f; // Require 1.5x power to attack mortal enemy
         public const float MortalEnemyDistractedPowerRatio = 0.8f; // Attack mortal enemy if distracted and we're 80%+ their power
         public const float StrongerEnemyAllianceThreshold = 1.2f; // Seek allies if enemy is 1.2x+ stronger
-        public const float FullHealthThreshold = 1.0f; // Unit must be at 100% health to be considered "fully replenished"
+        public const float FullHealthThreshold = 1f; // Unit considered replenished at 100% health
         public const int AggressiveWarMinArmies = 3; // Minimum full armies for aggressive war logic
         public const float AggressiveWarPowerRatio = 1.5f; // Power ratio required for aggressive war logic
 
@@ -133,5 +134,8 @@ namespace AIOverhaul
         // Misc
         public const float MinYearsElapsedForStats = 0.1f; // Avoid division by zero
         public const int KingdomSideAttackLevel = 3; // Level.Attack or higher
+
+        // Speed Control
+        public const float UltraSpeed = 50f; // F8 ultra speed toggle
     }
 }

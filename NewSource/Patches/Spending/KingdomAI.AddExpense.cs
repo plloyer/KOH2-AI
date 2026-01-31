@@ -1,14 +1,15 @@
-using HarmonyLib;
 using System;
+using HarmonyLib;
+using Logic;
 
 namespace AIOverhaul
 {
     // "AddExpense" adds an evaluated expense to the appropriate queue (WeightedRandom).
     // Intent: Log when an expense is actually added to the queue to trace decision flow.
-    [HarmonyPatch(typeof(Logic.KingdomAI), "AddExpense")]
+    [HarmonyPatch(typeof(KingdomAI), "AddExpense")]
     public class KingdomAI_AddExpense
     {
-        static void Prefix(Logic.KingdomAI __instance, object expenses, Logic.KingdomAI.Expense expense)
+        static void Prefix(KingdomAI __instance, object expenses, KingdomAI.Expense expense)
         {
             try
             {

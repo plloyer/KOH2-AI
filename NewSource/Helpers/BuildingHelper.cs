@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using Logic;
 
 namespace AIOverhaul
 {
@@ -25,7 +27,7 @@ namespace AIOverhaul
         /// <summary>
         /// Count how many religion building slots exist in a district definition
         /// </summary>
-        public static int CountReligionSlots(Logic.Castle castle, Logic.District.Def religionDistrict)
+        public static int CountReligionSlots(Castle castle, District.Def religionDistrict)
         {
             if (religionDistrict?.buildings == null) return 0;
 
@@ -36,7 +38,7 @@ namespace AIOverhaul
         /// <summary>
         /// Returns the count of unique trade goods CURRENTLY produced by a castle.
         /// </summary>
-        public static int GetCurrentGoodsCount(Logic.Castle castle)
+        public static int GetCurrentGoodsCount(Castle castle)
         {
             var goods = GetCurrentGoods(castle);
             return goods != null ? goods.Count : 0;
@@ -45,7 +47,7 @@ namespace AIOverhaul
         /// <summary>
         /// Returns a list of unique trade goods CURRENTLY produced by a castle.
         /// </summary>
-        public static List<string> GetCurrentGoods(Logic.Castle castle)
+        public static List<string> GetCurrentGoods(Castle castle)
         {
             if (castle == null || castle.buildings == null) return new List<string>();
 

@@ -1,7 +1,11 @@
-using UnityEngine;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using Logic;
+using UnityEngine;
+using Event = UnityEngine.Event;
 
 namespace AIOverhaul
 {
@@ -12,7 +16,7 @@ namespace AIOverhaul
         // Configuration
         Rect windowRect = new Rect(20, 150, 800, 800);
         Vector2 scrollPosition;
-        bool isVisible = false;
+        bool isVisible;
 
         // Data Storage
         public struct ExpenseRecord
@@ -69,7 +73,7 @@ namespace AIOverhaul
             }
         }
 
-        void OnEvaluationStart(Logic.KingdomAI kingdomAI)
+        void OnEvaluationStart(KingdomAI kingdomAI)
         {
             // Clear expenses for new evaluation cycle
             ClearExpenses();
@@ -114,9 +118,9 @@ namespace AIOverhaul
             style.padding = new RectOffset(0, 0, 0, 0);
             
             // Diagnostics Input
-            if (UnityEngine.Event.current.type == EventType.KeyDown)
+            if (Event.current.type == EventType.KeyDown)
             {
-                if (UnityEngine.Event.current.keyCode == KeyCode.R)
+                if (Event.current.keyCode == KeyCode.R)
                 {
                     Logic.Kingdom k = GetPlayerKingdom();
                     if (k != null) 
@@ -124,14 +128,14 @@ namespace AIOverhaul
                         k.RecalculateNeighbors();
                         AIOverhaulPlugin.LogInfo("Forced Neighbor Recalculation via Debug Overlay");
                     }
-                    UnityEngine.Event.current.Use(); // Consume input
+                    Event.current.Use(); // Consume input
                 }
                 // Force Breakpoint for Rider
-                if (UnityEngine.Event.current.keyCode == KeyCode.B && UnityEngine.Event.current.shift)
+                if (Event.current.keyCode == KeyCode.B && Event.current.shift)
                 {
                     AIOverhaulPlugin.LogInfo("Triggering Manual Breakpoint...");
-                    System.Diagnostics.Debugger.Break();
-                    UnityEngine.Event.current.Use(); // Consume input
+                    Debugger.Break();
+                    Event.current.Use(); // Consume input
                 }
             }
 
@@ -158,7 +162,7 @@ namespace AIOverhaul
                 DrawKeyRelations(k, style);
                 
                 // Diagnostic View (Hold Alt)
-                if (UnityEngine.Event.current.alt)
+                if (Event.current.alt)
                 {
                     DrawRealmNeighborsDebug(k, style);
                 }
@@ -174,7 +178,7 @@ namespace AIOverhaul
 
         void DrawBuddySystem(Logic.Kingdom k, GUIStyle style)
         {
-            GUILayout.Label($"<b>--- Buddy System (Military) ---</b>", style);
+            GUILayout.Label("<b>--- Buddy System (Military) ---</b>", style);
             if (k.armies == null) return;
 
             int activeLinks = 0;
@@ -204,7 +208,7 @@ namespace AIOverhaul
                     if (tgtObj != null)
                     {
                         string tName = "Unknown";
-                        if (tgtObj is Logic.Castle c) tName = c.name; 
+                        if (tgtObj is Castle c) tName = c.name; 
                         else if (tgtObj is Logic.Army a) tName = "Army " + (a.leader?.Name ?? "?");
                         else if (tgtObj is Logic.Battle b) tName = "Battle";
                         else tName = tgtObj.ToString();
@@ -237,14 +241,14 @@ namespace AIOverhaul
 
         void DrawRealmNeighborsDebug(Logic.Kingdom k, GUIStyle style)
         {
-            GUILayout.Label($"<color=orange>=== NEIGHBOR DIAGNOSTICS (Press 'R' to Recalc) ===</color>", style);
+            GUILayout.Label("<color=orange>=== NEIGHBOR DIAGNOSTICS (Press 'R' to Recalc) ===</color>", style);
             GUILayout.Label($"Kingdom Neighbors Count: {k.neighbors.Count}", style);
             
             if (k.realms != null) 
             {
                 foreach(var r in k.realms)
                 {
-                    System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                    StringBuilder sb = new StringBuilder();
                     // Display Town Name (Realm Name) for clarity
                     string realmLabel = !string.IsNullOrEmpty(r.town_name) ? $"{r.town_name} ({r.name})" : r.name;
                     
@@ -308,7 +312,7 @@ namespace AIOverhaul
             if (buildCount > 0)
             {
                 string topBuilds = "Top Builds: ";
-                for (int i = 0; i < System.Math.Min(buildCount, 3); i++)
+                for (int i = 0; i < Math.Min(buildCount, 3); i++)
                 {
                     var opt = Castle.last_build_options[i];
                     string castleName = opt.castle?.name ?? "?";
@@ -320,7 +324,7 @@ namespace AIOverhaul
             if (upgradeCount > 0)
             {
                 string topUpgrades = "Top Upgrades: ";
-                for (int i = 0; i < System.Math.Min(upgradeCount, 3); i++)
+                for (int i = 0; i < Math.Min(upgradeCount, 3); i++)
                 {
                     var opt = Castle.last_upgrade_options[i];
                     string castleName = opt.castle?.name ?? "?";
@@ -339,7 +343,7 @@ namespace AIOverhaul
             GUILayout.Label($"Mortal Enemy: {nemesisDisplay}", style);
 
             // Expansion Target
-            var expansionTarget = WarLogicHelper.SelectExpansionTarget(k);
+            var expansionTarget = k.SelectExpansionTarget();
             string expansionDisplay = expansionTarget != null ? $"<color=orange>{expansionTarget.Name}</color>" : "None";
             GUILayout.Label($"Expansion Target: {expansionDisplay}", style);
 
@@ -352,7 +356,7 @@ namespace AIOverhaul
                     if (n is Logic.Kingdom nk)
                     {
                         // Calc relationship (false = don't calc fade, just get current)
-                        float val = Logic.KingdomAndKingdomRelation.Get(k, nk, false).GetRelationship();
+                        float val = KingdomAndKingdomRelation.Get(k, nk, false).GetRelationship();
                         neighborsData.Add((nk, val));
                     }
                 }
@@ -361,11 +365,11 @@ namespace AIOverhaul
                 neighborsData.Sort((a, b) => b.rel.CompareTo(a.rel));
 
                 // Build string
-                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                StringBuilder sb = new StringBuilder();
                 sb.Append("Neighbors: "); // Prefix directly in string
 
-                float minRel = Logic.RelationUtils.Def.minRelationship;
-                float maxRel = Logic.RelationUtils.Def.maxRelationship;
+                float minRel = RelationUtils.Def.minRelationship;
+                float maxRel = RelationUtils.Def.maxRelationship;
 
                 for (int i = 0; i < neighborsData.Count; i++)
                 {
@@ -399,7 +403,7 @@ namespace AIOverhaul
 
         void DrawExpenseLog(GUIStyle style)
         {
-            GUILayout.Label($"<b>--- Considered Expenses (Until Next Cycle) ---</b>", style);
+            GUILayout.Label("<b>--- Considered Expenses (Until Next Cycle) ---</b>", style);
             
             // Sort by Score descending
             var sorted = consideredExpenses.OrderByDescending(e => e.Score).ToList();
@@ -418,7 +422,7 @@ namespace AIOverhaul
         
         void DrawRealmSettlements(Logic.Kingdom k, GUIStyle style)
         {
-            GUILayout.Label($"<b>--- Province Settlements ---</b>", style);
+            GUILayout.Label("<b>--- Province Settlements ---</b>", style);
 
             if (k.realms == null) return;
 
@@ -434,7 +438,7 @@ namespace AIOverhaul
                 int coastal = r.GetCoastalCount();
 
                 // Format the output string with color coding
-                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+                StringBuilder sb = new StringBuilder();
                 string realmName = !string.IsNullOrEmpty(r.town_name) ? r.town_name : r.name;
                 sb.Append($"<b>{realmName}</b>: ");
 

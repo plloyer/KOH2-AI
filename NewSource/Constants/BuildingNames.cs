@@ -2,6 +2,8 @@
 // Source: C:\Program Files (x86)\Steam\steamapps\common\Knights of Honor II\Defs\buildings.def
 // Organized by building type
 
+using System;
+
 namespace AIOverhaul
 {
     /// <summary>
@@ -71,8 +73,7 @@ namespace AIOverhaul
         /// <summary>
         /// Get all building names as an array
         /// </summary>
-        public static readonly string[] All = new[]
-        {
+        public static readonly string[] All = {
             Housings,
             MarketSquare,
             Church,

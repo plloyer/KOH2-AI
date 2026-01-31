@@ -1,13 +1,15 @@
+using System;
 using HarmonyLib;
+using Logic;
 
 namespace AIOverhaul
 {
     // "ThinkAssaultSiege" decides whether a besieging army should launch an assault on the castle.
     // Intent: AssaultLogicPatch
-    [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkAssaultSiege")]
+    [HarmonyPatch(typeof(KingdomAI), "ThinkAssaultSiege")]
     public class KingdomAI_ThinkAssaultSiege
     {
-        static bool Prefix(Logic.KingdomAI __instance, Logic.Army a)
+        static bool Prefix(KingdomAI __instance, Logic.Army a)
         {
             if (__instance == null || __instance.kingdom == null) return true;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
@@ -24,7 +26,7 @@ namespace AIOverhaul
             }
 
             // Fix: Battle.castle -> Battle.settlement as Castle
-            var castle = a.battle.settlement as Logic.Castle;
+            var castle = a.battle.settlement as Castle;
             
             if (castle != null)
             {
@@ -36,10 +38,8 @@ namespace AIOverhaul
                     {
                         return true;
                     }
-                    else
-                    {
-                        return false;
-                    }
+
+                    return false;
                 }
             }
             

@@ -1,15 +1,17 @@
+using System;
 using HarmonyLib;
+using Logic;
 
 namespace AIOverhaul
 {
     // "ThinkArmy" handles general army tick logic including movement and actions.
     // Intent: ThinkArmy patches (IdleArmyPatch + HealingLogicPatch)
-    [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkArmy")]
+    [HarmonyPatch(typeof(KingdomAI), "ThinkArmy")]
     public class KingdomAI_ThinkArmy
     {
-        private const float SallyOutStrengthRatio = 1.1f;
+        const float SallyOutStrengthRatio = 1.1f;
 
-        static bool Prefix(Logic.KingdomAI __instance, Logic.Army army)
+        static bool Prefix(KingdomAI __instance, Logic.Army army)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
             if (army == null || !army.IsValid()) return true;
@@ -23,13 +25,13 @@ namespace AIOverhaul
             foreach (var r in __instance.kingdom.realms)
             {
                 var threat = TraverseAPI.GetThreat(__instance, r);
-                if (threat == null || threat.level < Logic.KingdomAI.Threat.Level.Invaded)
+                if (threat == null || threat.level < KingdomAI.Threat.Level.Invaded)
                     continue;
 
                 float enemyStrength = threat.enemies_in.eval;
 
                 // Log siege situations for debugging
-                if (threat.level == Logic.KingdomAI.Threat.Level.Siege)
+                if (threat.level == KingdomAI.Threat.Level.Siege)
                 {
                     AIOverhaulPlugin.LogDebug($"[ThinkArmy] SIEGE detected at {r.name}! Army {army.GetNid()} Str: {armyStrength:F0}, Enemy: {enemyStrength:F0}, Stronger: {armyStrength >= enemyStrength}", LogCategory.Military, __instance.kingdom);
                 }
@@ -41,13 +43,13 @@ namespace AIOverhaul
                 // Override: Instead of yielding to vanilla (which might camp for recruits), FORCE ATTACK
 
                 // 1. Check for Siege Battle
-                if (threat.level == Logic.KingdomAI.Threat.Level.Siege && r.castle != null)
+                if (threat.level == KingdomAI.Threat.Level.Siege && r.castle != null)
                 {
                     var siegeBattle = Traverse.Create(r.castle).Field("battle").GetValue<Logic.Battle>();
                     if (siegeBattle != null && army.battle != siegeBattle)
                     {
                         AIOverhaulPlugin.LogDebug($"[ThinkArmy] FORCE DEFEND: Army {army.GetNid()} breaking siege at {r.name}! (Str: {armyStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
-                        TraverseAPI.SendArmy(__instance, army, siegeBattle, "attack", null);
+                        TraverseAPI.SendArmy(__instance, army, siegeBattle, "attack");
                         return false;
                     }
 
@@ -56,7 +58,7 @@ namespace AIOverhaul
                     if (besiegingArmy != null && army.GetTarget() != besiegingArmy)
                     {
                         AIOverhaulPlugin.LogDebug($"[ThinkArmy] FORCE DEFEND: Army {army.GetNid()} attacking besieging army at {r.name}! (Str: {armyStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
-                        TraverseAPI.SendArmy(__instance, army, besiegingArmy, "attack", null);
+                        TraverseAPI.SendArmy(__instance, army, besiegingArmy, "attack");
                         return false;
                     }
                 }
@@ -66,7 +68,7 @@ namespace AIOverhaul
                 if (invadingArmy != null && army.GetTarget() != invadingArmy)
                 {
                     AIOverhaulPlugin.LogDebug($"[ThinkArmy] FORCE DEFEND: Army {army.GetNid()} intercepting invader {invadingArmy.GetNid()} at {r.name}! (Str: {armyStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
-                    TraverseAPI.SendArmy(__instance, army, invadingArmy, "attack", null);
+                    TraverseAPI.SendArmy(__instance, army, invadingArmy, "attack");
                     return false;
                 }
             }
@@ -102,7 +104,7 @@ namespace AIOverhaul
             return true;
         }
         
-        static void Postfix(Logic.KingdomAI __instance, Logic.Army army)
+        static void Postfix(KingdomAI __instance, Logic.Army army)
         {
             if (army == null || !AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return;
             if (army.IsHiredMercenary() || army.battle != null) return;
@@ -153,7 +155,7 @@ namespace AIOverhaul
                     if (leaderRealm != null)
                     {
                         var threat = TraverseAPI.GetThreat(__instance, leaderRealm);
-                        if (threat != null && threat.level == Logic.KingdomAI.Threat.Level.Siege)
+                        if (threat != null && threat.level == KingdomAI.Threat.Level.Siege)
                         {
                             var siegeBattle = Traverse.Create(buddy.castle).Field("battle").GetValue<Logic.Battle>();
                             if (siegeBattle != null && army.GetTarget() != siegeBattle)
@@ -167,13 +169,43 @@ namespace AIOverhaul
                                     return;
                                 }
                                 AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: ACTION=rescue_leader_siege (Leader's castle {buddy.castle.name} under siege!)", LogCategory.Military, __instance.kingdom);
-                                TraverseAPI.SendArmy(__instance, army, siegeBattle, "rescue_leader_siege", null);
+                                TraverseAPI.SendArmy(__instance, army, siegeBattle, "rescue_leader_siege");
                                 return;
                             }
                         }
                     }
                     AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: Leader in castle (no siege) -> follower acts independently", LogCategory.Military, __instance.kingdom);
                     return;
+                }
+
+                // PRIORITY 1: If leader is in a battle (attacking settlement/district), join that battle
+                if (buddy.battle != null && army.battle == null)
+                {
+                    // Leader is in a battle - check if we should join
+                    float friendlyStr = buddy.EvalStrength();
+                    float enemyStr = 0;
+
+                    // Get enemy strength from the battle's realm
+                    var battleRealm = buddy.realm_in ?? buddy.tgt_realm;
+                    if (battleRealm?.armies != null)
+                    {
+                        foreach (var a in battleRealm.armies)
+                        {
+                            if (a != null && __instance.kingdom.IsEnemy(a.kingdom_id))
+                                enemyStr += a.EvalStrength();
+                        }
+                    }
+
+                    if (!BuddySystem.ShouldBuddyHelp(army, friendlyStr, enemyStr, __instance.kingdom))
+                    {
+                        AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: Skipping join_leader_battle - army too weak to impact", LogCategory.Military, __instance.kingdom);
+                    }
+                    else if (army.GetTarget() != buddy.battle && army.GetTarget() != buddy)
+                    {
+                        AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: ACTION=join_leader_battle (Leader is in battle!)", LogCategory.Military, __instance.kingdom);
+                        TraverseAPI.SendArmy(__instance, army, buddy.battle, "join_leader_battle");
+                        return;
+                    }
                 }
 
                 // Check if leader's target is a military target
@@ -192,7 +224,7 @@ namespace AIOverhaul
                         isMilitaryTarget = isEnemy;
                         targetType = isEnemy ? "EnemyArmy" : "FriendlyArmy";
                     }
-                    else if (leaderTarget is Logic.Castle targetCastle)
+                    else if (leaderTarget is Castle targetCastle)
                     {
                         var castleKingdom = targetCastle.GetKingdom();
                         bool isEnemy = castleKingdom != null && castleKingdom.IsEnemy(__instance.kingdom.id);
@@ -217,7 +249,7 @@ namespace AIOverhaul
                     {
                         enemyStr = targetArmy2.EvalStrength();
                     }
-                    else if (leaderTarget is Logic.Battle || leaderTarget is Logic.Castle)
+                    else if (leaderTarget is Logic.Battle || leaderTarget is Castle)
                     {
                         // For battles/castles, check the realm for enemy armies
                         var targetRealm = buddy.tgt_realm ?? buddy.realm_in;
@@ -239,12 +271,12 @@ namespace AIOverhaul
                     else
                     {
                         AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: ACTION=follow_buddy_force (copying leader's military target)", LogCategory.Military, __instance.kingdom);
-                        TraverseAPI.SendArmy(__instance, army, leaderTarget, "follow_buddy_force", null);
+                        TraverseAPI.SendArmy(__instance, army, leaderTarget, "follow_buddy_force");
                         return;
                     }
                 }
 
-                // Movement Sync: Only follow if leader is moving toward enemy territory
+                // Movement Sync: Follow if leader is moving toward enemy territory
                 if (leaderMoving && leaderTarget == null && buddy.tgt_realm != null)
                 {
                     var tgtRealmKingdom = buddy.tgt_realm.GetKingdom();
@@ -255,7 +287,23 @@ namespace AIOverhaul
                     if (isEnemyTerritory && army.GetTarget() != buddy)
                     {
                         AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: ACTION=follow_buddy_move (following leader to enemy territory)", LogCategory.Military, __instance.kingdom);
-                        TraverseAPI.SendArmy(__instance, army, buddy, "follow_buddy_move", null);
+                        TraverseAPI.SendArmy(__instance, army, buddy, "follow_buddy_move");
+                        return;
+                    }
+                }
+
+                // Stationary in Enemy Territory: Leader stopped in/near enemy realm (waiting to attack)
+                // This handles the case where leader has arrived at tgt_realm but hasn't started battle yet
+                if (!leaderMoving && buddy.tgt_realm != null)
+                {
+                    var tgtRealmKingdom = buddy.tgt_realm.GetKingdom();
+                    bool isEnemyTerritory = tgtRealmKingdom != null && tgtRealmKingdom.IsEnemy(__instance.kingdom.id);
+
+                    if (isEnemyTerritory && army.GetTarget() != buddy)
+                    {
+                        AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: Leader stationary at enemy realm {buddy.tgt_realm.name}", LogCategory.Military, __instance.kingdom);
+                        AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: ACTION=join_leader_territory (going to leader in enemy territory)", LogCategory.Military, __instance.kingdom);
+                        TraverseAPI.SendArmy(__instance, army, buddy, "join_leader_territory");
                         return;
                     }
                 }
@@ -294,7 +342,7 @@ namespace AIOverhaul
                              else
                              {
                                  AIOverhaulPlugin.LogDebug($"[ThinkArmy] Leader {army.GetNid()} RESCUING Buddy {buddy.GetNid()} in battle!", LogCategory.Military, __instance.kingdom);
-                                 TraverseAPI.SendArmy(__instance, army, buddy, "rescue_buddy", null);
+                                 TraverseAPI.SendArmy(__instance, army, buddy, "rescue_buddy");
                                  return;
                              }
                          }
@@ -310,7 +358,7 @@ namespace AIOverhaul
                     {
                         var threat = TraverseAPI.GetThreat(__instance, realm);
                         // Check if under Siege
-                        if (threat != null && threat.level == Logic.KingdomAI.Threat.Level.Siege)
+                        if (threat != null && threat.level == KingdomAI.Threat.Level.Siege)
                         {
                             float myStrength = army.EvalStrength();
                             float enemyStrength = threat.enemies_in.eval;
@@ -325,7 +373,7 @@ namespace AIOverhaul
                                 if (siegeBattle != null)
                                 {
                                     AIOverhaulPlugin.LogDebug($"[ThinkArmy] Garrison {army.GetNid()} SALLYING OUT from {army.castle.name}! (Str: {myStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
-                                    TraverseAPI.SendArmy(__instance, army, siegeBattle, "attack", null);
+                                    TraverseAPI.SendArmy(__instance, army, siegeBattle, "attack");
                                     return;
                                 }
                             }
@@ -336,11 +384,11 @@ namespace AIOverhaul
 
             if (status == "idle" && army.castle == null)
             {
-                Logic.Castle nearest = TraverseAPI.FindNearestOwnCastle(__instance, army, true);
+                Castle nearest = TraverseAPI.FindNearestOwnCastle(__instance, army, true);
                 if (nearest != null)
                 {
                     AIOverhaulPlugin.LogDebug($" Idle Knight - Returning to garrison at {nearest.name}", LogCategory.Military, __instance.kingdom);
-                    TraverseAPI.SendArmy(__instance, army, nearest, "go_inside", null);
+                    TraverseAPI.SendArmy(__instance, army, nearest, "go_inside");
                 }
             }
         }
@@ -349,7 +397,7 @@ namespace AIOverhaul
         {
             if (target == null) return "None";
 
-            if (target is Logic.Castle c) return $"Castle:{c.name}";
+            if (target is Castle c) return $"Castle:{c.name}";
             if (target is Logic.Army a) return $"Army:{a.leader?.Name ?? a.GetNid().ToString()}";
             if (target is Logic.Battle) return "Battle";
             if (target is Logic.Realm r) return $"Realm:{r.name}";

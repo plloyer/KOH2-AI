@@ -1,9 +1,11 @@
-using BepInEx;
-using HarmonyLib;
-using UnityEngine;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System;
+using BepInEx;
+using HarmonyLib;
+using Logic;
+using UnityEngine;
+using Random = System.Random;
 
 namespace AIOverhaul
 {
@@ -26,9 +28,10 @@ namespace AIOverhaul
         public static Dictionary<int, int> ExpansionTargets = new Dictionary<int, int>();
 
         public const string MORTAL_ENEMY_VAR = "aimod_mortal_enemy";
+        public const string MORTAL_ENEMY_SOV_VAR = "aimod_mortal_enemy_sov";
 
-        public static Logic.Game CurrentGame => current_game;
-        static Logic.Game current_game;
+        public static Game CurrentGame => current_game;
+        static Game current_game;
 
         void Awake()
         {
@@ -83,7 +86,7 @@ namespace AIOverhaul
 
         public const string LogPrefix = "[AI-Mod]";
 
-        public static bool SpectatorMode = false;
+        public static bool SpectatorMode;
 
         /// <summary>
         /// Log an error message
@@ -106,7 +109,7 @@ namespace AIOverhaul
         /// </summary>
         public static void LogInfo(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null)
         {
-            Log(message, category, kingdom, LogLevel.Log);
+            Log(message, category, kingdom);
         }
 
         /// <summary>
@@ -126,8 +129,8 @@ namespace AIOverhaul
         /// </summary>
         static void Log(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null, LogLevel level = LogLevel.Log)
         {
-            string levelTag = level == LogLevel.Diagnostic ? "[DIAG] " : "";
-            string formattedMessage = $"{LogPrefix}[{kingdom?.Name}][{category}]{levelTag}{message}";
+            string levelTag = level == LogLevel.Diagnostic ? "[DIAG]" : "";
+            string formattedMessage = $"{LogPrefix}{levelTag}[{kingdom?.Name}][{category}]{message}";
 
             // Call the appropriate Logger method based on log level
             switch (level)
@@ -162,7 +165,7 @@ namespace AIOverhaul
             return BaselineKingdomIds.Contains(k.id);
         }
 
-        public static void InitializeEnhancedKingdoms(Logic.Game game)
+        public static void InitializeEnhancedKingdoms(Game game)
         {
             if (game == null || game.kingdoms == null) return;
             if (game == current_game) return;
@@ -183,7 +186,7 @@ namespace AIOverhaul
 
             if (playerKingdoms.Count > 0)
             {
-                Log($"Player kingdoms added to Enhanced AI: {string.Join(", ", playerKingdoms.Select(k => k.Name))}", LogCategory.General);
+                Log($"Player kingdoms added to Enhanced AI: {string.Join(", ", playerKingdoms.Select(k => k.Name))}");
             }
 
             // Now select enhanced/baseline from AI kingdoms only
@@ -193,7 +196,7 @@ namespace AIOverhaul
             int targetCount = Mathf.Max(1, Mathf.RoundToInt(aiKingdoms.Count * GameBalance.EnhancedAISelectionPercentage));
 
             // Randomize selection
-            System.Random rand = new System.Random();
+            Random rand = new Random();
             var shuffled = aiKingdoms.OrderBy(x => rand.Next()).ToList();
 
             var enhanced = shuffled.Take(targetCount).ToList();
@@ -211,17 +214,17 @@ namespace AIOverhaul
                 EnhancedPerformanceLogger.RecordBaseline(k, "Baseline", game);
             }
 
-            Log($"New game session detected. Selected {EnhancedKingdomIds.Count} enhanced and {BaselineKingdomIds.Count} baseline kingdoms out of {aiKingdoms.Count} total AI kingdoms.", LogCategory.General);
+            Log($"New game session detected. Selected {EnhancedKingdomIds.Count} enhanced and {BaselineKingdomIds.Count} baseline kingdoms out of {aiKingdoms.Count} total AI kingdoms.");
 
             if (enhanced.Count > 0)
-                Log($"-----> Enhanced ({enhanced.Count}): {string.Join(", ", enhanced.Select(k => k.Name))}", LogCategory.General);
+                Log($"-----> Enhanced ({enhanced.Count}): {string.Join(", ", enhanced.Select(k => k.Name))}");
             else
-                Log("Enhanced (0): None", LogCategory.General);
+                Log("Enhanced (0): None");
 
             if (baseline.Count > 0)
-                Log($"Baseline ({baseline.Count}): {string.Join(", ", baseline.Select(k => k.Name))}", LogCategory.General);
+                Log($"Baseline ({baseline.Count}): {string.Join(", ", baseline.Select(k => k.Name))}");
             else
-                Log("Baseline (0): None", LogCategory.General);
+                Log("Baseline (0): None");
         }
 
         /// <summary>
@@ -229,25 +232,61 @@ namespace AIOverhaul
         /// Returns null if no mortal enemy has been set
         /// Reads from persisted Kingdom variable for automatic save/load support
         /// </summary>
-        public static Logic.Kingdom GetMortalEnemy(Logic.Kingdom k, Logic.Game game)
+        /// <summary>
+        /// Get the mortal enemy of a kingdom (if any exists)
+        /// Returns null if no mortal enemy has been set OR if the grudge is settled (enemy dead/defeated)
+        /// Reads from persisted Kingdom variable for automatic save/load support
+        /// </summary>
+        public static Logic.Kingdom GetMortalEnemy(Logic.Kingdom k, Game game)
         {
             if (k == null || game == null) return null;
 
             // Try to read from Kingdom vars (persisted data)
-            Logic.Value var = k.GetVar(MORTAL_ENEMY_VAR);
-            if (var.type != Logic.Value.Type.Int)
+            Value var = k.GetVar(MORTAL_ENEMY_VAR);
+            if (var.type != Value.Type.Int)
             {
                 // Not set or wrong type, return null
                 return null;
             }
 
-            int enemyId = (int)var;
+            int enemyId = var;
             Logic.Kingdom enemy = game.GetKingdom(enemyId);
 
-            // Clear mortal enemy if they're defeated
-            if (enemy == null || enemy.IsDefeated())
+            // Validations to clear the grudge
+            bool clearGrudge = false;
+            string clearReason = "";
+
+            if (enemy == null)
             {
-                k.SetVar(MORTAL_ENEMY_VAR, new Logic.Value()); // Clear the var
+                clearGrudge = true;
+                clearReason = "Kingdom not found";
+            }
+            else if (enemy.IsDefeated())
+            {
+                clearGrudge = true;
+                clearReason = "Kingdom defeated";
+            }
+            else
+            {
+                // Check if the specific Sovereign we hated is still in charge
+                Value sovVar = k.GetVar(MORTAL_ENEMY_SOV_VAR);
+                if (sovVar.type == Value.Type.Int)
+                {
+                    int hatedSovId = sovVar;
+                    // If current sovereign is different, the "Mortal Enemy" is dead/gone
+                    if (enemy.royalFamily?.Sovereign?.GetNid() != hatedSovId)
+                    {
+                        clearGrudge = true;
+                        clearReason = "Sovereign dead/replaced";
+                    }
+                }
+            }
+
+            if (clearGrudge)
+            {
+                LogDebug($"Clearing Mortal Enemy for {k.Name}: {clearReason}", LogCategory.Diplomacy, k);
+                k.SetVar(MORTAL_ENEMY_VAR, new Value()); // Clear the var
+                k.SetVar(MORTAL_ENEMY_SOV_VAR, new Value()); // Clear the sov var
                 MortalEnemies.Remove(k.id); // Clear cache too
                 return null;
             }
@@ -260,6 +299,7 @@ namespace AIOverhaul
 
             return enemy;
         }
+        
         public static void ToggleSpectatorMode()
         {
             SpectatorMode = !SpectatorMode;
@@ -280,13 +320,13 @@ namespace AIOverhaul
                         {
                             EnhancedKingdomIds.Add(playerKingdom.id);
                         }
-                        LogInfo($"Spectator Mode ENABLED - Enhanced AI is now controlling kingdom", LogCategory.Spectator, playerKingdom);
+                        LogInfo("Spectator Mode ENABLED - Enhanced AI is now controlling kingdom", LogCategory.Spectator, playerKingdom);
                     }
                     else
                     {
                         // Remove player from Enhanced AI when spectator mode is off
                         EnhancedKingdomIds.Remove(playerKingdom.id);
-                        LogInfo($"Spectator Mode DISABLED - Player control restored", LogCategory.Spectator, playerKingdom);
+                        LogInfo("Spectator Mode DISABLED - Player control restored", LogCategory.Spectator, playerKingdom);
                     }
                 }
             }
@@ -296,19 +336,41 @@ namespace AIOverhaul
     }
 
     // --- Spectator Mode Patches ---
-
-    // Hook into Logic.Game.Update() to detect F9 key press
+    // Hook into Logic.Game.Update() to detect F8/F9 key presses
     // "Update" is the main game loop update function, called every frame.
-    // Intent: GameUpdatePatch (Spectator Mode)
-    [HarmonyPatch(typeof(Logic.Game), "Update")]
+    // Intent: GameUpdatePatch (Spectator Mode + Ultra Speed)
+    [HarmonyPatch(typeof(Game), "Update")]
     public class UpdatePatch
     {
-        static void Postfix(Logic.Game __instance)
+        static bool _ultraSpeedActive;
+        static float _previousSpeed = 1f;
+
+        static void Postfix(Game __instance)
         {
             // Detect F9 key press to toggle spectator mode
             if (Input.GetKeyDown(KeyCode.F9))
             {
                 AIOverhaulPlugin.ToggleSpectatorMode();
+            }
+
+            // Detect F8 key press to toggle 50x speed
+            if (Input.GetKeyDown(KeyCode.F8))
+            {
+                if (_ultraSpeedActive)
+                {
+                    // Restore previous speed
+                    __instance.speed = _previousSpeed;
+                    _ultraSpeedActive = false;
+                    AIOverhaulPlugin.LogInfo($"Ultra Speed DISABLED - Restored to {_previousSpeed}x");
+                }
+                else
+                {
+                    // Save current speed and set 50x
+                    _previousSpeed = __instance.speed;
+                    __instance.SetSpeed(GameBalance.UltraSpeed);
+                    _ultraSpeedActive = true;
+                    AIOverhaulPlugin.LogInfo($"Ultra Speed ENABLED - {GameBalance.UltraSpeed}x speed");
+                }
             }
         }
     }
@@ -323,13 +385,7 @@ namespace AIOverhaul
     // Mortal Enemy System: Detect when someone declares war on an Enhanced AI kingdom
     // "Logic.War" constructor is called when a new war is declared between two kingdoms.
     // Intent: WarDeclarationDetectionPatch
-    [HarmonyPatch(typeof(Logic.War), MethodType.Constructor, new[] {
-        typeof(Logic.Kingdom),
-        typeof(Logic.Kingdom),
-        typeof(Logic.War.InvolvementReason),
-        typeof(bool),
-        typeof(Logic.War.Def)
-    })]
+    [HarmonyPatch(typeof(War), MethodType.Constructor, typeof(Logic.Kingdom), typeof(Logic.Kingdom), typeof(War.InvolvementReason), typeof(bool), typeof(War.Def))]
     public class WarConstructorPatch
     {
         static void Postfix(Logic.Kingdom k1, Logic.Kingdom k2)
@@ -343,8 +399,8 @@ namespace AIOverhaul
             if (!AIOverhaulPlugin.IsEnhancedAI(k2)) return;
 
             // Check if defender already has a mortal enemy (check persisted var)
-            Logic.Value existingVar = k2.GetVar(AIOverhaulPlugin.MORTAL_ENEMY_VAR);
-            if (existingVar.type == Logic.Value.Type.Int)
+            Value existingVar = k2.GetVar(AIOverhaulPlugin.MORTAL_ENEMY_VAR);
+            if (existingVar.type == Value.Type.Int)
             {
                 // Already has a mortal enemy set
                 return;
@@ -368,12 +424,18 @@ namespace AIOverhaul
 
             // Record as mortal enemy - the FIRST kingdom to declare war becomes the permanent grudge
             // Store in Kingdom variable for automatic persistence
-            k2.SetVar(AIOverhaulPlugin.MORTAL_ENEMY_VAR, new Logic.Value(k1.id));
+            k2.SetVar(AIOverhaulPlugin.MORTAL_ENEMY_VAR, new Value(k1.id));
+            
+            // Record the ID of the Sovereign who attacked us
+            if (k1.royalFamily?.Sovereign != null)
+            {
+                k2.SetVar(AIOverhaulPlugin.MORTAL_ENEMY_SOV_VAR, new Value(k1.royalFamily.Sovereign.GetNid()));
+            }
 
             // Update cache for fast lookups this session
             AIOverhaulPlugin.MortalEnemies[k2.id] = k1.id;
 
-            AIOverhaulPlugin.LogDebug($"MORTAL ENEMY: will never forgive {k1.Name} for attacking first!", LogCategory.War, k2);
+            AIOverhaulPlugin.LogDebug($"MORTAL ENEMY: will never forgive {k1.Name} ({k1.royalFamily?.Sovereign?.Name ?? "Ruler"}) for attacking first!", LogCategory.War, k2);
         }
     }
 

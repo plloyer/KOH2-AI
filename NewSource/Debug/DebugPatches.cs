@@ -1,12 +1,14 @@
+using System;
 using HarmonyLib;
+using Logic;
 using UnityEngine;
 
 namespace AIOverhaul
 {
-    [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderExpense", new[] { typeof(Logic.KingdomAI.Expense) })]
+    [HarmonyPatch(typeof(KingdomAI), "ConsiderExpense", typeof(KingdomAI.Expense))]
     public class ConsiderExpensePatch
     {
-        static void Postfix(Logic.KingdomAI __instance, Logic.KingdomAI.Expense expense)
+        static void Postfix(KingdomAI __instance, KingdomAI.Expense expense)
         {
             // Only run if Spectator Mode is active
             if (!AIOverhaulPlugin.SpectatorMode) return;
@@ -21,8 +23,8 @@ namespace AIOverhaul
             string name = expense.type.ToString();
             
             // Add details based on type if possible
-            if (expense.defParam is Logic.Def d) name += $": {d.field?.key ?? d.ToString()}";
-            else if (expense.objectParam is Logic.BaseObject bo) name += $": {bo}";
+            if (expense.defParam is Def d) name += $": {d.field?.key ?? d.ToString()}";
+            else if (expense.objectParam is BaseObject bo) name += $": {bo}";
             
             float score = expense.eval;
             string category = expense.category.ToString();

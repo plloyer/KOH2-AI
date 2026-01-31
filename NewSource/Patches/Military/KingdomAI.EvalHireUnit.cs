@@ -1,8 +1,10 @@
+using System;
 using HarmonyLib;
+using Logic;
 
 namespace AIOverhaul
 {
-    [HarmonyPatch(typeof(Logic.KingdomAI), "EvalHireUnit")]
+    [HarmonyPatch(typeof(KingdomAI), "EvalHireUnit")]
     public class KingdomAI_EvalHireUnit
     {
         static void Postfix(Logic.Unit.Def udef, Logic.Army army, ref float __result)

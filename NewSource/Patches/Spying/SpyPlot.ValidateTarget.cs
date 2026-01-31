@@ -1,14 +1,16 @@
-using HarmonyLib;
 using System;
+using HarmonyLib;
+using Logic;
+using Object = Logic.Object;
 
 namespace AIOverhaul
 {
-    [HarmonyPatch(typeof(Logic.SpyPlot), "ValidateTarget")]
+    [HarmonyPatch(typeof(SpyPlot), "ValidateTarget")]
     public class SpyPlot_ValidateTarget
     {
         const float k_MinIncomeToSpy = 150f;
         
-        static bool Prefix(Logic.SpyPlot __instance, Logic.Object target, ref bool __result)
+        static bool Prefix(SpyPlot __instance, Object target, ref bool __result)
         {
             try
             {
@@ -24,7 +26,7 @@ namespace AIOverhaul
 
                 // 2. Income Check: Must have at least 150 gold income
                 // Access 'Gold' resource from the 'income' Resource object
-                float income = kingdom.income[Logic.ResourceType.Gold];
+                float income = kingdom.income[ResourceType.Gold];
 
                 if (income < k_MinIncomeToSpy)
                 {

@@ -3,6 +3,8 @@
 // Total traditions: 27
 // Source: C:\Program Files (x86)\Steam\steamapps\common\Knights of Honor II\Defs\traditions.def
 
+using System;
+
 namespace AIOverhaul
 {
     /// <summary>
@@ -41,8 +43,7 @@ namespace AIOverhaul
         /// <summary>
         /// Get all tradition names as an array
         /// </summary>
-        public static readonly string[] All = new[]
-        {
+        public static readonly string[] All = {
             ArcheryTradition,
             AssassinationTradition,
             BargainTradition,

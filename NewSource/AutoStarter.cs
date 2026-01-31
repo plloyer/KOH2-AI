@@ -1,5 +1,9 @@
-using UnityEngine;
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using Logic;
+using UnityEngine;
+using Time = UnityEngine.Time;
 
 namespace AIOverhaul
 {
@@ -11,20 +15,20 @@ namespace AIOverhaul
     {
         const string LogPrefix = "AutoStart";
         
-        static Logic.Game _capturedGame = null;
+        static Game _capturedGame;
 
-        bool _hasStarted = false;
+        bool _hasStarted;
         string _targetKingdom = KingdomNames.Champagne;
         int _provinces = 2;
         int _difficulty = 2;
         bool _spectatorEnabled = false;
 
-        bool _sceneMonitoringStarted = false;
+        bool _sceneMonitoringStarted;
 
         /// <summary>
         /// Called by GameCreateMultiplayerPatch to provide the Game instance
         /// </summary>
-        public static void SetGameInstance(Logic.Game game)
+        public static void SetGameInstance(Game game)
         {
             _capturedGame = game;
             AIOverhaulPlugin.LogInfo("[AutoStarter] Game instance received and stored");
@@ -38,7 +42,7 @@ namespace AIOverhaul
 
         void ParseArgs()
         {
-            var args = System.Environment.GetCommandLineArgs();
+            var args = Environment.GetCommandLineArgs();
 
             // Log ALL command line arguments for debugging
             AIOverhaulPlugin.LogInfo($"AutoStart: Parsing {args.Length} command line arguments:");
@@ -100,7 +104,7 @@ namespace AIOverhaul
             }
         }
 
-        bool _hasRoutineStarted = false;
+        bool _hasRoutineStarted;
         float _sceneCheckStartTime = -1f;
 
         void CheckSceneAndStart()
@@ -129,13 +133,13 @@ namespace AIOverhaul
             }
         }
 
-        System.Collections.IEnumerator AutoStartRoutine()
+        IEnumerator AutoStartRoutine()
         {
             AIOverhaulPlugin.LogInfo("=== AutoStart: Routine Started ===");
 
             // Wait for Game instance to be captured by our patch
             AIOverhaulPlugin.LogInfo("AutoStart: Step 1 - Waiting for Game instance to be captured...");
-            Logic.Game game = null;
+            Game game = null;
 
             // Wait for the game to be captured (CreateMultiplayer is called during engine init)
             int i = 0;
@@ -157,10 +161,10 @@ namespace AIOverhaul
 
             // Create Campaign and assign to game
             AIOverhaulPlugin.LogInfo($"{LogPrefix}: Step 2 - Creating Campaign...");
-            Logic.Campaign campaign = null;
+            Campaign campaign = null;
             try
             {
-                campaign = Logic.Campaign.CreateSinglePlayerCampaign(MapNames.Europe, PeriodNames.Early);
+                campaign = Campaign.CreateSinglePlayerCampaign(MapNames.Europe, PeriodNames.Early);
                 if (campaign == null)
                 {
                     AIOverhaulPlugin.LogError($"{LogPrefix}: FAILED - Campaign.CreateSinglePlayerCampaign returned null");
@@ -188,12 +192,12 @@ namespace AIOverhaul
                 AIOverhaulPlugin.LogInfo($"{LogPrefix}: Setting options on campaignData...");
                 var data = game.campaign.campaignData;
                 
-                data.Set(CampaignVarNames.KingdomSize, new Logic.Value(shatteredVal));
-                data.Set(CampaignVarNames.PickKingdom, new Logic.Value("pick")); // "pick" allows specific selection
-                data.Set(CampaignVarNames.MapSize, new Logic.Value("normal"));
-                data.Set(CampaignVarNames.StartPeriod, new Logic.Value(PeriodNames.Early));
-                data.Set(CampaignVarNames.AllowOffline, new Logic.Value(true));
-                data.Set(CampaignVarNames.MainGoal, new Logic.Value("domination")); // Default goal
+                data.Set(CampaignVarNames.KingdomSize, new Value(shatteredVal));
+                data.Set(CampaignVarNames.PickKingdom, new Value("pick")); // "pick" allows specific selection
+                data.Set(CampaignVarNames.MapSize, new Value("normal"));
+                data.Set(CampaignVarNames.StartPeriod, new Value(PeriodNames.Early));
+                data.Set(CampaignVarNames.AllowOffline, new Value(true));
+                data.Set(CampaignVarNames.MainGoal, new Value("domination")); // Default goal
 
                 // Set Player Kingdom (Pre-selection)
                 // We set the internal lists so that when StartGame runs, it picks up the correct player kingdom.
@@ -201,9 +205,9 @@ namespace AIOverhaul
                 // 1. Set ID
                 int localIndex = 0; 
                 AIOverhaulPlugin.LogInfo($"{LogPrefix}: Pre-selecting kingdom '{_targetKingdom}' for Player " + localIndex);
-                game.campaign.SetPlayerID(localIndex, Logic.Campaign.single_player_id, false);
+                game.campaign.SetPlayerID(localIndex, Campaign.single_player_id, false);
                 if (game.campaign.playerIDs != null && game.campaign.playerIDs.Length > localIndex)
-                    game.campaign.playerIDs[localIndex] = Logic.Campaign.single_player_id;
+                    game.campaign.playerIDs[localIndex] = Campaign.single_player_id;
 
                 // 2. Set persistent data name using API
                 // Using SetPlayerKingdomName as requested, which handles persistent data and other logic.
@@ -211,7 +215,7 @@ namespace AIOverhaul
 
                 // 3. Set internal list override
                 if (game.campaign.player_kingdoms == null)
-                    game.campaign.player_kingdoms = new System.Collections.Generic.List<string>();
+                    game.campaign.player_kingdoms = new List<string>();
                 
                 if (game.campaign.player_kingdoms.Count <= localIndex)
                 {
@@ -321,7 +325,6 @@ namespace AIOverhaul
                 int mPlayed = Mathf.FloorToInt((currentHoursPlayed - hPlayed) * 60);
                 AIOverhaulPlugin.LogInfo($"{LogPrefix}: Real-time limit reached ({realTimeElapsed:F0}s). Played: {hPlayed}h {mPlayed}m. Quitting...");
                 Application.Quit();
-                return;
             }}
         }
     }

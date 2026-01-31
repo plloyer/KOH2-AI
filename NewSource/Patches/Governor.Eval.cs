@@ -1,13 +1,15 @@
-using HarmonyLib;
+using System;
 using System.Linq;
+using HarmonyLib;
+using Logic;
 
 namespace AIOverhaul
 {
     // "Eval" (GovernOption) scores how suitable a specific character is for governing a specific town.
-    [HarmonyPatch(typeof(Logic.KingdomAI.GovernOption), "Eval")]
+    [HarmonyPatch(typeof(KingdomAI.GovernOption), "Eval")]
     public class GovernOption_Eval
     {
-        static void Postfix(ref Logic.KingdomAI.GovernOption __instance, ref float __result)
+        static void Postfix(ref KingdomAI.GovernOption __instance, ref float __result)
         {
             if (__instance.governor == null || __instance.castle == null) return;
             
@@ -18,7 +20,7 @@ namespace AIOverhaul
             ApplyMerchantMarketBonus(__instance, ref __result);
         }
 
-        static void ApplyEarlyGameMarshalLogic(Logic.KingdomAI.GovernOption option, Logic.Kingdom kingdom, ref float score)
+        static void ApplyEarlyGameMarshalLogic(KingdomAI.GovernOption option, Logic.Kingdom kingdom, ref float score)
         {
             // Rule: Early game (2-3 provinces), Marshals should govern the castle with most districts (military potential)
             if (kingdom.realms.Count >= 2 && kingdom.realms.Count <= 3 && option.governor.IsMarshal())
@@ -46,7 +48,7 @@ namespace AIOverhaul
             }
         }
 
-        static void ApplyMerchantMarketBonus(Logic.KingdomAI.GovernOption option, ref float score)
+        static void ApplyMerchantMarketBonus(KingdomAI.GovernOption option, ref float score)
         {
             if (option.governor.class_def?.id == CharacterClassNames.Merchant)
             {

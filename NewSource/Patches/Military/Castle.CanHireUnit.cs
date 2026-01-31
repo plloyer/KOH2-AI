@@ -1,11 +1,13 @@
+using System;
 using HarmonyLib;
+using Logic;
 
 namespace AIOverhaul
 {
-    [HarmonyPatch(typeof(Logic.Castle), "CanHireUnit")]
+    [HarmonyPatch(typeof(Castle), "CanHireUnit")]
     public class Castle_CanHireUnit
     {
-        static void Postfix(Logic.Castle __instance, Logic.Unit.Def unitDef, Logic.Army army, ref bool __result)
+        static void Postfix(Castle __instance, Logic.Unit.Def unitDef, Logic.Army army, ref bool __result)
         {
             if (!__result) return;
             if (army == null || unitDef == null) return;

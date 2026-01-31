@@ -1,15 +1,16 @@
-using HarmonyLib;
 using System;
+using HarmonyLib;
+using Logic;
 
 namespace AIOverhaul
 {
     /// <summary>
     /// This patch is used to accept, in spectator mode, diplomacy like if it was a normal AI (instant).
     /// </summary>
-    [HarmonyPatch(typeof(Logic.Offer), "Resolve")]
+    [HarmonyPatch(typeof(Offer), "Resolve")]
     public class Offer_Resolve
     {
-        static bool Prefix(Logic.Offer __instance, ref bool __result)
+        static bool Prefix(Offer __instance, ref bool __result)
         {
             try
             {
@@ -26,10 +27,10 @@ namespace AIOverhaul
                 if (!kingdom.is_player) return true; // Not player? Let original logic run.
 
                 // 4. Ensure AI is actually enabled for Diplomacy
-                if (kingdom.ai == null || !kingdom.ai.Enabled(Logic.KingdomAI.EnableFlags.Diplomacy)) return true;
+                if (kingdom.ai == null || !kingdom.ai.Enabled(KingdomAI.EnableFlags.Diplomacy)) return true;
 
                 // 5. Execute AI Logic (Bypassing is_player check)
-                Logic.Offer counterOffer;
+                Offer counterOffer;
                 string answer = __instance.DecideAIAnswer(out counterOffer);
 
                 if (answer == DiplomacyConstants.CounterOffer)

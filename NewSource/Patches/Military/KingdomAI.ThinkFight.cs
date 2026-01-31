@@ -1,13 +1,15 @@
+using System;
 using HarmonyLib;
+using Logic;
 
 namespace AIOverhaul
 {
     // "ThinkFight" controls whether an army should engage in battle or retreat.
     // Intent: BattleEngagementPatch
-    [HarmonyPatch(typeof(Logic.KingdomAI), "ThinkFight")]
+    [HarmonyPatch(typeof(KingdomAI), "ThinkFight")]
     public class KingdomAI_ThinkFight
     {
-        static bool Prefix(Logic.KingdomAI __instance, Logic.Army army, ref bool __result)
+        static bool Prefix(KingdomAI __instance, Logic.Army army, ref bool __result)
         {
             if (army == null || !AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
@@ -120,12 +122,12 @@ namespace AIOverhaul
                 {
                     if (realmIn.kingdom_id == __instance.kingdom.id && army.castle == null)
                     {
-                        Logic.Castle castle = realmIn.castle;
+                        Castle castle = realmIn.castle;
                         if (castle != null)
                         {
                             if (castle.army == null || castle.army == army)
                             {
-                                TraverseAPI.SendArmy(__instance, army, castle, "retreat_low_chance", null);
+                                TraverseAPI.SendArmy(__instance, army, castle, "retreat_low_chance");
                                 __result = true;
                                 return false;
                             }

@@ -1,3 +1,6 @@
+using System;
+using Logic;
+
 namespace AIOverhaul
 {
     /// <summary>
@@ -8,15 +11,15 @@ namespace AIOverhaul
         /// <summary>
         /// Get a district definition by name
         /// </summary>
-        public static Logic.District.Def GetDistrictDefinition(this Logic.Game game, string districtName)
+        public static District.Def GetDistrictDefinition(this Game game, string districtName)
         {
-            return game?.defs?.Get<Logic.District.Def>(districtName);
+            return game?.defs?.Get<District.Def>(districtName);
         }
 
         /// <summary>
         /// Check if a castle has a specific district
         /// </summary>
-        public static bool HasDistrict(this Logic.Castle castle, string districtName)
+        public static bool HasDistrict(this Castle castle, string districtName)
         {
             var district = (castle?.game).GetDistrictDefinition(districtName);
             return district != null && castle.HasDistrict(district);
@@ -111,7 +114,7 @@ namespace AIOverhaul
         /// <summary>
         /// Check if a settlement ID corresponds to a Religious Settlement (Monastery, Mosque, Shrine)
         /// </summary>
-        private static bool IsReligiousSettlement(string id)
+        static bool IsReligiousSettlement(string id)
         {
             return id == SettlementNames.Monastery ||
                    id == SettlementNames.Mosque ||

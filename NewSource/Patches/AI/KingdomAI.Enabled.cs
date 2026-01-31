@@ -1,11 +1,13 @@
+using System;
 using HarmonyLib;
+using Logic;
 
 namespace AIOverhaul.Patches.AI
 {
-    [HarmonyPatch(typeof(Logic.KingdomAI), "Enabled")]
+    [HarmonyPatch(typeof(KingdomAI), "Enabled")]
     public class EnabledPatch
     {
-        static bool Prefix(Logic.KingdomAI __instance, ref bool __result, Logic.KingdomAI.EnableFlags flag)
+        static bool Prefix(KingdomAI __instance, ref bool __result, KingdomAI.EnableFlags flag)
         {
             var kingdom = __instance?.kingdom;
             if (kingdom == null) return true;

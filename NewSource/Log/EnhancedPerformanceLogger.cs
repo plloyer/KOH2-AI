@@ -1,8 +1,9 @@
-using BepInEx;
-using HarmonyLib;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using BepInEx;
+using HarmonyLib;
 using Logic;
 using IOPath = System.IO.Path;
 
@@ -22,7 +23,7 @@ namespace AIOverhaul
         static string AggregateLogPath = IOPath.Combine(Paths.ConfigPath, "AI_Aggregate_Stats.csv");
 
         static Dictionary<int, KingdomBaseline> kingdomBaselines = new Dictionary<int, KingdomBaseline>();
-        static int logCounter = 0;
+        static int logCounter;
         static readonly int AGGREGATE_LOG_INTERVAL = GameBalance.AggregateLogInterval;
 
         static EnhancedPerformanceLogger()
@@ -35,7 +36,7 @@ namespace AIOverhaul
             try
             {
                 // Performance log
-                if (!System.IO.File.Exists(PerformanceLogPath))
+                if (!File.Exists(PerformanceLogPath))
                 {
                     string header = "Timestamp,GameYear,KingdomName,AI_Type," +
                                    // Current state
@@ -48,18 +49,18 @@ namespace AIOverhaul
                                    "KingWritingSkill,KingClass,YearsElapsed," +
                                    // Status
                                    "IsDefeated,SurvivalYears\n";
-                    System.IO.File.WriteAllText(PerformanceLogPath, header);
+                    File.WriteAllText(PerformanceLogPath, header);
                 }
 
                 // Baseline log
-                if (!System.IO.File.Exists(BaselineLogPath))
+                if (!File.Exists(BaselineLogPath))
                 {
                     var dummy = new KingdomBaseline();
-                    System.IO.File.WriteAllText(BaselineLogPath, dummy.ToCsvHeader() + ",AI_Type\n");
+                    File.WriteAllText(BaselineLogPath, dummy.ToCsvHeader() + ",AI_Type\n");
                 }
 
                 // Aggregate stats log
-                if (!System.IO.File.Exists(AggregateLogPath))
+                if (!File.Exists(AggregateLogPath))
                 {
                     string header = "Timestamp,GameYear," +
                                    "EnhancedCount,BaselineCount," +
@@ -69,12 +70,12 @@ namespace AIOverhaul
                                    "EnhancedAvgBooks,BaselineAvgBooks,BooksRatio," +
                                    "EnhancedDefeated,BaselineDefeated," +
                                    "EnhancedSurvivalRate,BaselineSurvivalRate\n";
-                    System.IO.File.WriteAllText(AggregateLogPath, header);
+                    File.WriteAllText(AggregateLogPath, header);
                 }
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.LogError($"ERROR initializing log files: {ex.Message}", LogCategory.General);
+                AIOverhaulPlugin.LogError($"ERROR initializing log files: {ex.Message}");
             }
         }
 
@@ -91,7 +92,7 @@ namespace AIOverhaul
             try
             {
                 string line = baseline.ToCsvLine() + $",{aiType}";
-                System.IO.File.AppendAllText(BaselineLogPath, line + "\n");
+                File.AppendAllText(BaselineLogPath, line + "\n");
             }
             catch (Exception ex)
             {
@@ -138,7 +139,7 @@ namespace AIOverhaul
                 int currentRealms = k.realms?.Count ?? 0;
                 float currentGold = k.resources?[ResourceType.Gold] ?? 0;
                 int currentArmies = k.armies?.Count ?? 0;
-                float currentStrength = WarLogicHelper.GetTotalPower(k);
+                float currentStrength = k.GetTotalPower();
                 int currentWars = k.wars?.Count ?? 0;
                 int currentTraditions = k.traditions?.Count ?? 0;
                 int currentBooks = k.books?.Count ?? 0;
@@ -171,7 +172,7 @@ namespace AIOverhaul
                              $"{realmsGrowthRate:F2},{goldGrowthRate:F0},{strengthGrowthRate:F0},{traditionsGrowthRate:F2},{booksGrowthRate:F2}," +
                              $"{realmsRatio:F2},{strengthRatio:F2},{goldPerRealm:F0},{strengthPerRealm:F0}," +
                              $"{kingWritingSkill},{CsvHelper.Escape(kingClass)},{yearsElapsed:F1}," +
-                             $"False,";
+                             "False,";
 
                 lines.Add(line);
             }
@@ -180,11 +181,11 @@ namespace AIOverhaul
             {
                 try
                 {
-                    System.IO.File.AppendAllLines(PerformanceLogPath, lines);
+                    File.AppendAllLines(PerformanceLogPath, lines);
                 }
                 catch (Exception ex)
                 {
-                    AIOverhaulPlugin.LogError($"ERROR writing performance log: {ex.Message}", LogCategory.General);
+                    AIOverhaulPlugin.LogError($"ERROR writing performance log: {ex.Message}");
                 }
             }
 
@@ -216,15 +217,15 @@ namespace AIOverhaul
 
                     string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                     string line = $"{timestamp},{currentYear:F1},{CsvHelper.Escape(k.Name)},{aiType}," +
-                                 $"0,0,0,0,0,0,0,0,0," + // All current metrics zero
-                                 $"0,0,0,0,0," + // Growth rates zero
-                                 $"0,0,0,0," + // Ratios zero
+                                 "0,0,0,0,0,0,0,0,0," + // All current metrics zero
+                                 "0,0,0,0,0," + // Growth rates zero
+                                 "0,0,0,0," + // Ratios zero
                                  $"0,None,{baseline.SurvivalYears:F1}," +
                                  $"True,{baseline.SurvivalYears:F1}";
 
                     try
                     {
-                        System.IO.File.AppendAllText(PerformanceLogPath, line + "\n");
+                        File.AppendAllText(PerformanceLogPath, line + "\n");
                     }
                     catch (Exception ex)
                     {
@@ -247,8 +248,8 @@ namespace AIOverhaul
             float enhancedAvgRealms = enhanced.Count > 0 ? enhanced.Select(k => (float)(k.realms?.Count ?? 0)).Average() : 0;
             float baselineAvgRealms = baseline.Count > 0 ? (float)baseline.Average(k => k.realms?.Count ?? 0) : 0;
 
-            float enhancedAvgStrength = enhanced.Count > 0 ? enhanced.Average(k => WarLogicHelper.GetTotalPower(k)) : 0;
-            float baselineAvgStrength = baseline.Count > 0 ? baseline.Average(k => WarLogicHelper.GetTotalPower(k)) : 0;
+            float enhancedAvgStrength = enhanced.Count > 0 ? enhanced.Average(k => k.GetTotalPower()) : 0;
+            float baselineAvgStrength = baseline.Count > 0 ? baseline.Average(k => k.GetTotalPower()) : 0;
 
             float enhancedAvgGold = enhanced.Count > 0 ? enhanced.Average(k => k.resources?[ResourceType.Gold] ?? 0) : 0;
             float baselineAvgGold = baseline.Count > 0 ? baseline.Average(k => k.resources?[ResourceType.Gold] ?? 0) : 0;
@@ -291,18 +292,18 @@ namespace AIOverhaul
 
             try
             {
-                System.IO.File.AppendAllText(AggregateLogPath, line + "\n");
+                File.AppendAllText(AggregateLogPath, line + "\n");
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.LogError($"ERROR writing aggregate stats: {ex.Message}", LogCategory.General);
+                AIOverhaulPlugin.LogError($"ERROR writing aggregate stats: {ex.Message}");
             }
 
             // Also log to console for immediate feedback
             AIOverhaulPlugin.LogInfo($"[AI-Stats] Time {timeStr}: Enhanced vs Baseline | " +
                                          $"Realms: {enhancedAvgRealms:F1} vs {baselineAvgRealms:F1} ({realmsRatio:P0}) | " +
                                          $"Strength: {enhancedAvgStrength:F0} vs {baselineAvgStrength:F0} ({strengthRatio:P0}) | " +
-                                         $"Survival: {enhancedSurvivalRate:P0} vs {baselineSurvivalRate:P0}", LogCategory.General);
+                                         $"Survival: {enhancedSurvivalRate:P0} vs {baselineSurvivalRate:P0}");
         }
 
 

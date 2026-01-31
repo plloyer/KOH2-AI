@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace AIOverhaul
 {
@@ -9,10 +11,10 @@ namespace AIOverhaul
         public static Dictionary<int, int> buddyMap = new Dictionary<int, int>();
 
         // Key: Kingdom ID, Value: Last re-evaluation time (real time seconds)
-        private static Dictionary<int, float> lastReevalTime = new Dictionary<int, float>();
+        static Dictionary<int, float> lastReevalTime = new Dictionary<int, float>();
 
         // Key: Kingdom ID, Value: Strike force army IDs (the two strongest)
-        private static Dictionary<int, (int, int)> strikeForceMap = new Dictionary<int, (int, int)>();
+        static Dictionary<int, (int, int)> strikeForceMap = new Dictionary<int, (int, int)>();
 
         public static void ClearCache()
         {
@@ -30,7 +32,7 @@ namespace AIOverhaul
             if (kingdom == null || kingdom.armies == null) return;
 
             int kingdomId = kingdom.id;
-            float currentTime = UnityEngine.Time.time;
+            float currentTime = Time.time;
 
             // Check if re-evaluation is needed
             if (lastReevalTime.TryGetValue(kingdomId, out float lastTime))

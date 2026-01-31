@@ -1,8 +1,9 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using HarmonyLib;
 using Logic;
-using System;
-using System.Collections;
+using Object = Logic.Object;
 
 namespace AIOverhaul
 {
@@ -216,7 +217,7 @@ namespace AIOverhaul
                             if (kingdom2BorderRealms != null && kingdom2BorderRealms.Contains(realm))
                             {
                                 // Casting to Logic.Object for Value insertion
-                                Logic.Object rBase = realm as Logic.Object;
+                                Object rBase = realm as Object;
                                 if (rBase != null)
                                 {
                                      lst.Add(new Value(rBase)); 

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Logic;
 
@@ -75,7 +76,7 @@ namespace AIOverhaul
             return false;
         }
 
-        private static int GetKingdomIdForPlayer(Campaign campaign, string playerId)
+        static int GetKingdomIdForPlayer(Campaign campaign, string playerId)
         {
             if (campaign == null || string.IsNullOrEmpty(playerId)) return -1;
 

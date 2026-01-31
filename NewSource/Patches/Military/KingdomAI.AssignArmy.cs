@@ -1,28 +1,30 @@
-using HarmonyLib;
+using System;
 using System.Linq;
+using HarmonyLib;
+using Logic;
 
 namespace AIOverhaul
 {
     // "AssignArmy" assigns a specific army to a threat.
     // Intent: ArmyCoordinationPatch
-    [HarmonyPatch(typeof(Logic.KingdomAI), "AssignArmy")]
+    [HarmonyPatch(typeof(KingdomAI), "AssignArmy")]
     public class KingdomAI_AssignArmy
     {
         const float PowerRatioToFight = 1.3f;
-        static bool Prefix(Logic.KingdomAI __instance, Logic.KingdomAI.Threat threat, int pass, ref bool __result)
+        static bool Prefix(KingdomAI __instance, KingdomAI.Threat threat, int pass, ref bool __result)
         {
             if (__instance == null || __instance.kingdom == null) return true;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
             if (threat == null) return true;
 
             // OFFENSIVE: Attacking enemy territory - require MinArmiesForWar full armies
-            if (threat.level == Logic.KingdomAI.Threat.Level.Attack)
+            if (threat.level == KingdomAI.Threat.Level.Attack)
             {
                 int readyArmies = 0;
                 if (__instance.kingdom.armies != null)
-                    readyArmies = __instance.kingdom.armies.Count(a => a != null && a.IsValid() && Logic.KingdomAI.IsFull(a));
+                    readyArmies = __instance.kingdom.armies.Count(a => a != null && a.IsValid() && KingdomAI.IsFull(a));
 
-                if (readyArmies < GameBalance.MinArmiesForWar)
+                if (readyArmies < GameBalance.MinArmiesToDeclareWar)
                 {
                     //AIOverhaulPlugin.LogDebug($"[AssignArmy] Blocking offensive assignment to {threat.realm?.name}: waiting for 2 full armies (have {readyArmies})", LogCategory.Military, __instance.kingdom);
                     __result = false;
@@ -30,7 +32,7 @@ namespace AIOverhaul
                 }
             }
             // DEFENSIVE: Our territory is invaded - defend if we're stronger than the enemy
-            else if (threat.level >= Logic.KingdomAI.Threat.Level.Invaded)
+            else if (threat.level >= KingdomAI.Threat.Level.Invaded)
             {
                 float ourStrength = threat.assigned.eval;
                 float enemyStrength = threat.enemies_in.eval;
@@ -47,7 +49,7 @@ namespace AIOverhaul
             return true;
         }
 
-        static void Postfix(Logic.KingdomAI __instance, Logic.KingdomAI.Threat threat, bool __result)
+        static void Postfix(KingdomAI __instance, KingdomAI.Threat threat, bool __result)
         {
             // If assignment failed or not enhanced AI, do nothing
             if (!__result || __instance == null || __instance.kingdom == null) return;

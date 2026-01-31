@@ -1,3 +1,5 @@
+using System;
+
 namespace AIOverhaul
 {
     public static class MilitaryHelper
@@ -8,7 +10,7 @@ namespace AIOverhaul
                 return false;
 
             int readyArmies = 0;
-            for (int i = 0; i < System.Math.Min(GameBalance.FirstTwoArmiesCount, kingdom.armies.Count); i++)
+            for (int i = 0; i < Math.Min(GameBalance.FirstTwoArmiesCount, kingdom.armies.Count); i++)
             {
                 var army = kingdom.armies[i];
                 if (army == null) continue;

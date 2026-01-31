@@ -3,6 +3,8 @@
 // Total skills: 28
 // Source: C:\Program Files (x86)\Steam\steamapps\common\Knights of Honor II\Defs\Characters\Skills
 
+using System;
+
 namespace AIOverhaul
 {
     /// <summary>
@@ -42,8 +44,7 @@ namespace AIOverhaul
         /// <summary>
         /// Get all skill names as an array
         /// </summary>
-        public static readonly string[] All = new[]
-        {
+        public static readonly string[] All = {
             Archery,
             Assassination,
             Bargain,

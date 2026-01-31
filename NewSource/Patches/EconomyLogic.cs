@@ -1,7 +1,7 @@
- using System;
- using UnityEngine;
+using System;
+using UnityEngine;
 
- namespace AIOverhaul
+namespace AIOverhaul
 {
 
     // "ChooseNewSkill" picks a new skill for a character when they gain a level or slot.

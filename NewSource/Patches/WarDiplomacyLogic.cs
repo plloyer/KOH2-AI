@@ -1,8 +1,7 @@
-using HarmonyLib;
+using System;
+using System.Collections.Generic;
 using Logic;
 using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
 
 namespace AIOverhaul
 {
@@ -13,7 +12,7 @@ namespace AIOverhaul
         /// Replacement for KingdomAI.GetAverageWarScore() which doesn't exist.
         /// Negative score = losing, positive = winning.
         /// </summary>
-        public static float GetAverageWarScore(Logic.Kingdom k)
+        public static float GetAverageWarScore(this Logic.Kingdom k)
         {
             if (k == null || k.wars == null || k.wars.Count == 0) return 0f;
 
@@ -34,14 +33,13 @@ namespace AIOverhaul
                 catch
                 {
                     // Skip wars where we can't get score
-                    continue;
                 }
             }
 
             return validWars > 0 ? totalScore / validWars : 0f;
         }
 
-        public static float GetTotalPower(Logic.Kingdom k)
+        public static float GetTotalPower(this Logic.Kingdom k)
         {
             if (k == null) return 0f;
             float total = 0f;
@@ -69,7 +67,7 @@ namespace AIOverhaul
             return total;
         }
 
-        public static bool HasDisorder(Logic.Kingdom k)
+        public static bool HasDisorder(this Logic.Kingdom k)
         {
             if (k == null || k.realms == null) return false;
 
@@ -84,7 +82,7 @@ namespace AIOverhaul
             return false;
         }
 
-        public static float GetNeighborThreat(Logic.Kingdom k)
+        public static float GetNeighborThreat(this Logic.Kingdom k)
         {
             if (k == null || k.neighbors == null) return 0f;
 
@@ -99,7 +97,7 @@ namespace AIOverhaul
                     // Consider enemies and those with bad relations as threats
                     if (k.IsEnemy(neighborKingdom))
                     {
-                        totalThreat += GetTotalPower(neighborKingdom);
+                        totalThreat += neighborKingdom.GetTotalPower();
                     }
                 }
             }
@@ -107,7 +105,7 @@ namespace AIOverhaul
             return totalThreat;
         }
 
-        public static bool HasHighThreat(Logic.Kingdom k)
+        public static bool HasHighThreat(this Logic.Kingdom k)
         {
             if (k == null || k.realms == null) return false;
 
@@ -126,7 +124,7 @@ namespace AIOverhaul
             return false;
         }
 
-        public static bool WantsInvasionPlan(Logic.Kingdom k)
+        public static bool WantsInvasionPlan(this Logic.Kingdom k)
         {
             if (k == null) return false;
 
@@ -134,12 +132,12 @@ namespace AIOverhaul
             // and we are strong enough to consider attacking but would like allies.
             
             // Re-use existing SelectExpansionTarget logic
-            Logic.Kingdom target = SelectExpansionTarget(k);
+            Logic.Kingdom target = k.SelectExpansionTarget();
             if (target == null) return false;
 
             // If we are significantly stronger than the target, we might not need a plan
-            float ownPower = GetTotalPower(k);
-            float targetPower = GetTotalPower(target);
+            float ownPower = k.GetTotalPower();
+            float targetPower = target.GetTotalPower();
             
             if (ownPower > targetPower * GameBalance.PowerRatioSoloCapable) return false; // We can handle it alone
 
@@ -159,109 +157,20 @@ namespace AIOverhaul
             return false;
         }
 
-        public static bool WantsDiplomat(Logic.Kingdom k)
-        {
-            if (k == null) return false;
-
-            AIOverhaulPlugin.LogDebug($"WantsDiplomat() called - starting diplomat check", LogCategory.Diplomacy, k);
-
-            // EARLY GAME PREVENTION: Must have baseline economy established first
-            // 1. Must have 2 merchants (baseline commercial capacity)
-            int merchants = CourtHelper.CountMerchants(k);
-            if (merchants < GameBalance.RequiredMerchantCount)
-            {
-                AIOverhaulPlugin.LogDebug($"BLOCKING diplomat: need {GameBalance.RequiredMerchantCount} merchants first (have {merchants})", LogCategory.Diplomacy, k);
-                return false;
-            }
-
-            // 2. Must have at least MinArmiesForWar armies ready (military foundation)
-            if (!MilitaryHelper.HasTwoReadyArmies(k))
-            {
-                AIOverhaulPlugin.LogDebug($"BLOCKING diplomat: need {GameBalance.MinArmiesForWar} ready armies first", LogCategory.Diplomacy, k);
-                return false;
-            }
-
-            // Diplomats are expensive luxury characters - only hire when we can afford it AND need diplomacy
-            float goldIncome = k.income?.Get(ResourceType.Gold) ?? 0f;
-
-            // Need solid income to afford a diplomat
-            if (goldIncome < GameBalance.MinGoldIncomeForDiplomats)
-            {
-                AIOverhaulPlugin.LogDebug($"BLOCKING diplomat: goldIncome too low ({goldIncome} < {GameBalance.MinGoldIncomeForDiplomats})", LogCategory.Diplomacy, k);
-                return false;
-            }
-
-            // Count neighbors that are stronger than us and threaten us
-            float ownPower = GetTotalPower(k);
-            int strongerThreats = 0;
-
-            if (k.neighbors != null)
-            {
-                foreach (var neighbor in k.neighbors)
-                {
-                    if (neighbor is Logic.Kingdom nk && !nk.IsDefeated())
-                    {
-                        // Skip allies - they're not threats
-                        if (k.IsAlly(nk)) continue;
-
-                        float neighborPower = GetTotalPower(nk);
-
-                        // Count as threat if they're stronger than us
-                        if (neighborPower > ownPower * GameBalance.PowerRatioStrongerNeighbor)
-                        {
-                            strongerThreats++;
-                        }
-                    }
-                }
-            }
-
-            AIOverhaulPlugin.LogDebug($"Diplomat check: goldIncome={goldIncome}, ownPower={ownPower}, strongerThreats={strongerThreats}", LogCategory.Diplomacy, k);
-
-            // Hire diplomat if we have enough stronger neighbors (need alliances/NAPs to secure flanks)
-            if (strongerThreats >= GameBalance.MinStrongerThreatsForDiplomat)
-            {
-                AIOverhaulPlugin.LogDebug($"ALLOWING diplomat: {strongerThreats} stronger neighbors threatening us", LogCategory.Diplomacy, k);
-                return true;
-            }
-
-            AIOverhaulPlugin.LogDebug($"BLOCKING diplomat: only {strongerThreats} stronger threats (need {GameBalance.MinStrongerThreatsForDiplomat}+)", LogCategory.Diplomacy, k);
-            return false;
-        }
-
-        public static bool WantsSpy(Logic.Kingdom k)
-        {
-            if (k == null) return false;
-
-            // PREVENT EARLY HIRING: Spies are mid-game luxury characters
-            int merchants = CourtHelper.CountMerchants(k);
-
-            // Must have economy established (at least 2 merchants)
-            if (merchants < GameBalance.RequiredMerchantCount) return false;
-
-            // Strategic Need: If we are at war, spies can be useful for destabilization
-            if (k.wars != null && k.wars.Count > 0) return true;
-
-            // If we have a lot of gold and nothing better to do? 
-            // For now, let's keep it restricted to war or late-ish game
-            if (k.resources?[ResourceType.Gold] > 10000f) return true;
-
-            return false;
-        }
-
-        public static bool ShouldSeekDefensivePact(Logic.Kingdom k)
+        public static bool ShouldSeekDefensivePact(this Logic.Kingdom k)
         {
             if (k == null) return false;
 
             // Don't seek pacts if we already have 2+ allies
             if (k.allies != null && k.allies.Count >= 2) return false;
 
-            float ownPower = GetTotalPower(k);
+            float ownPower = k.GetTotalPower();
 
             // PRIORITY: If we have a mortal enemy that's equal or stronger, ALWAYS seek allies FAST
             Logic.Kingdom mortalEnemy = AIOverhaulPlugin.GetMortalEnemy(k, k.game);
             if (mortalEnemy != null && !mortalEnemy.IsDefeated())
             {
-                float enemyPower = GetTotalPower(mortalEnemy);
+                float enemyPower = mortalEnemy.GetTotalPower();
 
                 // If mortal enemy is equal or stronger, we MUST seek allies before attacking
                 if (enemyPower >= ownPower)
@@ -275,13 +184,13 @@ namespace AIOverhaul
             if (gold < 5000f) return false;
 
             // Check if we face significant neighbor threats
-            float neighborThreat = GetNeighborThreat(k);
+            float neighborThreat = k.GetNeighborThreat();
 
             // Seek pacts if neighbor threat > 0.75x our power
             return neighborThreat > ownPower * 0.75f;
         }
 
-        public static Logic.Kingdom FindBestDefensivePactTarget(Logic.Kingdom k)
+        public static Logic.Kingdom FindBestDefensivePactTarget(this Logic.Kingdom k)
         {
             if (k == null || k.game == null) return null;
 
@@ -308,14 +217,14 @@ namespace AIOverhaul
                 }
 
                 // HIGH PRIORITY: If they're neighbors of our mortal enemy (can join war later)
-                if (mortalEnemy != null && IsStrategicNeighbor(potentialAlly, mortalEnemy))
+                if (mortalEnemy != null && potentialAlly.IsStrategicNeighbor(mortalEnemy))
                 {
                     score += GameBalance.AllianceScoreNeighborOfMortalEnemy;
                 }
 
                 // PRIORITY: Unfriendly neighbors are good alliance targets
                 float relationship = k.GetRelationship(potentialAlly);
-                if (relationship < 0 && IsStrategicNeighbor(k, potentialAlly))
+                if (relationship < 0 && k.IsStrategicNeighbor(potentialAlly))
                 {
                     score += GameBalance.AllianceScoreUnfriendlyNeighbor;
                 }
@@ -339,7 +248,7 @@ namespace AIOverhaul
                     foreach (var ourWar in k.wars)
                     {
                         Logic.Kingdom ourEnemy = ourWar.GetEnemyLeader(k);
-                        if (ourEnemy != null && IsStrategicNeighbor(potentialAlly, ourEnemy))
+                        if (ourEnemy != null && potentialAlly.IsStrategicNeighbor(ourEnemy))
                         {
                             score++; // Small bonus for being positioned against our enemies
                         }
@@ -362,7 +271,7 @@ namespace AIOverhaul
         /// Re-evaluates dynamically based on current relations (not locked in during peace)
         /// Only logs when the expansion target changes
         /// </summary>
-        public static Logic.Kingdom SelectExpansionTarget(Logic.Kingdom k)
+        public static Logic.Kingdom SelectExpansionTarget(this Logic.Kingdom k)
         {
             if (k == null || k.neighbors == null) return null;
 
@@ -429,7 +338,7 @@ namespace AIOverhaul
 
                         // Get relationship value
                         float relationship = k.GetRelationship(neighborKingdom);
-                        float power = WarLogicHelper.GetTotalPower(neighborKingdom);
+                        float power = neighborKingdom.GetTotalPower();
 
                         // Track WORST relationship (fallback)
                         if (relationship < lowestRelation)
@@ -498,7 +407,7 @@ namespace AIOverhaul
         /// Find the best neighbor to offer a non-aggression pact to
         /// EXCLUDES the designated expansion target - we want to keep one enemy neighbor
         /// </summary>
-        public static Logic.Kingdom FindNonAggressionTarget(Logic.Kingdom k, Logic.Kingdom expansionTarget)
+        public static Logic.Kingdom FindNonAggressionTarget(this Logic.Kingdom k, Logic.Kingdom expansionTarget)
         {
             if (k == null || k.neighbors == null) return null;
 
@@ -546,7 +455,7 @@ namespace AIOverhaul
             return bestTarget;
         }
 
-        public static bool IsStrategicNeighbor(Logic.Kingdom a, Logic.Kingdom b)
+        public static bool IsStrategicNeighbor(this Logic.Kingdom a, Logic.Kingdom b)
         {
             if (a == null || b == null) return false;
             if (a.neighbors == null) return false;
@@ -558,7 +467,7 @@ namespace AIOverhaul
             return false;
         }
 
-        public static bool HasCommonEnemyWithAlly(Logic.Kingdom a, Logic.Kingdom b)
+        public static bool HasCommonEnemyWithAlly(this Logic.Kingdom a, Logic.Kingdom b)
         {
             if (a == null || b == null || a.wars == null || b.wars == null) return false;
             foreach (var warA in a.wars)
@@ -573,7 +482,7 @@ namespace AIOverhaul
             return false;
         }
 
-        public static int GetTradeAgreementCount(Logic.Kingdom k)
+        public static int GetTradeAgreementCount(this Logic.Kingdom k)
         {
             if (k == null || k.game == null) return 0;
 
@@ -593,7 +502,7 @@ namespace AIOverhaul
             return count;
         }
 
-        public static bool IsMortalEnemy(Logic.Kingdom kingdom, Logic.Kingdom potentialEnemy)
+        public static bool IsMortalEnemy(this Logic.Kingdom kingdom, Logic.Kingdom potentialEnemy)
         {
             if (kingdom == null || potentialEnemy == null) return false;
 
@@ -605,401 +514,80 @@ namespace AIOverhaul
 
             return false;
         }
-    }
 
-    // "ThinkDeclareWar" evaluates kingdom relations and power to decide if war should be declared.
-    // Intent: WarDeclarationPatch
-    [HarmonyPatch(typeof(KingdomAI), "ThinkDeclareWar")]
-    public class KingdomAI_ThinkDeclareWar
-    {
-        static bool Prefix(KingdomAI __instance, Logic.Kingdom k, ref bool __result)
+        /// <summary>
+        /// When at war and either outnumbered or outpowered, invite neighbors with good relations to join the war.
+        /// </summary>
+        public static void ConsiderInvitingNeighborsToWar(this KingdomAI ai)
         {
-            if (k == null || !AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+            var kingdom = ai.kingdom;
+            if (kingdom?.wars == null || kingdom.wars.Count == 0) return;
 
-            // CRITICAL: Never declare war if we have disorder
-            if (WarLogicHelper.HasDisorder(__instance.kingdom))
+            foreach (var war in kingdom.wars)
             {
-                __result = false;
-                return false;
-            }
+                if (war == null) continue;
 
-            if (__instance.kingdom.IsAlly(k))
-            {
-                __result = false;
-                return false;
-            }
+                // Get our side (0 = attackers, 1 = defenders)
+                int ourSide = TraverseAPI.GetWarSide(war, kingdom);
+                var ourKingdoms = (ourSide == 0) ? war.attackers : war.defenders;
+                var enemyKingdoms = (ourSide == 0) ? war.defenders : war.attackers;
 
-            if (!WarLogicHelper.IsStrategicNeighbor(__instance.kingdom, k))
-            {
-                __result = false;
-                return false;
-            }
+                if (ourKingdoms == null || enemyKingdoms == null) continue;
 
-            float ownPower = WarLogicHelper.GetTotalPower(__instance.kingdom);
-            float targetPower = WarLogicHelper.GetTotalPower(k);
+                // Calculate strength
+                float ourStrength = GetWarSideStrength(ourKingdoms);
+                float enemyStrength = GetWarSideStrength(enemyKingdoms);
 
-            // Check neighbor threat - assess if declaring war leaves us vulnerable
-            float neighborThreat = WarLogicHelper.GetNeighborThreat(__instance.kingdom);
-            float combinedThreat = neighborThreat + targetPower;
+                bool outnumbered = enemyKingdoms.Count >= ourKingdoms.Count;
+                bool outpowered = enemyStrength >= ourStrength;
 
-            // If combined threats exceed our power by 2x, we're too vulnerable
-            if (combinedThreat > ownPower * 2.0f)
-            {
-                __result = false;
-                return false;
-            }
+                // Only invite if we need help
+                if (!outnumbered && !outpowered) continue;
 
-            bool targetAtWar = k.wars != null && k.wars.Count > 0;
-            bool commonEnemy = WarLogicHelper.HasCommonEnemyWithAlly(__instance.kingdom, k);
+                AIOverhaulPlugin.LogDebug($"War needs help: Ours={ourKingdoms.Count} ({ourStrength:F0}) vs Enemy={enemyKingdoms.Count} ({enemyStrength:F0})",
+                    LogCategory.Diplomacy, kingdom);
 
-            // Improved opportunistic war logic with upper limit
-            if (targetPower > ownPower * 1.5f)
-            {
-                // Don't attack if enemy is more than 2.5x stronger, even if distracted
-                if (targetPower > ownPower * 2.5f)
+                // Find neighbors with good relations to invite
+                if (kingdom.neighbors == null) continue;
+
+                foreach (var neighborObj in kingdom.neighbors)
                 {
-                    __result = false;
-                    return false;
-                }
+                    if (!(neighborObj is Logic.Kingdom neighbor)) continue;
+                    if (neighbor.IsDefeated()) continue;
+                    if (kingdom.IsEnemy(neighbor)) continue; // At war with us
 
-                if (!targetAtWar && !commonEnemy)
-                {
-                    __result = false;
-                    return false;
+                    // Check if already in this war
+                    bool alreadyInWar = war.attackers.Contains(neighbor) || war.defenders.Contains(neighbor);
+                    if (alreadyInWar) continue;
+
+                    // Check relation threshold
+                    float relation = kingdom.GetRelationship(neighbor);
+                    if (relation < GameBalance.MinRelationToInviteToWar) continue;
+
+                    // Send invite
+                    OfferHelper.TrySendWarInvite(ai, neighbor, war);
                 }
             }
-
-            // NEW: War Preparation - Require MinArmiesForWar Full Armies
-            int fullArmies = 0;
-            if (__instance.kingdom.armies != null)
-            {
-                foreach (var army in __instance.kingdom.armies)
-                {
-                    // Definition of "Full Army":
-                    // 1. Has a leader (Marshal or General)
-                    // 2. Has FullArmySize units (full capacity)
-                    // 3. Fully replenished (all units healthy)
-                    // 4. Not currently in battle
-                    if (army.leader != null && army.units.Count >= GameBalance.FullArmySize && army.battle == null)
-                    {
-                        // Check if fully healed/replenished
-                        bool fullyReplenished = true;
-                        foreach (var unit in army.units)
-                        {
-                            if (unit != null && unit.health < GameBalance.FullHealthThreshold)
-                            {
-                                fullyReplenished = false;
-                                break;
-                            }
-                        }
-
-                        if (fullyReplenished)
-                        {
-                            fullArmies++;
-                        }
-                    }
-                }
-            }
-
-            if (fullArmies < GameBalance.MinArmiesForWar)
-            {
-                __result = false;
-                return false;
-            }
-
-            // NEW: Check if kingdom is "well-prepared" for war (strong economy + military)
-            bool isWellPrepared = false;
-            if (fullArmies >= GameBalance.MinArmiesForWar)
-            {
-                // Check fortifications - at least one province with level 1+ fortification
-                int fortifiedProvinces = 0;
-                if (__instance.kingdom.realms != null)
-                {
-                    foreach (var realm in __instance.kingdom.realms)
-                    {
-                        if (realm?.castle?.fortifications != null && realm.castle.fortifications.level >= 1)
-                        {
-                            fortifiedProvinces++;
-                        }
-                    }
-                }
-
-                // Check gold reserves
-                float gold = __instance.kingdom.resources?.Get(ResourceType.Gold) ?? 0f;
-
-                // Well-prepared = MinArmiesForWar armies + MinFortifiedProvincesForAggression fortifications + MinGoldForAggression gold
-                if (fortifiedProvinces >= GameBalance.MinFortifiedProvincesForAggression && gold >= GameBalance.MinGoldForAggression)
-                {
-                    isWellPrepared = true;
-                }
-            }
-
-            // Calculate power ratio once
-            float powerRatio = targetPower > 0 ? ownPower / targetPower : (ownPower > 0 ? 10f : 1f);
-
-            // NEW: Mortal Enemy priority - when well-prepared, prioritize attacking mortal enemies
-            bool isMortalEnemy = WarLogicHelper.IsMortalEnemy(__instance.kingdom, k);
-
-            // AGGRESSIVE WAR LOGIC: If AggressiveWarMinArmies+ full armies and AggressiveWarPowerRatio stronger -> FORCE WAR on expansion target
-            if (fullArmies >= GameBalance.AggressiveWarMinArmies)
-            {
-                Logic.Kingdom expansionTarget = WarLogicHelper.SelectExpansionTarget(__instance.kingdom);
-                if (k == expansionTarget && powerRatio >= GameBalance.AggressiveWarPowerRatio)
-                {
-                    AIOverhaulPlugin.LogDebug($"FORCING WAR on Expansion Target {k.Name} (AGGRESSIVE: {GameBalance.AggressiveWarMinArmies}+ Armies, {powerRatio:F2}x stronger)", LogCategory.War, __instance.kingdom);
-                    __result = true;
-                    return false;
-                }
-            }
-
-            // If well-prepared and this is mortal enemy, prioritize but be smart
-            if (isWellPrepared && isMortalEnemy)
-            {
-                // Only attack if we're clearly stronger (1.5x power)
-                if (ownPower >= targetPower * GameBalance.MortalEnemyWarPowerRatio)
-                {
-                    AIOverhaulPlugin.LogDebug($"Declaring war on MORTAL ENEMY {k.Name} (well-prepared, {GameBalance.MortalEnemyWarPowerRatio}x stronger). Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
-                    return true;
-                }
-
-                // If mortal enemy is equal or stronger: Form coalition FIRST
-                AIOverhaulPlugin.LogDebug($"DEFERRING war against equal/stronger MORTAL ENEMY {k.Name} - seeking allies first. Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
-                __result = false;
-                return false;
-            }
-
-            // If well-prepared (but not mortal enemy), attack if we have advantage
-            if (isWellPrepared)
-            {
-                // Attack if we're stronger or if they're distracted
-                if (ownPower >= targetPower || targetAtWar || commonEnemy)
-                {
-                    AIOverhaulPlugin.LogDebug($"Declaring war on {k.Name} (well-prepared). Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
-                    return true;
-                }
-            }
-
-            AIOverhaulPlugin.LogDebug($"Declaring war on {k.Name}. Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
-            return true;
-        }
-    }
-
-    // "ThinkDiplomacy" handles diplomatic actions like proposing alliances, pacts, or peace treaties.
-    // Intent: SurvivalDiplomacyPatch
-    [HarmonyPatch(typeof(KingdomAI), "ThinkDiplomacy")]
-    public class KingdomAI_ThinkDiplomacy
-    {
-        static bool Prefix(KingdomAI __instance, ref IEnumerator __result)
-        {
-            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
-
-            Logic.Kingdom actor = __instance.kingdom;
-            float score = WarLogicHelper.GetAverageWarScore(actor);
-
-            // CRITICAL: If we have disorder and are at war, seek peace immediately
-            if (WarLogicHelper.HasDisorder(actor) && actor.wars != null && actor.wars.Count > 0)
-            {
-                // Focus on making peace with ALL enemies
-                if (actor.wars.Count > 0)
-                {
-                    Logic.Kingdom target = actor.wars[0].GetEnemyLeader(actor);
-                    if (target != null)
-                    {
-                        __result = RunDiplomacyWithTarget(__instance, target);
-                        return false;
-                    }
-                }
-            }
-
-            // NEW: Strategic expansion targeting - keep ONE enemy neighbor, NAP with all others
-            // This creates focused expansion direction with secure flanks
-            Logic.Kingdom expansionTarget = WarLogicHelper.SelectExpansionTarget(actor);
-
-            // Offer non-aggression pacts to all neighbors EXCEPT the expansion target
-            Logic.Kingdom napTarget = WarLogicHelper.FindNonAggressionTarget(actor, expansionTarget);
-            if (napTarget != null)
-            {
-                float relationship = actor.GetRelationship(napTarget);
-
-                // Check if expansion target is mortal enemy for logging
-                Logic.Kingdom mortalEnemy = AIOverhaulPlugin.GetMortalEnemy(actor, actor.game);
-
-                // TRADE RUSH (Priority over NAP)
-                // If we have few trade partners, try to sign trade agreements first
-                int tradeCount = WarLogicHelper.GetTradeAgreementCount(actor);
-                // User Request: Send to friends or "don't care" (neutral), but NOT enemies.
-                if (tradeCount < 3 && relationship >= 0 && !actor.IsEnemy(napTarget) && napTarget != expansionTarget)
-                {
-                    // Check if we can afford a trade agreement (usually costs gold to establish route if not instant)
-                    // But SignTrade offer validation handles cost.
-                    // We just prefer Trade Agreement over NAP here if we need money/commerce.
-                    
-                    // Re-use napTarget as trade target if they are friendly enough
-                    // But we must check if we already have trade with them
-                    if (!actor.HasTradeAgreement(napTarget))
-                    {
-                        __result = RunTradeAgreementProposal(__instance, napTarget);
-                        return false;
-                    }
-                }
-
-                __result = RunNonAggressionProposal(__instance, napTarget);
-                return false;
-            }
-
-            // NEW: Defensive pact formation when facing threats
-            if (WarLogicHelper.ShouldSeekDefensivePact(actor))
-            {
-                Logic.Kingdom pactTarget = WarLogicHelper.FindBestDefensivePactTarget(actor);
-                if (pactTarget != null)
-                {
-                    __result = RunDefensivePactProposal(__instance, pactTarget);
-                    return false;
-                }
-            }
-
-            if (score < GameBalance.WarScorePeaceSeeking || actor.wars.Count >= GameBalance.MaxWarsCount)
-            {
-                Logic.Kingdom target = null;
-
-                // Priority 1: Strongest enemy for peace
-                if (score < GameBalance.WarScoreSurvival)
-                {
-                    float worst = 0;
-                    foreach (var war in actor.wars)
-                    {
-                        int side = TraverseAPI.GetWarSide(war, actor);
-                        float s = TraverseAPI.GetWarScore(war, side);
-                        if (s < worst)
-                        {
-                            worst = s;
-                            target = war.GetEnemyLeader(actor);
-                        }
-                    }
-                }
-
-                // Priority 2: Potential ally
-                if (target == null && actor.allies.Count < 2)
-                {
-                    foreach (var k in actor.game.kingdoms)
-                    {
-                        if (k == null || k == actor || k.IsDefeated() || k.IsEnemy(actor) || k.IsAlly(actor)) continue;
-                        if (WarLogicHelper.IsStrategicNeighbor(actor, k))
-                        {
-                            foreach (var war in actor.wars)
-                                if (k.IsEnemy(war.GetEnemyLeader(actor)))
-                                {
-                                    target = k;
-                                    break;
-                                }
-                        }
-
-                        if (target != null) break;
-                    }
-                }
-
-                if (target != null)
-                {
-                    AIOverhaulPlugin.LogDebug($"In survival mode. Focusing on {target.Name}", LogCategory.Diplomacy, actor);
-                    __result = RunDiplomacyWithTarget(__instance, target);
-                    return false;
-                }
-            }
-
-            return true;
         }
 
-        static IEnumerator RunDiplomacyWithTarget(KingdomAI ai, Logic.Kingdom target)
+        static float GetWarSideStrength(List<Logic.Kingdom> kingdoms)
         {
-            yield return (object)CoopThread.Call("ThinkProposeOffer", TraverseAPI.ThinkProposeOfferThread(ai, target, "neutral"));
-        }
+            if (kingdoms == null) return 0f;
 
-        static IEnumerator RunDefensivePactProposal(KingdomAI ai, Logic.Kingdom target)
-        {
-            // Try to propose a defensive pact
-            OfferHelper.TrySendOffer("OfferJoinInDefensivePact", ai, target);
-            yield break;
-        }
-
-        static IEnumerator RunTradeAgreementProposal(KingdomAI ai, Logic.Kingdom target)
-        {
-            // Try to propose a Trade Agreement (SignTrade)
-            OfferHelper.TrySendOffer("SignTrade", ai, target);
-            yield break;
-        }
-
-        static IEnumerator RunNonAggressionProposal(KingdomAI ai, Logic.Kingdom target)
-        {
-            // Offer a FREE non-aggression pact (no gold demanded) to build good relations
-            OfferHelper.TrySendOffer("SignNonAggression", ai, target);
-            yield break;
-        }
-    }
-
-    [HarmonyPatch(typeof(KingdomAI), "ThinkWhitePeace")]
-    public class KingdomAI_ThinkWhitePeace
-    {
-        static bool Prefix(KingdomAI __instance, Logic.Kingdom k, ref bool __result)
-        {
-            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
-            Logic.Kingdom actor = __instance.kingdom;
-            if (actor == null || k == null) return true;
-
-            // Independence
-            if (actor.sovereignState == k)
+            float total = 0f;
+            foreach (var k in kingdoms)
             {
-                float myStr = WarLogicHelper.GetTotalPower(actor);
-                float theirStr = WarLogicHelper.GetTotalPower(k);
-                float kScore = WarLogicHelper.GetAverageWarScore(k);
-                if (myStr > theirStr * GameBalance.PowerRatioStrongerEnemy ||
-                    k.wars.Count > GameBalance.MaxWarsCount ||
-                    kScore < GameBalance.WarScoreIndependence)
+                if (k?.armies == null) continue;
+                foreach (var army in k.armies)
                 {
-                    if (OfferHelper.TrySendOffer("ClaimIndependence", __instance, k))
-                    {
-                        AIOverhaulPlugin.LogDebug($"Claiming independence from {k.Name}", LogCategory.War, actor);
-                        __result = true;
-                        return false;
-                    }
+                    if (army != null && army.IsValid())
+                        total += army.EvalStrength();
                 }
             }
-
-            // Desperate Surrender
-            if (actor.IsEnemy(k))
-            {
-                float score = WarLogicHelper.GetAverageWarScore(actor);
-                if (score < GameBalance.WarScoreSurrender || (score < GameBalance.WarScoreDesperateIndependence && SurvivalLogic.IsDesperate(actor)))
-                {
-                    Offer peace = Offer.GetCachedOffer("PeaceOfferTribute", (Logic.Object)actor, (Logic.Object)k);
-                    Offer vassal = Offer.GetCachedOffer("OfferVassalage", (Logic.Object)actor, (Logic.Object)k);
-                    if (peace != null && vassal != null)
-                    {
-                        peace.args = new List<Value> { new Value(vassal) };
-                        peace.AI = true;
-                        if (peace.Validate() == "ok")
-                        {
-                            AIOverhaulPlugin.LogDebug($"SURRENDERING to {k.Name} as vassal!", LogCategory.War, actor);
-                            peace.Send();
-                            if (k.is_player)
-                            {
-                                __instance.SetLastOfferTimeToKingdom(k, peace);
-                                k.t_last_ai_offer_time = __instance.game.time;
-                            }
-
-                            __result = true;
-                            return false;
-                        }
-                    }
-                }
-            }
-
-            return true;
+            return total;
         }
-    }
-
-    public static class SurvivalLogic
-    {
-        public static bool IsDesperate(Logic.Kingdom k)
+        
+        public static bool IsDesperate(this Logic.Kingdom k)
         {
             if (k == null || k.realms == null) return false;
             if (k.realms.Count == 0) return true;
@@ -1008,60 +596,6 @@ namespace AIOverhaul
             float totalStr = 0;
             foreach (var a in armies) totalStr += a.EvalStrength();
             return totalStr < k.realms.Count * 250f;
-        }
-    }
-
-    // "DecideAIAnswer" determines how the AI responds to an offer.
-    // Intent: DiplomacyAcceptancePatch
-    [HarmonyPatch(typeof(Logic.Offer), "DecideAIAnswer")]
-    public class Offer_DecideAIAnswer
-    {
-        static bool Prefix(Logic.Offer __instance, ref string __result)
-        {
-            // Only intervene if the receiver is a Kingdom
-            if (!(__instance.to is Logic.Kingdom receiver)) return true;
-
-            // Check if the Offer is Trade or Non-Aggression using type checking
-            bool isTrade = __instance.IsOfType(typeof(Logic.SignTrade));
-            bool isNAP = __instance.IsOfType(typeof(Logic.SignNonAggression));
-
-            if (!isTrade && !isNAP) return true;
-
-            // Get the Sender
-            if (!(__instance.from is Logic.Kingdom sender)) return true;
-
-            // Log all NAP/Trade offers for debugging
-            bool isEnhanced = AIOverhaulPlugin.IsEnhancedAI(receiver);
-            string offerTypeName = __instance.GetType().Name;
-            AIOverhaulPlugin.LogDebug($"[Offer] {sender.Name} -> {receiver.Name}: {offerTypeName} (Enhanced: {isEnhanced})", LogCategory.Diplomacy, receiver);
-
-            // Only intervene for Enhanced AI
-            if (!isEnhanced) return true;
-
-            // LOGIC: Accept unless it's a target or mortal enemy
-
-            // 1. Check Mortal Enemy (Never accept friendly pacts with them)
-            if (WarLogicHelper.IsMortalEnemy(receiver, sender))
-            {
-                AIOverhaulPlugin.LogDebug($"REFUSING {offerTypeName} from MORTAL ENEMY {sender.Name}", LogCategory.Diplomacy, receiver);
-                return true;
-            }
-
-            // 2. Check Expansion Target (Don't tie our hands if we plan to attack)
-            Logic.Kingdom expansionTarget = WarLogicHelper.SelectExpansionTarget(receiver);
-            if (expansionTarget == sender)
-            {
-                AIOverhaulPlugin.LogDebug($"REFUSING {offerTypeName} from EXPANSION TARGET {sender.Name}", LogCategory.Diplomacy, receiver);
-                return true;
-            }
-
-            // 3. Auto-accept Trade/NAP from non-targets (Enhanced AI is opportunistic)
-            // Sanity check: Don't accept if already at war
-            if (receiver.IsEnemy(sender)) return true;
-
-            AIOverhaulPlugin.LogDebug($"AUTO-ACCEPTING {offerTypeName} from {sender.Name}", LogCategory.Diplomacy, receiver);
-            __result = "accept";
-            return false;
         }
     }
 }

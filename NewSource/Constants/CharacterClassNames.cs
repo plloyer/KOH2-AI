@@ -3,6 +3,8 @@
 // Total character classes: 6
 // Source: C:\Program Files (x86)\Steam\steamapps\common\Knights of Honor II\Defs\Characters\classes.def
 
+using System;
+
 namespace AIOverhaul
 {
     /// <summary>
@@ -20,8 +22,7 @@ namespace AIOverhaul
         /// <summary>
         /// Get all character class names as an array
         /// </summary>
-        public static readonly string[] All = new[]
-        {
+        public static readonly string[] All = {
             ClasslessPrince,
             Marshal,
             Merchant,

@@ -1,13 +1,15 @@
+using System;
 using HarmonyLib;
+using Logic;
 
 namespace AIOverhaul
 {
     // "CanAssign" determines if an army is eligible to handle a specific threat.
     // Intent: BuddySystemPatch (Leader Check)
-    [HarmonyPatch(typeof(Logic.KingdomAI), "CanAssign")]
+    [HarmonyPatch(typeof(KingdomAI), "CanAssign")]
     public class KingdomAI_CanAssign
     {
-        static bool Prefix(Logic.KingdomAI __instance, Logic.Army army, ref bool __result)
+        static bool Prefix(KingdomAI __instance, Logic.Army army, ref bool __result)
         {
             if (__instance == null || __instance.kingdom == null) return true;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;

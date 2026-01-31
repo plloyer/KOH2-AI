@@ -49,7 +49,7 @@ namespace AIOverhaul
                 InitialRealms = k.realms?.Count ?? 0,
                 InitialGold = k.resources?[ResourceType.Gold] ?? 0,
                 InitialArmies = k.armies?.Count ?? 0,
-                InitialTotalStrength = WarLogicHelper.GetTotalPower(k),
+                InitialTotalStrength = k.GetTotalPower(),
                 InitialWars = k.wars?.Count ?? 0,
                 InitialTraditions = k.traditions?.Count ?? 0,
                 InitialBooks = k.books?.Count ?? 0,
@@ -85,7 +85,7 @@ namespace AIOverhaul
             {
                 if (neighbor != null && !neighbor.IsDefeated())
                 {
-                    totalStrength += WarLogicHelper.GetTotalPower(neighbor);
+                    totalStrength += neighbor.GetTotalPower();
                     count++;
                 }
             }
