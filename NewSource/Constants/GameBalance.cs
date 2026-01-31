@@ -36,6 +36,9 @@ namespace AIOverhaul
         public const int MinArmyStrengthPerRealm = 250;
         public const int MinFullArmyUnits = 4;
 
+        // Attack Priority
+        public const int DisorderAttackMaxDistance = 2; // Max provinces away to prioritize disorder attack
+
         // Evaluation Multipliers
         // CRITICAL: Higher eval = higher priority. Multiply eval by these values to increase priority.
         public const float StrongBoostMultiplier = 2.0f;    // Strong priority increase

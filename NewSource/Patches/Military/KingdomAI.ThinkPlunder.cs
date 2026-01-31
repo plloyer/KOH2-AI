@@ -16,6 +16,16 @@ namespace AIOverhaul
             if (__instance == null || __instance.kingdom == null) return true;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
+            // Priority 1: Find any enemy realm in disorder within 2 provinces of our territory
+            var disorderRealm = MilitaryHelper.FindNearbyEnemyRealmInDisorder(__instance.kingdom, GameBalance.DisorderAttackMaxDistance);
+            if (disorderRealm != null)
+            {
+                var castle = disorderRealm.castle;
+                TraverseAPI.SendArmy(__instance, army, castle, AIStatusNames.AttackRealm);
+                __result = true;
+                return false;
+            }
+
             Logic.Settlement target = null;
             float minDist = float.MaxValue;
 
