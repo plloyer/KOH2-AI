@@ -41,6 +41,16 @@ namespace AIOverhaul
 
             if (target == null)
             {
+                // No settlements to plunder - attack the castle if in enemy territory
+                var castle = army.realm_in?.castle;
+                var castleKingdom = castle?.GetKingdom();
+                if (castle != null && castle.battle == null && castleKingdom != null && castleKingdom.IsEnemy(__instance.kingdom.id))
+                {
+                    TraverseAPI.SendArmy(__instance, army, castle, AIStatusNames.AttackRealm);
+                    __result = true;
+                    return false;
+                }
+
                 __result = false;
                 return false;
             }

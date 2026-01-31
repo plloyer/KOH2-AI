@@ -14,22 +14,28 @@ namespace AIOverhaul
             // Only intervene if the receiver is a Kingdom
             if (!(__instance.to is Logic.Kingdom receiver)) return true;
 
+            // Get the Sender
+            if (!(__instance.from is Logic.Kingdom sender)) return true;
+
+            // Only intervene for Enhanced AI
+            bool isEnhanced = AIOverhaulPlugin.IsEnhancedAI(receiver);
+            if (!isEnhanced) return true;
+
+            // Check if this is a peace offer (WhitePeaceOffer, PeaceOfferTribute, etc.)
+            bool isPeaceOffer = __instance.def?.field?.key?.Contains("Peace") ?? false;
+            if (isPeaceOffer)
+            {
+                return HandlePeaceOffer(__instance, receiver, sender, ref __result);
+            }
+
             // Check if the Offer is Trade or Non-Aggression using type checking
             bool isTrade = __instance.IsOfType(typeof(SignTrade));
             bool isNAP = __instance.IsOfType(typeof(SignNonAggression));
 
             if (!isTrade && !isNAP) return true;
 
-            // Get the Sender
-            if (!(__instance.from is Logic.Kingdom sender)) return true;
-
-            // Log all NAP/Trade offers for debugging
-            bool isEnhanced = AIOverhaulPlugin.IsEnhancedAI(receiver);
             string offerTypeName = __instance.GetType().Name;
-            AIOverhaulPlugin.LogDebug($"[Offer] {sender.Name} -> {receiver.Name}: {offerTypeName} (Enhanced: {isEnhanced})", LogCategory.Diplomacy, receiver);
-
-            // Only intervene for Enhanced AI
-            if (!isEnhanced) return true;
+            AIOverhaulPlugin.LogDebug($"[Offer] {sender.Name} -> {receiver.Name}: {offerTypeName}", LogCategory.Diplomacy, receiver);
 
             // LOGIC: Accept unless it's a target or mortal enemy
 
@@ -55,6 +61,49 @@ namespace AIOverhaul
             AIOverhaulPlugin.LogDebug($"AUTO-ACCEPTING {offerTypeName} from {sender.Name}", LogCategory.Diplomacy, receiver);
             __result = "accept";
             return false;
+        }
+
+        /// <summary>
+        /// Handle incoming peace offers. Reject if winning or sieging enemy castle.
+        /// </summary>
+        /// <summary>
+        /// Handle incoming peace offers. Reject if winning or sieging enemy castle.
+        /// </summary>
+        private static bool HandlePeaceOffer(Offer offer, Logic.Kingdom receiver, Logic.Kingdom sender, ref string result)
+        {
+            string offerKey = offer.def?.field?.key ?? DiplomacyConstants.Peace;
+            AIOverhaulPlugin.LogDebug($"[Peace] {sender.Name} -> {receiver.Name}: {offerKey}", LogCategory.Diplomacy, receiver);
+
+            // Find the war between sender and receiver
+            var war = receiver.wars?.Find(w => w.GetEnemyLeader(receiver) == sender);
+            if (war == null)
+            {
+                // No war found, let vanilla handle
+                AIOverhaulPlugin.LogDebug($"[Peace] No war found with {sender.Name}, letting vanilla handle", LogCategory.Diplomacy, receiver);
+                return true;
+            }
+
+            // Check 1: Are we winning by a good margin?
+            int side = TraverseAPI.GetWarSide(war, receiver);
+            float score = TraverseAPI.GetWarScore(war, side);
+            if (score >= GameBalance.WarScoreRejectPeace)
+            {
+                AIOverhaulPlugin.LogInfo($"[Peace] Rejecting peace from {sender.Name} - winning (score: {score:F1})", LogCategory.Diplomacy, receiver);
+                result = "reject";
+                return false;
+            }
+
+            // Check 2: Are we currently sieging an enemy castle?
+            if (receiver.IsSiegingEnemyCastle())
+            {
+                AIOverhaulPlugin.LogInfo($"[Peace] Rejecting peace from {sender.Name} - currently sieging", LogCategory.Diplomacy, receiver);
+                result = "reject";
+                return false;
+            }
+
+            // Let vanilla handle all other cases
+            AIOverhaulPlugin.LogDebug($"[Peace] Letting vanilla decide on peace from {sender.Name} (score: {score:F1})", LogCategory.Diplomacy, receiver);
+            return true;
         }
     }
 }

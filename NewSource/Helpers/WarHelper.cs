@@ -139,5 +139,59 @@ namespace AIOverhaul
 
             return false;
         }
+
+        /// <summary>
+        /// Check if kingdom is in a dominant 1v1 war where solo attacks are viable.
+        /// Returns true if: exactly 1 war, war is 1v1, and we're 1.5x stronger.
+        /// </summary>
+        public static bool IsDominantIn1v1War(this Logic.Kingdom k)
+        {
+            if (k == null || k.wars == null || k.wars.Count != 1) return false;
+
+            var war = k.wars[0];
+            if (war == null) return false;
+
+            // Check if 1v1 (no allies on either side)
+            if (war.attackers.Count != 1 || war.defenders.Count != 1) return false;
+
+            // Get enemy kingdom
+            var enemy = war.GetEnemyLeader(k);
+            if (enemy == null) return false;
+
+            // Compare total army strength
+            float ourStrength = k.GetTotalArmyStrength();
+            float enemyStrength = enemy.GetTotalArmyStrength();
+
+            if (enemyStrength <= 0) return true; // Enemy has no armies
+
+            return ourStrength >= enemyStrength * GameBalance.SoloAttackStrengthRatio;
+        }
+
+        public static float GetTotalArmyStrength(this Logic.Kingdom k)
+        {
+            if (k == null || k.armies == null) return 0f;
+            float total = 0f;
+            foreach (var army in k.armies)
+            {
+                if (army != null && army.IsValid())
+                    total += army.EvalStrength();
+            }
+            return total;
+        }
+
+        /// <summary>
+        /// Check if kingdom has any army currently sieging an enemy castle.
+        /// </summary>
+        public static bool IsSiegingEnemyCastle(this Logic.Kingdom k)
+        {
+            if (k == null || k.armies == null) return false;
+            foreach (var army in k.armies)
+            {
+                if (army?.battle == null) continue;
+                if (!army.battle.is_siege) continue;
+                if (army.battle.attacker_kingdom == k) return true;
+            }
+            return false;
+        }
     }
 }

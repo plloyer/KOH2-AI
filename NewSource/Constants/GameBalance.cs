@@ -23,6 +23,7 @@ namespace AIOverhaul
         public const float BuddyReevalIntervalMinutes = 1f; // Re-evaluate buddies interval (real time)
         public const int MinArmiesForStrikeForce = 2; // Minimum armies needed to form a strike force
         public const int MinBuddyUnitsToHelp = 4; // Buddy must have at least this many units to be sent to help
+        public const float SoloAttackStrengthRatio = 1.5f; // Skip buddy system if stronger by this ratio in 1v1 war
 
         // Army Composition - Late Game
         public const int FullArmySize = 8;
@@ -46,12 +47,13 @@ namespace AIOverhaul
         public const float StrictBlockMultiplier = 0.01f;  // Effective block
         public const float UrgentPriorityMultiplier = 100.0f; // Extreme priority
 
-        // War Score Thresholds (negative = losing)
+        // War Score Thresholds (negative = losing, positive = winning)
         public const float WarScorePeaceSeeking = -15f;
         public const float WarScoreSurvival = -20f;
         public const float WarScoreIndependence = -30f;
         public const float WarScoreSurrender = -40f;
         public const float WarScoreDesperateIndependence = -10f;
+        public const float WarScoreRejectPeace = 10f; // Reject peace if winning by this much
 
         // Diplomacy - Power Ratios
         public const float PowerRatioSoloCapable = 2.0f; // We can handle alone if stronger by this ratio

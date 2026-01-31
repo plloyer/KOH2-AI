@@ -13,14 +13,6 @@ namespace AIOverhaul
     {
         public static DebugOverlay Instance;
 
-        // Color Constants (HTML color names or hex codes)
-        const string ColorGold = "orange";
-        const string ColorFood = "yellow";
-        const string ColorMilitary = "#FF6666";      // Light red
-        const string ColorReligion = "#CC99FF";      // Light purple
-        const string ColorVillage = "#66FF66";       // Light green
-        const string ColorCoastal = "#6699FF";       // Blue
-
         // Utility colors
         const string ColorGrey = "grey";
         const string ColorWhite = "white";
@@ -28,7 +20,16 @@ namespace AIOverhaul
         const string ColorRed = "red";
         const string ColorCyan = "cyan";
         const string ColorYellow = "yellow";
+        const string ColorOrange = "orange";
         const string ColorMagenta = "magenta";
+        
+        // Color Constants (HTML color names or hex codes)
+        const string ColorEconomy = ColorOrange;
+        const string ColorFood = ColorYellow;
+        const string ColorMilitary = "#FF6666";      // Light red
+        const string ColorReligion = "#CC99FF";      // Light purple
+        const string ColorCoastal = "#6699FF";       // Blue
+
 
         // Configuration
         Rect windowRect = new Rect(20, 150, 800, 800);
@@ -315,8 +316,7 @@ namespace AIOverhaul
             int tradeAgreements = KingdomHelper.GetTradeAgreementCount(k);
 
             GUILayout.Label($"Food: <color={ColorFood}>{food:F0}</color> / {foodIncome:F0}", style);
-            GUILayout.Label($"Gold: <color={ColorGold}>{gold:F0}</color> (+{goldIncome:F0}/s) | Books: <color={ColorCyan}>{books:F0}</color> | Merchants: <color={ColorGold}>{merchants}</color> | TA: <color={ColorMagenta}>{tradeAgreements}</color>", style);
-            GUILayout.Label($"Has Barracks: <color={barracksColor}>{barracksStatus}</color>", style);
+            GUILayout.Label($"Gold: <color={ColorEconomy}>{gold:F0}</color> (+{goldIncome:F0}/s) | Books: <color={ColorReligion}>{books:F0}</color> | Merchants: <color={ColorEconomy}>{merchants}</color> | TA: <color={ColorEconomy}>{tradeAgreements}</color>", style);
             
             // Build Options stats
             int buildCount = Castle.last_build_options.Count;
@@ -462,7 +462,7 @@ namespace AIOverhaul
                 if (keeps > 0)
                     parts.Add($"<color={ColorMilitary}>{keeps} Keep</color>");
                 if (villages > 0)
-                    parts.Add($"<color={ColorVillage}>{villages} Village</color>");
+                    parts.Add($"<color={ColorEconomy}>{villages} Village</color>");
                 if (religious > 0)
                     parts.Add($"<color={ColorReligion}>{religious} Religious</color>");
                 if (farms > 0)

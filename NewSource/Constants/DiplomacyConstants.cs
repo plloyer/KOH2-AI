@@ -17,5 +17,6 @@ namespace AIOverhaul
         public const string ClaimIndependence = "ClaimIndependence";
         public const string PeaceOfferTribute = "PeaceOfferTribute";
         public const string OfferVassalage = "OfferVassalage";
+        public const string Peace = "Peace";
     }
 }

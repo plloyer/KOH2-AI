@@ -18,15 +18,18 @@ namespace AIOverhaul
             if (threat == null) return true;
 
             // OFFENSIVE: Attacking enemy territory - require MinArmiesForWar full armies
+            // Exception: In dominant 1v1 wars, allow attacking with just 1 full army
             if (threat.level == KingdomAI.Threat.Level.Attack)
             {
                 int readyArmies = 0;
                 if (__instance.kingdom.armies != null)
                     readyArmies = __instance.kingdom.armies.Count(a => a != null && a.IsValid() && KingdomAI.IsFull(a));
 
-                if (readyArmies < GameBalance.MinArmiesToDeclareWar)
+                int requiredArmies = __instance.kingdom.IsDominantIn1v1War() ? 1 : GameBalance.MinArmiesToDeclareWar;
+
+                if (readyArmies < requiredArmies)
                 {
-                    //AIOverhaulPlugin.LogDebug($"[AssignArmy] Blocking offensive assignment to {threat.realm?.name}: waiting for 2 full armies (have {readyArmies})", LogCategory.Military, __instance.kingdom);
+                    //AIOverhaulPlugin.LogDebug($"[AssignArmy] Blocking offensive assignment to {threat.realm?.name}: waiting for {requiredArmies} full armies (have {readyArmies})", LogCategory.Military, __instance.kingdom);
                     __result = false;
                     return false;
                 }

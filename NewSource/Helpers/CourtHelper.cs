@@ -116,26 +116,40 @@ namespace AIOverhaul
         /// - 5, 6, 7: Merchants
         /// - 8: Cleric (Last)
         /// </summary>
+        /// <summary>
+        /// Organize the court members into specific slots based on their class.
+        /// Rules (User Request):
+        /// - 0: King (Fixed)
+        /// - 1-4: Marshals (Priority 1)
+        /// - 5-9: Merchants (Priority 2)
+        /// - 9, 8: Clerics (Priority 3, if available)
+        /// - 4: Diplomat (Only if less than 4 marshals)
+        /// - Remaining: Fill gaps
+        /// </summary>
         public static void OrganizeCourt(Logic.Kingdom k)
         {
             if (k?.court == null || k.court.Count < 2) return; // Need at least 2 to organize
 
-            int courtSize = k.court.Count; // Usually 9, but could vary
+            int courtSize = k.court.Count;
             var slots = new Logic.Character[courtSize];
             var unassigned = new List<Logic.Character>(k.court);
 
             // 1. Lock the King/Queen to Slot 0 (if present)
+            // Assuming King is usually the first added or identifier 0, 
+            // but we should check existing slots if we want to be safe. 
+            // Usually unassigned[0] is King/Sovereign.
             if (unassigned.Count > 0)
             {
                 slots[0] = unassigned[0];
                 unassigned.RemoveAt(0);
             }
 
-            // 2. Identify remaining characters
+            // 2. Separate by Class
             var marshals = new List<Logic.Character>();
             var merchants = new List<Logic.Character>();
-            var diplomats = new List<Logic.Character>();
             var clerics = new List<Logic.Character>();
+            var diplomats = new List<Logic.Character>();
+            var spies = new List<Logic.Character>();
             var others = new List<Logic.Character>();
 
             foreach (var c in unassigned)
@@ -145,32 +159,27 @@ namespace AIOverhaul
 
                 if (classId == CharacterClassNames.Marshal) marshals.Add(c);
                 else if (classId == CharacterClassNames.Merchant) merchants.Add(c);
-                else if (classId == CharacterClassNames.Diplomat) diplomats.Add(c);
                 else if (classId == CharacterClassNames.Cleric) clerics.Add(c);
+                else if (classId == CharacterClassNames.Diplomat) diplomats.Add(c);
+                else if (classId == CharacterClassNames.Spy) spies.Add(c);
                 else others.Add(c);
             }
 
-            // 3. Assign preferred slots
-            
-            // Slot 8: Cleric (Last)
-            if (courtSize > 8 && slots[8] == null && clerics.Count > 0)
-            {
-                slots[8] = clerics[0];
-                clerics.RemoveAt(0);
-            }
+            // 3. Assign Slots by Priority
 
-            // Slot 3: Diplomat
-            if (courtSize > 3 && slots[3] == null)
+            // Priority 1: Marshals -> Slots 1, 2, 3, 4
+            for (int i = 1; i <= 4; i++)
             {
-                if (diplomats.Count > 0)
+                if (courtSize > i && slots[i] == null && marshals.Count > 0)
                 {
-                    slots[3] = diplomats[0];
-                    diplomats.RemoveAt(0);
+                    slots[i] = marshals[0];
+                    marshals.RemoveAt(0);
                 }
             }
 
-            // Slots 5, 6, 7: Merchants
-            for (int i = 5; i <= 7; i++)
+            // Priority 2: Merchants -> Slots 5, 6, 7, 8, 9 (Indices 5-9)
+            // Note: Indices 5 through 8 (if size 9)
+            for (int i = 5; i <= 9; i++)
             {
                 if (courtSize > i && slots[i] == null && merchants.Count > 0)
                 {
@@ -179,40 +188,39 @@ namespace AIOverhaul
                 }
             }
 
-            // Slots 1, 2: Marshals
-            for (int i = 1; i <= 2; i++)
+            // Priority 3: Clerics -> Slot 9, then 8 (Indices 9, 8)
+            // "Cleric start from slot 9... if 2, then slot 8... doesn't have priority on merchant"
+            // We check if slot is empty (Merchants took 5-9 first).
+            if (courtSize > 9 && slots[9] == null && clerics.Count > 0)
             {
-                if (courtSize > i && slots[i] == null && marshals.Count > 0)
-                {
-                    slots[i] = marshals[0];
-                    marshals.RemoveAt(0);
-                }
+                slots[9] = clerics[0];
+                clerics.RemoveAt(0);
             }
-            
-            // Revisit Slot 3 (if empty) -> Marshal, then others
-            if (courtSize > 3 && slots[3] == null)
+            if (courtSize > 8 && slots[8] == null && clerics.Count > 0)
             {
-                if (marshals.Count > 0)
-                {
-                    slots[3] = marshals[0];
-                    marshals.RemoveAt(0);
-                }
-                else if (others.Count > 0)
-                {
-                    slots[3] = others[0];
-                    others.RemoveAt(0);
-                }
+                slots[8] = clerics[0];
+                clerics.RemoveAt(0);
             }
 
-            // 4. Fill all remaining slots (gaps) with remaining characters
+            // Priority 4: Diplomat catch -> Slot 4 IF empty (meaning < 4 Marshals)
+            if (courtSize > 4 && slots[4] == null && diplomats.Count > 0)
+            {
+                slots[4] = diplomats[0];
+                diplomats.RemoveAt(0);
+            }
+
+            // 4. Fill Remaining Gaps
+            // "find an available spot... Same for spies"
+            // Include remaining Marshals/Merchants/Clerics/Diplomats/Spies/Others
             var remaining = new List<Logic.Character>();
             remaining.AddRange(marshals);
             remaining.AddRange(merchants);
+            remaining.AddRange(clerics); 
             remaining.AddRange(diplomats);
-            remaining.AddRange(clerics);
+            remaining.AddRange(spies);
             remaining.AddRange(others);
 
-            for (int i = 0; i < courtSize; i++)
+            for (int i = 1; i < courtSize; i++)
             {
                 if (slots[i] == null && remaining.Count > 0)
                 {
@@ -221,14 +229,12 @@ namespace AIOverhaul
                 }
             }
 
-            // 5. Apply changes to kingdom court
+            // 5. Apply to Court List
             k.court.Clear();
             for (int i = 0; i < courtSize; i++)
             {
-                k.court.Add(slots[i]); // Add slot even if null
+                k.court.Add(slots[i]);
             }
-            
-            // If any somehow remaining, add them back
             if (remaining.Count > 0)
             {
                 k.court.AddRange(remaining);
