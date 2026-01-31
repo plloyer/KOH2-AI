@@ -121,7 +121,7 @@ namespace AIOverhaul
         // Building Priority Multipliers
         // CRITICAL: Higher eval = higher priority. Multiply eval by these values (eval *= multiplier) to increase priority.
         public const float ReligionBuildingBoostPerSlot = 0.2f; // Bonus per religion slot
-        public const float BarracksSlotBoostPerSlot = 0.25f; // Bonus per castle district slot for barracks placement
+        public const float BarracksSlotBoostPerSlot = 1f; // Bonus per castle district slot for barracks placement
         public const float BarracksPriorityMultiplier = 100.0f; // Very high priority on first barracks
         public const float HighPriorityBuildingMultiplier = 100.0f;
 
@@ -141,6 +141,7 @@ namespace AIOverhaul
         public const int KingdomSideAttackLevel = 3; // Level.Attack or higher
 
         // Speed Control
+        public const float HighSpeed = 20f; // F7 high speed toggle
         public const float UltraSpeed = 50f; // F8 ultra speed toggle
     }
 }

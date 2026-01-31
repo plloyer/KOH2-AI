@@ -1,48 +1,51 @@
 using System;
+using System.Collections.Generic;
 using HarmonyLib;
 using Logic;
 
 namespace AIOverhaul
 {
-    // "ThinkArmy" handles general army tick logic including movement and actions.
-    // Intent: ThinkArmy patches (IdleArmyPatch + HealingLogicPatch)
+    // ThinkArmy is the Strategic General. It manages the high-level state of an army: logistics, movement between realms,
+    // retreating from hopeless wars, and deciding when to engage.
     [HarmonyPatch(typeof(KingdomAI), "ThinkArmy")]
     public class KingdomAI_ThinkArmy
     {
-        const float SallyOutStrengthRatio = 1.1f;
+        const float SallyOutStrengthRatio = 1.2f;
 
         static bool Prefix(KingdomAI __instance, Logic.Army army)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
-            if (army == null || !army.IsValid()) return true;
-            if (army.battle != null) return true;
-
-            // Check if any realm is under urgent threat (Invaded or Siege) AND we're stronger
+            if (army?.battle == null || !army.IsValid()) return true;
             if (__instance.kingdom.realms == null) return true;
 
             float armyStrength = army.EvalStrength();
+            float armyTotalStrength = army.EvalTotalStrength(); // Includes buddy
 
+            var invadingArmies = new List<Logic.Army>();
+            
+            // Check for own territories
             foreach (var r in __instance.kingdom.realms)
             {
                 var threat = TraverseAPI.GetThreat(__instance, r);
                 if (threat == null || threat.level < KingdomAI.Threat.Level.Invaded)
                     continue;
+                
+                // In our own territories, we let the enemy do the first move if they are strong. Once the armies are attacking,
+                // we decide which one to attack.
 
                 float enemyStrength = threat.enemies_in.eval;
+                float localStrength = threat.friends_in.eval;
 
-                // Log siege situations for debugging
                 if (threat.level == KingdomAI.Threat.Level.Siege)
-                {
                     AIOverhaulPlugin.LogDebug($"[ThinkArmy] SIEGE detected at {r.name}! Army {army.GetNid()} Str: {armyStrength:F0}, Enemy: {enemyStrength:F0}, Stronger: {armyStrength >= enemyStrength}", LogCategory.Military, __instance.kingdom);
-                }
 
                 // Only prioritize defense if we're stronger than the enemy
-                if (armyStrength < enemyStrength)
+                if (localStrength < enemyStrength)
                     continue;
 
-                // Override: Instead of yielding to vanilla (which might camp for recruits), FORCE ATTACK
+                MilitaryHelper.FindEnemiesInRealm(r, __instance.kingdom, invadingArmies);
 
-                // 1. Check for Siege Battle
+                // Check for Siege Battle
                 if (threat.level == KingdomAI.Threat.Level.Siege && r.castle != null)
                 {
                     var siegeBattle = Traverse.Create(r.castle).Field("battle").GetValue<Logic.Battle>();
@@ -54,48 +57,28 @@ namespace AIOverhaul
                     }
 
                     // No siege battle object - try to find and attack the besieging army directly
-                    var besiegingArmy = MilitaryHelper.FindEnemyInRealm(r, __instance.kingdom);
-                    if (besiegingArmy != null && army.GetTarget() != besiegingArmy)
+                    if (invadingArmies.Count > 0)
                     {
-                        AIOverhaulPlugin.LogDebug($"[ThinkArmy] FORCE DEFEND: Army {army.GetNid()} attacking besieging army at {r.name}! (Str: {armyStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
-                        TraverseAPI.SendArmy(__instance, army, besiegingArmy, "attack");
-                        return false;
+                        foreach (var enemyArmy in invadingArmies)
+                        {
+                            if (enemyArmy.IsSieging() && army.GetTarget() != enemyArmy)
+                            {
+                                AIOverhaulPlugin.LogDebug($"[ThinkArmy] FORCE DEFEND: Army {army.GetNid()} attacking besieging army at {r.name}! (Str: {armyStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
+                                TraverseAPI.SendArmy(__instance, army, enemyArmy, "attack");
+                                return false;
+                            }
+                        }
                     }
                 }
-
-                // 2. Check for Invading Army
-                var invadingArmy = MilitaryHelper.FindEnemyInRealm(r, __instance.kingdom);
-                if (invadingArmy != null && army.GetTarget() != invadingArmy)
-                {
-                    AIOverhaulPlugin.LogDebug($"[ThinkArmy] FORCE DEFEND: Army {army.GetNid()} intercepting invader {invadingArmy.GetNid()} at {r.name}! (Str: {armyStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
-                    TraverseAPI.SendArmy(__instance, army, invadingArmy, "attack");
-                    return false;
-                }
             }
 
-            // In Own Territory
-            var realm = army.realm_in;
-            bool inOwnTerritory = realm != null && realm.GetKingdom() == __instance.kingdom;
-
-            bool needsHeal = false;
-            if (inOwnTerritory)
-            {
-                needsHeal = MilitaryHelper.IsDamaged(army);
-            }
-            else
-            {
-                float healthPerc = MilitaryHelper.GetArmyHealthPercentage(army);
-                if (healthPerc < GameBalance.HealthRetreatThreshold)
-                {
-                    needsHeal = true;
-                }
-            }
-
-            if (needsHeal)
+            // Check for healing needs
+            if (army.IsHealingNeeded())
             {
                 var action = army.leader?.FindAction(ActionNames.CampArmy);
                 if (action != null && action.Validate() == "ok")
                 {
+                    AIOverhaulPlugin.LogDebug($"[ThinkArmy] Sending army for healing: {army.GetNid()}", LogCategory.Military, __instance.kingdom);
                     action.Execute(null);
                     return false;
                 }
@@ -124,16 +107,16 @@ namespace AIOverhaul
             bool isFollower = BuddySystem.IsFollower(army, __instance.kingdom);
             Logic.Army buddy = BuddySystem.GetBuddy(army, __instance.kingdom);
 
-            if (buddy == null)
-            {
-                AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: No buddy assigned", LogCategory.Military, __instance.kingdom);
-            }
-            else
-            {
-                string buddyName = buddy.leader?.Name ?? $"Army#{buddy.GetNid()}";
-                string role = isFollower ? "FOLLOWER" : "LEADER";
-                AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: Role={role}, Buddy={buddyName}", LogCategory.Military, __instance.kingdom);
-            }
+            // if (buddy == null)
+            // {
+            //     AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: No buddy assigned", LogCategory.Military, __instance.kingdom);
+            // }
+            // else
+            // {
+            //     string buddyName = buddy.leader?.Name ?? $"Army#{buddy.GetNid()}";
+            //     string role = isFollower ? "FOLLOWER" : "LEADER";
+            //     AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: Role={role}, Buddy={buddyName}", LogCategory.Military, __instance.kingdom);
+            // }
 
             if (isFollower && buddy != null && buddy.IsValid())
             {

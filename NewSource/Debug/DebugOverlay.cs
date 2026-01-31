@@ -315,7 +315,7 @@ namespace AIOverhaul
             float foodIncome = KingdomHelper.GetFoodIncome(k);
             int tradeAgreements = KingdomHelper.GetTradeAgreementCount(k);
 
-            GUILayout.Label($"Food: <color={ColorFood}>{food:F0}</color> / {foodIncome:F0}", style);
+            GUILayout.Label($"Food: <color={ColorFood}>{food:F0} / {foodIncome:F0}</color>", style);
             GUILayout.Label($"Gold: <color={ColorEconomy}>{gold:F0}</color> (+{goldIncome:F0}/s) | Books: <color={ColorReligion}>{books:F0}</color> | Merchants: <color={ColorEconomy}>{merchants}</color> | TA: <color={ColorEconomy}>{tradeAgreements}</color>", style);
             
             // Build Options stats
@@ -451,10 +451,15 @@ namespace AIOverhaul
                 int farms = r.GetFarmCount();
                 int coastal = r.GetCoastalCount();
 
+                // Get Goods stats
+                int currentGoods, maxGoods;
+                RealmHelper.GetGoodsStats(r, out currentGoods, out maxGoods);
+                string goodsColor = currentGoods > 0 ? (currentGoods >= maxGoods ? ColorGreen : ColorYellow) : ColorGrey;
+
                 // Format the output string with color coding
                 StringBuilder sb = new StringBuilder();
                 string realmName = !string.IsNullOrEmpty(r.town_name) ? r.town_name : r.name;
-                sb.Append($"<b>{realmName}</b>: ");
+                sb.Append($"<b>{realmName}</b> [Goods: <color={goodsColor}>{currentGoods}/{maxGoods}</color>]: ");
 
                 var parts = new List<string>();
 

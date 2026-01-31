@@ -115,7 +115,7 @@ namespace AIOverhaul
         /// <summary>
         /// Log a diagnostic message (only shown for player kingdom)
         /// </summary>
-        public static void LogDebug(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null)
+        public static void LogDebug(string message, LogCategory category, Logic.Kingdom kingdom)
         {
             // Filter Diagnostic logs - only show for player kingdom
             if (kingdom != null && !kingdom.is_player)
@@ -354,7 +354,7 @@ namespace AIOverhaul
             }
 
             // Detect F8 key press to toggle 50x speed
-            if (Input.GetKeyDown(KeyCode.F8))
+                if (Input.GetKeyDown(KeyCode.F8))
             {
                 if (_ultraSpeedActive)
                 {
@@ -370,6 +370,25 @@ namespace AIOverhaul
                     __instance.SetSpeed(GameBalance.UltraSpeed);
                     _ultraSpeedActive = true;
                     AIOverhaulPlugin.LogInfo($"Ultra Speed ENABLED - {GameBalance.UltraSpeed}x speed");
+                }
+            }
+
+            if (Input.GetKeyDown(KeyCode.F7))
+            {
+                if (_ultraSpeedActive)
+                {
+                    // Restore previous speed (re-using _ultraSpeedActive for simplicity as "any boost active")
+                    __instance.speed = _previousSpeed;
+                    _ultraSpeedActive = false;
+                    AIOverhaulPlugin.LogInfo($"High Speed DISABLED - Restored to {_previousSpeed}x");
+                }
+                else
+                {
+                    // Save current speed and set 20x
+                    _previousSpeed = __instance.speed;
+                    __instance.SetSpeed(GameBalance.HighSpeed);
+                    _ultraSpeedActive = true;
+                    AIOverhaulPlugin.LogInfo($"High Speed ENABLED - {GameBalance.HighSpeed}x speed");
                 }
             }
         }

@@ -147,30 +147,62 @@ namespace AIOverhaul
             return max > 0 ? (current / max) : 0; // Avoid division by zero
         }
 
-        public static Logic.Army FindEnemyInRealm(Logic.Realm realm, Logic.Kingdom ourKingdom)
+        public static void FindEnemiesInRealm(Logic.Realm realm, Logic.Kingdom ourKingdom, List<Logic.Army> armyList)
         {
-            if (realm == null || ourKingdom == null) return null;
+            if (realm == null || ourKingdom == null || realm.armies == null || armyList == null) return;
 
-            // Iterate through all kingdoms to find enemies
-            foreach (var k in ourKingdom.game.kingdoms)
+            foreach (var army in realm.armies)
             {
-                if (k == null || k == ourKingdom) continue;
-                
-                // check if at war
-                if (!ourKingdom.IsEnemy(k)) continue;
+                if (army == null || !army.IsValid()) continue;
 
-                if (k.armies != null)
+                var armyOwner = army.GetKingdom();
+                if (armyOwner != null && armyOwner != ourKingdom && ourKingdom.IsEnemy(armyOwner))
+                    armyList.Add(army);
+            }
+        }
+
+        public static bool IsSieging(this Logic.Army army)
+        {
+            return army != null && army.battle != null && army.battle.type == Logic.Battle.Type.Siege && army.battle.attacker_kingdom == army.GetKingdom();
+        }
+
+        public static bool IsHealingNeeded(this Logic.Army army)
+        {
+            if (army == null || army.units == null || army.units.Count == 0) return false;
+
+            var realm = army.realm_in;
+            var owner = army.GetKingdom();
+            if (owner == null) return false;
+
+            bool inOwnTerritory = realm != null && realm.GetKingdom() == owner;
+
+            if (inOwnTerritory)
+            {
+                return IsDamaged(army);
+            }
+            else
+            {
+                float healthPerc = GetArmyHealthPercentage(army);
+                return healthPerc < GameBalance.HealthRetreatThreshold;
+            }
+        }
+        public static float EvalTotalStrength(this Logic.Army army)
+        {
+            if (army == null) return 0f;
+
+            float strength = army.EvalStrength();
+            
+            var kingdom = army.GetKingdom();
+            if (kingdom != null)
+            {
+                var buddy = AIOverhaul.BuddySystem.GetBuddy(army, kingdom);
+                if (buddy != null && buddy.IsValid())
                 {
-                    foreach (var a in k.armies)
-                    {
-                        if (a.realm_in == realm && a.IsValid())
-                        {
-                            return a;
-                        }
-                    }
+                    strength += buddy.EvalStrength();
                 }
             }
-            return null;
+
+            return strength;
         }
     }
 }

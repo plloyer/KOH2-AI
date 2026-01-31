@@ -23,22 +23,22 @@ namespace AIOverhaul
             
             if (__instance.kingdom.HasDisorder())
             {
-                AIOverhaulPlugin.LogDebug($"{LogPrefix} Blocked: Has disorder.");
+                AIOverhaulPlugin.LogDebug($"{LogPrefix} Blocked: Has disorder.", LogCategory.Diplomacy,  __instance.kingdom);
                 return false;
             }
 
             if (!__instance.kingdom.IsStrategicNeighbor(k))
             {
-                AIOverhaulPlugin.LogDebug($"{LogPrefix} Blocked: {k.Name} not a strategic neighbor.");
+                AIOverhaulPlugin.LogDebug($"{LogPrefix} Blocked: {k.Name} not a strategic neighbor.", LogCategory.Diplomacy,  __instance.kingdom);
                 return false;
             }
 
             float ownPower = __instance.kingdom.GetTotalPower();
             float targetPower = k.GetTotalPower();
-            float powerRatio = targetPower > 0 ? ownPower / targetPower : (ownPower > 0 ? 10f : 1f);
-            if (powerRatio > MinPowerRatio)
+            float powerRatio = targetPower > 0 ? ownPower / targetPower : 10f;
+            if (powerRatio < MinPowerRatio)
             {
-                AIOverhaulPlugin.LogDebug($"{LogPrefix} Blocked: {k.Name} too strong. Them ({targetPower}) / Us ({ownPower})");
+                AIOverhaulPlugin.LogDebug($"{LogPrefix} Blocked: {k.Name} too strong. Us ({ownPower}) / Them ({targetPower}). Power Ratio {powerRatio}", LogCategory.Diplomacy,  __instance.kingdom);
                 return false;
             }
 
@@ -72,11 +72,11 @@ namespace AIOverhaul
 
             if (fullArmies < MinArmiesToDeclareWar)
             {
-                AIOverhaulPlugin.LogDebug($"[War] {__instance.kingdom.Name}: Not enough full armies to declare war. Has {fullArmies}, needs {GameBalance.MinArmiesToDeclareWar}.", LogCategory.War, __instance.kingdom);
+                AIOverhaulPlugin.LogDebug($"[War] {__instance.kingdom.Name}: Not enough full armies to declare war. Has {fullArmies}, needs {GameBalance.MinArmiesToDeclareWar}.", LogCategory.Diplomacy, __instance.kingdom);
                 return false;
             }
 
-            AIOverhaulPlugin.LogDebug($"Declaring war on {k.Name}. Power Ratio: {powerRatio:F2}", LogCategory.War, __instance.kingdom);
+            AIOverhaulPlugin.LogDebug($"Declaring war on {k.Name}. Power Ratio: {powerRatio:F2}", LogCategory.Diplomacy, __instance.kingdom);
             return true;
         }
     }

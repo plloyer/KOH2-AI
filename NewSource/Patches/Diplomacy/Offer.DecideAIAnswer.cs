@@ -69,7 +69,7 @@ namespace AIOverhaul
         /// <summary>
         /// Handle incoming peace offers. Reject if winning or sieging enemy castle.
         /// </summary>
-        private static bool HandlePeaceOffer(Offer offer, Logic.Kingdom receiver, Logic.Kingdom sender, ref string result)
+        static bool HandlePeaceOffer(Offer offer, Logic.Kingdom receiver, Logic.Kingdom sender, ref string result)
         {
             string offerKey = offer.def?.field?.key ?? DiplomacyConstants.Peace;
             AIOverhaulPlugin.LogDebug($"[Peace] {sender.Name} -> {receiver.Name}: {offerKey}", LogCategory.Diplomacy, receiver);

@@ -4,21 +4,15 @@ using Logic;
 
 namespace AIOverhaul
 {
-    // "ThinkFight" controls whether an army should engage in battle or retreat.
-    // Intent: BattleEngagementPatch
+    // ThinkFight is the Field Commander. It is called by ThinkArmy when the army is in position. It scans the local province to decide what
+    // specifically to attack (an enemy army, a castle, or a village).
     [HarmonyPatch(typeof(KingdomAI), "ThinkFight")]
     public class KingdomAI_ThinkFight
     {
         static bool Prefix(KingdomAI __instance, Logic.Army army, ref bool __result)
         {
-            if (army == null || !AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
-
-            Logic.Realm realmIn = army.realm_in;
-            if (realmIn == null) 
-            {
-                // ADDED NULL CHECK
-                return true; 
-            }
+            Logic.Realm realmIn = army?.realm_in;
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom) || realmIn == null) return true;
 
             float ownStrength = 0;
             float friendStrength = 0;
@@ -41,24 +35,11 @@ namespace AIOverhaul
                 }
             }
 
-            Logic.Army buddy = null;
-            if (AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom))
-            {
-                buddy = BuddySystem.GetBuddy(army, __instance.kingdom);
-                if (buddy != null && buddy.battle != null && buddy.battle != army.battle)
-                {
-                    // Buddy is in a different battle, maybe join them?
-                    // This creates a tendency to swarm
-                    // For now, just logging or minor influence
-                }
-            }
-            bool buddyPresent = false; // Disabled
-            if (buddy != null)
-            {
-                if (buddy.realm_in == realmIn) buddyPresent = true;
-            }
+            Logic.Army buddy = BuddySystem.GetBuddy(army, __instance.kingdom);
+            bool buddyPresent = false;
+            if (buddy?.realm_in == realmIn)
+                buddyPresent = true;
 
-            // OSCILLATION FIX:
             // If we are a Follower, we DO NOT decide to fight or retreat independently.
             // We rely entirely on the Leader's decision (propagated via ThinkArmy follow logic).
             // If we run this logic, we might decide to "Wait for Buddy" (circular) or Retreat when Leader attacks.

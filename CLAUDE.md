@@ -32,33 +32,30 @@ copy /Y "bin\Debug\AIOverhaul.pdb" "..\BepInEx\plugins\AIOverhaul.pdb"
 ### Directory Structure
 
 - **`NewSource/`** - All mod code
-  - **`Logic/`** - Core AI behavior patches
-    - `EconomyLogic.cs` - Economy, building construction, character hiring
-    - `MilitaryLogic.cs` - Army composition, unit hiring, fortifications
-    - `WarDiplomacyLogic.cs` - War declarations, peace offers, diplomacy
-    - `Governor.Eval.cs` - Governor assignment logic
-    - `RoyalFamily.AddChild.cs` - Royal family management
-    - `Character.ChooseNewSkill.cs` - Character skill selection
-    - `Kingdom.HireCharacter.cs` - Character hiring validation
-    - **`Spending/`** - Expense evaluation patches (eval score manipulation)
-      - `Castle.AddBuildOption.cs` - Building priority (religion, barracks placement)
-      - `KingdomAI.ConsiderExpense.cs` - Character hiring gates
-      - `KingdomAI.ConsiderAdoptTradition.cs` - Tradition selection
-      - `KingdomAI.ConsiderIncreaseCrownAuthority.cs` - Crown authority blocking
-      - `KingdomAI.AddExpense.cs` - Trade action priority boost
   - **`Constants/`** - All string and numeric constants
-    - `BuildingNames.cs`, `CharacterClassNames.cs`, `ActionNames.cs`, etc. - String constants
-    - `GameBalance.cs` - ALL numeric tuning values and multipliers
-    - `LogCategory.cs` - Logging categories
+    - `ActionNames.cs`, `BuildingNames.cs`, `GameBalance.cs` (Tuning), `LogCategory.cs`, etc.
   - **`Helpers/`** - Utility classes
-    - `BuildingHelper.cs`, `KingdomHelper.cs`, `DistrictHelper.cs`, etc.
-    - `ModLog.cs` - Logging wrapper
+    - `MilitaryHelper.cs`, `KingdomHelper.cs`, `CourtHelper.cs`, `MultiplayerAIHelper.cs`, etc.
+  - **`Patches/`** - Logic modifications by category
+    - **`Military/`** - `KingdomAI.ThinkArmy.cs`, `BuddySystem.cs`, `Army.AddUnit.cs`
+    - **`Diplomacy/`** - `KingdomAI.ThinkDiplomacy.cs`, `Offer.DecideAIAnswer.cs`
+    - **`Spending/`** - `Castle.AddBuildOption.cs`, `KingdomAI.ConsiderExpense.cs`
+    - **`RoyalFamily/`** - `RoyalFamily.AddChild.cs`
+    - **`Emperor/`** - `EmperorOfTheWorld.StartVote.cs`
+    - **`Multiplayer/`** - Chat commands and AI forcing logic
   - **`Debug/`** - Debug tools
     - `DebugOverlay.cs` - F9 overlay showing AI state
-  - **`Log/`** - Performance logging
-    - `EnhancedPerformanceLogger.cs` - Comparative performance tracking
+  - **`Log/`** - Performance logging (`EnhancedPerformanceLogger.cs`)
   - `Plugin.cs` - Main BepInEx plugin entry point
   - `TraverseAPI.cs` - Centralized Harmony Traverse API for private member access
+  - `AutoStarter.cs` - Automated game start for testing
+
+- **Documentation Files** (Root Directory)
+  - `ARMY_MANAGEMENT_GUIDE.md` - Threat levels and Army evaluation logic
+  - `AI_EVAL_SYSTEM.md` - AI Expense Evaluation System details
+  - `GAME_CONCEPTS.md` - Game entity key concepts
+  - `PERFORMANCE_LOGGING_GUIDE.md` - How to use/read performance logs
+  - `CLAUDE.md` - This file
 
 - **`Sources/Logic/`** - Decompiled game source (900+ files, READ-ONLY reference)
   - Used to verify API signatures before writing patches
@@ -67,19 +64,6 @@ copy /Y "bin\Debug\AIOverhaul.pdb" "..\BepInEx\plugins\AIOverhaul.pdb"
 ### Key Concepts
 
 #### The Evaluation System (CRITICAL)
-
-The AI uses an **inverted priority system**:
-- **`eval = 0`** → Can afford immediately → **HIGHEST priority**
-- **`eval = 5`** → Wait 5 turns → Medium priority
-- **`eval = 30`** → **BLOCKED** (expense discarded, MAX_EVAL threshold)
-
-**To INCREASE priority** (make AI do something sooner):
-- Multiply eval by values **< 1.0**: `eval *= 0.5f` (cuts priority delay in half)
-- Divide eval by values **> 1.0**: `eval /= 30f` (extreme priority boost)
-
-**To DECREASE priority** (delay or block):
-- Multiply eval by values **> 1.0**: `eval *= 10f` (10x delay)
-- Set to 30 or higher to block: `eval = 30f`
 
 See `AI_EVAL_SYSTEM.md` for comprehensive documentation with examples.
 
@@ -156,7 +140,7 @@ float maxCommerce = Traverse.Create(kingdom).Method("GetMaxCommerce").GetValue<f
    ```
 3. **Add logging** with appropriate `LogCategory`:
    ```csharp
-   AIOverhaulPlugin.LogInfo($"Message here", LogCategory.Economy, kingdom);
+   AIOverhaulPlugin.LogDebug($"Message here", LogCategory.Economy, kingdom);
    ```
 4. **Respect eval direction** - See AI_EVAL_SYSTEM.md before modifying eval scores
 
@@ -164,18 +148,15 @@ float maxCommerce = Traverse.Create(kingdom).Method("GetMaxCommerce").GetValue<f
 
 1. **Build**: `dotnet build` → Must succeed with **0 errors**
 2. **Review**: Check for null safety, hardcoded values, correct eval operations
-3. **Update docs**: Sync `AI_ENHANCEMENTS.md` with code changes
 4. **Commit**: Descriptive message following repo style
 
 ### Common Mistakes to Avoid
 
-❌ **Wrong property names**: e.g., `k.vassals` instead of `k.vassalStates`
-❌ **Missing null checks**: e.g., `k.realms.Count` instead of `k.realms?.Count ?? 0`
-❌ **Hardcoded strings**: Always use `BuildingNames.*`, `CharacterClassNames.*`, etc.
-❌ **Hardcoded numbers**: Always use `GameBalance.*` constants
-❌ **Inverted eval operations**: Multiplying by boost value instead of dividing (see AI_EVAL_SYSTEM.md)
-❌ **Removing code blindly**: Understand what it does first, then reimplement properly
-❌ **Forgetting to update AI_ENHANCEMENTS.md**: Keep docs in sync with code
+❌ **Wrong property names**: Using non-existent properties (e.g., `k.vassals` instead of `k.vassalStates`)
+❌ **Missing null checks**: Accessing lists/objects without null checks (e.g., `k.realms.Count` crashes if null)
+❌ **Hardcoded strings**: Using string literals (e.g., "Barracks") instead of defined Constants
+❌ **Hardcoded numbers**: Using magic numbers (e.g., `0.3f`) instead of `GameBalance` Constants
+❌ **Removing code blindly**: Deleting existing game logic without understanding/reimplementing it
 
 ## Important Files Reference
 
@@ -183,7 +164,6 @@ float maxCommerce = Traverse.Create(kingdom).Method("GetMaxCommerce").GetValue<f
 - **`AI_INSTRUCTIONS.md`** - Critical rules, workflow, common pitfalls
 - **`AI_EVAL_SYSTEM.md`** - Comprehensive eval system documentation with examples
 - **`GAME_CONCEPTS.md`** - Game entity architecture and terminology
-- **`AI_ENHANCEMENTS.md`** - Complete list of all AI behavior changes (keep in sync!)
 
 ### Development Guides
 - **`PATCH_VALIDATION.md`** - All active Harmony patches validation status
@@ -217,17 +197,8 @@ See `PERFORMANCE_LOGGING_GUIDE.md` for interpretation.
 ## Mod-Specific Patterns
 
 ### Eval Score Manipulation
-Always use `GameBalance.cs` constants and comment the direction:
-```csharp
-// Lower eval = higher priority
-option.eval *= GameBalance.SwordsmithPriorityMultiplier; // 0.033 → very high priority
-
-// Higher eval = lower priority
-option.eval *= GameBalance.StrongPenaltyMultiplier; // 10.0 → much lower priority
-
-// Block entirely
-option.eval = 30f; // MAX_EVAL threshold
-```
+ALWAYS use `GameBalance.cs` (or top of the class) constants rather than hardcoding values in the functions.
+IMPORTANT: Look for the "Constants" folder, all string should be stored in there. No hardcoding within a function.
 
 ### Enhanced AI Filtering
 Most patches start with:
@@ -243,12 +214,17 @@ static bool/void Prefix/Postfix(...)
 ### Logging Categories
 Use appropriate categories for filtering:
 ```csharp
-LogCategory.Economy    // Building construction, resources
-LogCategory.Military   // Army composition, unit hiring
-LogCategory.War        // War declarations, battles
-LogCategory.Diplomacy  // Offers, relations
-LogCategory.Character  // Court members, skills
-LogCategory.General    // Everything else
+General,      // Miscellaneous logs
+War,          // War declarations, peace, surrenders
+Military,     // Army management, battles, fortifications
+Diplomacy,    // NAPs, alliances, trade agreements
+Economy,      // Merchants, resources
+Spending,     // About spending gold
+Knights,      // Character hiring (all court members)
+Tradition,    // Tradition selection and adoption
+RoyalFamily,  // Heirs, succession, family management
+Governor,     // Governor assignments
+Spectator     // F9 spectator mode toggles
 ```
 
 ### Null Safety Pattern
@@ -268,7 +244,7 @@ bool hasIronOre = realm.features?.Contains(FeatureNames.IronOre) ?? false;
 5. Check BepInEx logs for errors
 
 ### Performance Comparison
-1. Play 3+ full games to 200+ years
+1. Play full game automated games
 2. Compare aggregate stats CSV across games
 3. Look for consistent patterns in multiple metrics (realms, strength, gold)
 4. Use normalized metrics (ratios, growth rates) for fair comparison
@@ -279,29 +255,8 @@ Check for Harmony warnings in `BepInEx/LogOutput.log`:
 grep -i "harmony" BepInEx/LogOutput.log | grep -i "fail\|error\|warning"
 ```
 
-## Kingdom Balance Constants
-
-All tuning values in `GameBalance.cs`:
-
-**Economy**:
-- `CommercePerMerchant = 10` - Required commerce per merchant
-- `MinBooksForTraditionRush = 400` - Books threshold to start saving gold
-
-**Military**:
-- `EarlyGameArmySize = 8` - First two armies size
-- `RangedToMeleeRatio = 0.8f` - 80% ranged in subsequent armies
-- `HealthRetreatThreshold = 0.7f` - Retreat when army < 70% HP
-
-**Eval Multipliers** (use with eval scores):
-- `SwordsmithPriorityMultiplier = 1/30f` - Very high priority
-- `FletcherPriorityMultiplier = 0.01f` - Extremely high priority
-- `StrongBoostMultiplier = 0.5f` - Cut eval in half
-- `StrongPenaltyMultiplier = 10.0f` - 10x delay
-- `StrictBlockMultiplier = 100.0f` - Exceeds MAX_EVAL, blocks entirely
-
-**Building Priority**:
-- `ReligionBuildingBoostPerSlot = 0.2f` - Priority boost per district slot
-- `BarracksSlotBoostMultiplier = 0.25f` - Barracks boost per castle district slot
+### Automation test
+Sovereign.exe -autoStart -provinces 2 -difficulty 2
 
 ## Critical Rules (Never Violate)
 
@@ -310,6 +265,5 @@ All tuning values in `GameBalance.cs`:
 3. **VERIFY THEN CODE** - Read relevant source files first, then implement
 4. **NO HARDCODED STRINGS** - Always use constants from `Constants/` folder
 5. **NO HARDCODED VALUES** - Always use (or create) constants in `GameBalance.cs`
-6. **KEEP AI_ENHANCEMENTS.md IN SYNC** - Update when implementing/modifying AI features
 7. **NEVER BLINDLY REMOVE CODE** - Understand functionality first, then reimplement replacement
-8. **RESPECT EVAL DIRECTION** - Lower = higher priority (see AI_EVAL_SYSTEM.md)
+8. **RESPECT EVAL DIRECTION** - (see AI_EVAL_SYSTEM.md)
