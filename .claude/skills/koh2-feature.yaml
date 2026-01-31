@@ -16,7 +16,9 @@ prompt: |
   7. **NO HARDCODED STRINGS** - Always use constants from Constants/ folder (BuildingNames.*, CharacterClassNames.*, ActionNames.*, etc.)
   8. **NO HARDCODED VALUES** - Always use (or create) constants in GameBalance.cs for all numeric values
   9. **NO HARDCODED VALUES IN COMMENTS** - Reference constant names in comments (e.g., "MinArmiesForWar armies" not "2 armies") so comments stay accurate when values change
-  10. **KEEP AI_ENHANCEMENTS.md IN SYNC** - When implementing/modifying AI features, update AI_ENHANCEMENTS.md to match. When updating AI_ENHANCEMENTS.md, verify code matches documentation
+  10. **NO REDUNDANT MODIFIERS** - Omit `private` on class members (it's the default in C#)
+  11. **USE TARGET-TYPED NEW** - Use `new()` instead of `new Type()` when type is evident (e.g., `List<int> list = new();`)
+  12. **KEEP AI_ENHANCEMENTS.md IN SYNC** - When implementing/modifying AI features, update AI_ENHANCEMENTS.md to match. When updating AI_ENHANCEMENTS.md, verify code matches documentation
 
   # WORKFLOW - FOLLOW EXACTLY
 
@@ -362,6 +364,30 @@ prompt: |
   if (merchants < GameBalance.RequiredMerchantCount)
   if (commerce >= GameBalance.MinCommerceForMerchant)
   option.eval *= GameBalance.SwordsmithBoost;
+  ```
+
+  ❌ **Redundant access modifiers:**
+  ```csharp
+  // WRONG - private is the default for class members
+  private void MyMethod() { }
+  private int myField;
+
+  // CORRECT - omit redundant modifiers
+  void MyMethod() { }
+  int myField;
+  ```
+
+  ❌ **Verbose object instantiation:**
+  ```csharp
+  // WRONG - redundant type specification
+  Dictionary<int, int> cache = new Dictionary<int, int>();
+  List<string> names = new List<string>();
+  var army = new Logic.Army();
+
+  // CORRECT - use target-typed new
+  Dictionary<int, int> cache = new();
+  List<string> names = new();
+  Logic.Army army = new();
   ```
 
   ❌ **Hardcoded values in comments:**
