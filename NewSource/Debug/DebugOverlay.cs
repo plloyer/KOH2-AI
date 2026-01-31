@@ -291,7 +291,7 @@ namespace AIOverhaul
             float books = KingdomHelper.GetBooks(k);
             int merchants = CourtHelper.CountMerchants(k);
 
-            bool hasBarracks = BuildingHelper.HasBuilding(k, BuildingNames.Barracks);
+            bool hasBarracks = k.HasBuilding(BuildingNames.Barracks);
 
             string barracksStatus = hasBarracks ? "True" : "False";
 
@@ -427,11 +427,11 @@ namespace AIOverhaul
                 if (r == null) continue;
 
                 // Get counts using DistrictHelper - Order: Keeps, Village, Religious, Farm, Coastal
-                int keeps = DistrictHelper.GetKeepCount(r);
+                int keeps = r.GetKeepCount();
                 int villages = DistrictHelper.GetVillageCount(r);
-                int religious = DistrictHelper.GetReligiousCount(r);
-                int farms = DistrictHelper.GetFarmCount(r);
-                int coastal = DistrictHelper.GetCoastalCount(r);
+                int religious = r.GetReligiousCount();
+                int farms = r.GetFarmCount();
+                int coastal = r.GetCoastalCount();
 
                 // Format the output string with color coding
                 System.Text.StringBuilder sb = new System.Text.StringBuilder();

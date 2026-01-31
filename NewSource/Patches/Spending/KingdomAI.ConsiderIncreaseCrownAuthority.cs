@@ -15,9 +15,9 @@ namespace AIOverhaul
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
             // Block until kingdom has built military infrastructure
-            bool hasBarracks = BuildingHelper.HasBuilding(__instance.kingdom, BuildingNames.Barracks);
-            bool hasSwordsmith = BuildingHelper.HasBuildingUpgrade(__instance.kingdom, BuildingUpgradeNames.Swordsmith);
-            bool hasFletcher = BuildingHelper.HasBuildingUpgrade(__instance.kingdom, BuildingUpgradeNames.Fletcher_Barracks);
+            bool hasBarracks = __instance.kingdom.HasBuilding(BuildingNames.Barracks);
+            bool hasSwordsmith = __instance.kingdom.HasBuildingUpgrade(BuildingUpgradeNames.Swordsmith);
+            bool hasFletcher = __instance.kingdom.HasBuildingUpgrade(BuildingUpgradeNames.Fletcher_Barracks);
 
             if (!hasBarracks || !hasSwordsmith || !hasFletcher)
             {

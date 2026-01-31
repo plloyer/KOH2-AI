@@ -15,24 +15,20 @@ namespace AIOverhaul
         static void Postfix(Castle __instance)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
-
-            var kingdom = __instance.GetKingdom();
-
-            //AIOverhaulPlugin.LogDebug($"AddBuildOptions Called", LogCategory.Spending, kingdom);
-
+            
             ApplySwordsmithLogic(__instance);
             ApplyFletcherLogic(__instance);
             ApplyReligiousSettlementConstraint(__instance);
             ApplyVillageMilitiaLogic(__instance);
             ApplyFoodSecurityLogic(__instance);
-            // ApplyBarracksLogic(__instance);
+            ApplyBarracksLogic(__instance);
         }
 
         static void ApplyReligiousSettlementConstraint(Castle castle)
         {
             var realm = castle.GetRealm();
             // Check if Province has Monastery/Mosque/Shrine
-            if (!DistrictHelper.HasReligiousSettlement(realm))
+            if (!realm.HasReligiousSettlement())
             {
                 // If not, remove Religious Buildings from options
                 for (int i = Castle.build_options.Count - 1; i >= 0; i--)
@@ -57,8 +53,8 @@ namespace AIOverhaul
             if (food <= 0)
             {
                 var realm = castle.GetRealm();
-                int farmCount = DistrictHelper.GetFarmCount(realm);
-                int coastalCount = DistrictHelper.GetCoastalCount(realm);
+                int farmCount = realm.GetFarmCount();
+                int coastalCount = realm.GetCoastalCount();
 
                 AIOverhaulPlugin.LogDebug($"Food CRITICAL ({food}), boosting food production in {castle.name}. Farms: {farmCount}, Coastal: {coastalCount}", LogCategory.Spending, kingdom);
 
@@ -174,7 +170,7 @@ namespace AIOverhaul
             var kingdom = castle.GetKingdom();
             if (kingdom == null) return;
 
-            if (!BuildingHelper.HasBuildingUpgrade(kingdom, BuildingUpgradeNames.Swordsmith))
+            if (!kingdom.HasBuildingUpgrade(BuildingUpgradeNames.Swordsmith))
                 MultiplyUpgradeOption(BuildingUpgradeNames.Swordsmith, GameBalance.HighPriorityBuildingMultiplier);
         }
 
@@ -183,8 +179,8 @@ namespace AIOverhaul
             var kingdom = castle.GetKingdom();
             if (kingdom == null) return;
 
-            bool hasSwordsmith = BuildingHelper.HasBuildingUpgrade(kingdom, BuildingUpgradeNames.Swordsmith);
-            bool hasFletcher = BuildingHelper.HasBuildingUpgrade(kingdom, BuildingUpgradeNames.Fletcher_Barracks);
+            bool hasSwordsmith = kingdom.HasBuildingUpgrade(BuildingUpgradeNames.Swordsmith);
+            bool hasFletcher = kingdom.HasBuildingUpgrade(BuildingUpgradeNames.Fletcher_Barracks);
 
             if (hasSwordsmith && !hasFletcher)
                 MultiplyUpgradeOption(BuildingUpgradeNames.Fletcher, GameBalance.HighPriorityBuildingMultiplier);
@@ -195,75 +191,8 @@ namespace AIOverhaul
             var kingdom = castle.GetKingdom();
             if (kingdom == null) return;
 
-            AIOverhaulPlugin.LogDebug($"ApplyBarracksLogic", LogCategory.Spending, kingdom);
-
-            // Check if kingdom already has any barracks (across all provinces)
-            bool kingdomHasBarracks = BuildingHelper.HasBuilding(kingdom, BuildingNames.Barracks);
-            if (kingdomHasBarracks)
-            {
-                AIOverhaulPlugin.LogDebug($"SKIP KingdomHasBarrack", LogCategory.Spending, kingdom);
-                return;
-            }
-
-            // Get Castle district definition (Barracks goes in Castle district)
-            District.Def castleDistrict = DistrictHelper.GetDistrictDefinition(castle.game, DistrictNames.Castle);
-            if (castleDistrict == null) return;
-
-            // Find the castle with the most Castle district slots across ALL kingdom realms
-            Castle bestCastle = null;
-            int maxSlots = -1;
-            bool anyCastleHasCastleDistrict = false;
-
-            if (kingdom.realms != null)
-            {
-                foreach (var realm in kingdom.realms)
-                {
-                    var realmCastle = realm?.castle;
-                    if (realmCastle == null) continue;
-
-                    if (realmCastle.HasDistrict(castleDistrict))
-                    {
-                        anyCastleHasCastleDistrict = true;
-                        int slots = castleDistrict.buildings?.Count ?? 0;
-
-                        if (slots > maxSlots)
-                        {
-                            maxSlots = slots;
-                            bestCastle = realmCastle;
-                        }
-                    }
-                }
-            }
-
-            // Determine if THIS castle should get the priority boost
-            bool isBestCastle = (bestCastle == castle) || (!anyCastleHasCastleDistrict);
-
-            AIOverhaulPlugin.LogDebug($"Best castle for Barracks: {bestCastle?.name ?? "None"} (Slots: {maxSlots}), Current: {castle.name}, IsBest: {isBestCastle}", LogCategory.Spending, kingdom);
-
-            // Find Barracks in build options
-            for (int i = Castle.build_options.Count - 1; i >= 0; i--)
-            {
-                var option = Castle.build_options[i];
-                if (option.def == null || option.def.id != BuildingNames.Barracks) continue;
-
-                if (isBestCastle)
-                {
-                    // This is the best castle (or no castle has Castle district)
-                    // Set very high eval for weighted random selection (higher eval = more likely to be selected)
-                    // Typical eval values are 100-3000, so 100000 ensures barracks is virtually always chosen
-                    option.eval = 100000f;
-                    option.priority = Logic.KingdomAI.Expense.Priority.Urgent;
-                    AIOverhaulPlugin.LogDebug($"BOOSTING Barracks eval to {option.eval} in {castle.name} (Best castle with {maxSlots} slots)", LogCategory.Spending, kingdom);
-                }
-                else
-                {
-                    // Not the best castle - deprioritize (set very low eval)
-                    option.eval = 1f;
-                    AIOverhaulPlugin.LogDebug($"DEPRIORITIZING Barracks in {castle.name} (Not best castle)", LogCategory.Spending, kingdom);
-                }
-
-                Castle.build_options[i] = option;
-            }
+            var keep = castle.GetRealm().GetKeepCount();
+            MultiplyBuildOption(BuildingNames.Barracks, 1 + (keep * GameBalance.BarracksSlotBoostPerSlot));
         }
 
         static void MultiplyUpgradeOption(string upgradeName, float multiplier)
@@ -275,6 +204,19 @@ namespace AIOverhaul
                 {
                     option.eval *= multiplier;
                     Castle.upgrade_options[i] = option;
+                }
+            }
+        }
+
+        static void MultiplyBuildOption(string buildingName, float multiplier)
+        {
+            for (int i = 0; i < Castle.build_options.Count; i++)
+            {
+                var option = Castle.build_options[i];
+                if (option.def?.id == buildingName)
+                {
+                    option.eval *= multiplier;
+                    Castle.build_options[i] = option;
                 }
             }
         }

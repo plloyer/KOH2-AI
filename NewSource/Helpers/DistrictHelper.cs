@@ -18,7 +18,7 @@ namespace AIOverhaul
         /// </summary>
         public static bool HasDistrict(this Logic.Castle castle, string districtName)
         {
-            var district = GetDistrictDefinition(castle?.game, districtName);
+            var district = (castle?.game).GetDistrictDefinition(districtName);
             return district != null && castle.HasDistrict(district);
         }
 
@@ -28,7 +28,7 @@ namespace AIOverhaul
         public static bool HasReligiousSettlement(this Logic.Realm realm)
         {
             if (realm == null) return false;
-            return GetReligiousCount(realm) > 0;
+            return realm.GetReligiousCount() > 0;
         }
 
         /// <summary>
