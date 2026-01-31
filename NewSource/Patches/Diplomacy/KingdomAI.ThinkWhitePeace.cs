@@ -19,12 +19,12 @@ namespace AIOverhaul
             {
                 float myStr = actor.GetTotalPower();
                 float theirStr = k.GetTotalPower();
-                float kScore = WarLogicHelper.GetAverageWarScore(k);
+                float kScore = k.GetAverageWarScore();
                 if (myStr > theirStr * GameBalance.PowerRatioStrongerEnemy ||
                     k.wars.Count > GameBalance.MaxWarsCount ||
                     kScore < GameBalance.WarScoreIndependence)
                 {
-                    if (OfferHelper.TrySendOffer("ClaimIndependence", __instance, k))
+                    if (OfferHelper.TrySendOffer(DiplomacyConstants.ClaimIndependence, __instance, k))
                     {
                         AIOverhaulPlugin.LogDebug($"Claiming independence from {k.Name}", LogCategory.War, actor);
                         __result = true;
@@ -36,11 +36,11 @@ namespace AIOverhaul
             // Desperate Surrender
             if (actor.IsEnemy(k))
             {
-                float score = WarLogicHelper.GetAverageWarScore(actor);
+                float score = actor.GetAverageWarScore();
                 if (score < GameBalance.WarScoreSurrender || (score < GameBalance.WarScoreDesperateIndependence && actor.IsDesperate()))
                 {
-                    Offer peace = Offer.GetCachedOffer("PeaceOfferTribute", actor, k);
-                    Offer vassal = Offer.GetCachedOffer("OfferVassalage", actor, k);
+                    Offer peace = Offer.GetCachedOffer(DiplomacyConstants.PeaceOfferTribute, actor, k);
+                    Offer vassal = Offer.GetCachedOffer(DiplomacyConstants.OfferVassalage, actor, k);
                     if (peace != null && vassal != null)
                     {
                         peace.args = new List<Value> { new Value(vassal) };

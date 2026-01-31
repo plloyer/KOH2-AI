@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Logic;
 
@@ -9,6 +10,32 @@ namespace AIOverhaul
     /// </summary>
     public static class OfferHelper
     {
+        public static IEnumerator RunDiplomacyWithTarget(this KingdomAI ai, Logic.Kingdom target)
+        {
+            yield return CoopThread.Call("ThinkProposeOffer", TraverseAPI.ThinkProposeOfferThread(ai, target, "neutral"));
+        }
+
+        public static IEnumerator RunDefensivePactProposal(this KingdomAI ai, Logic.Kingdom target)
+        {
+            // Try to propose a defensive pact
+            OfferHelper.TrySendOffer(DiplomacyConstants.OfferJoinInDefensivePact, ai, target);
+            yield break;
+        }
+
+        public static IEnumerator RunTradeAgreementProposal(this KingdomAI ai, Logic.Kingdom target)
+        {
+            // Try to propose a Trade Agreement (SignTrade)
+            OfferHelper.TrySendOffer(DiplomacyConstants.SignTrade, ai, target);
+            yield break;
+        }
+
+        public static IEnumerator RunNonAggressionProposal(this KingdomAI ai, Logic.Kingdom target)
+        {
+            // Offer a FREE non-aggression pact (no gold demanded) to build good relations
+            OfferHelper.TrySendOffer(DiplomacyConstants.SignNonAggression, ai, target);
+            yield break;
+        }
+        
         /// <summary>
         /// Creates, validates, and sends an offer. Handles player offer time tracking.
         /// </summary>
@@ -22,11 +49,9 @@ namespace AIOverhaul
             if (offer == null) return false;
 
             string validation = offer.Validate();
-            if (validation != "ok")
-            {
-                return false;
-            }
+            if (validation != "ok") return false;
 
+            AIOverhaulPlugin.LogDebug($"TrySendOffer {offerId} to {target.Name}", LogCategory.Diplomacy, ai.kingdom);
             offer.AI = true;
             offer.Send();
 
@@ -47,13 +72,11 @@ namespace AIOverhaul
         /// <param name="target">The target kingdom to invite</param>
         /// <param name="war">The war to invite them to join</param>
         /// <returns>True if invite was sent successfully</returns>
-        public static bool TrySendWarInvite(KingdomAI ai, Logic.Kingdom target, War war)
+        public static bool TrySendWarInvite(this KingdomAI ai, Logic.Kingdom target, War war)
         {
             if (ai == null || target == null || war == null) return false;
 
-            // Use DemandSupportInWar - asks target to join our war
-            Offer offer = Offer.GetCachedOffer("DemandSupportInWar",
-                ai.kingdom, target);
+            Offer offer = Offer.GetCachedOffer(DiplomacyConstants.DemandSupportInWar, ai.kingdom, target);
             if (offer == null) return false;
 
             // Set war as argument
@@ -72,8 +95,7 @@ namespace AIOverhaul
                 target.t_last_ai_offer_time = ai.game.time;
             }
 
-            AIOverhaulPlugin.LogDebug($"Sent war invite to {target.Name} for war against {war.GetEnemyLeader(ai.kingdom)?.Name}",
-                LogCategory.Diplomacy, ai.kingdom);
+            AIOverhaulPlugin.LogDebug($"Sent war invite to {target.Name} for war against {war.GetEnemyLeader(ai.kingdom)?.Name}", LogCategory.Diplomacy, ai.kingdom);
             return true;
         }
     }

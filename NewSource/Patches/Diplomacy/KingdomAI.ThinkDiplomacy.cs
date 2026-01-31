@@ -15,10 +15,10 @@ namespace AIOverhaul
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
             Logic.Kingdom actor = __instance.kingdom;
-            float score = WarLogicHelper.GetAverageWarScore(actor);
+            float score = actor.GetAverageWarScore();
 
-            // CRITICAL: If we have disorder and are at war, seek peace immediately
-            if (actor.HasDisorder() && actor.wars != null && actor.wars.Count > 0)
+            // If we have disorder and are at war, seek peace immediately
+            if (actor.HasDisorder() && actor.wars.Count > 0)
             {
                 // Focus on making peace with ALL enemies
                 if (actor.wars.Count > 0)
@@ -26,13 +26,13 @@ namespace AIOverhaul
                     Logic.Kingdom target = actor.wars[0].GetEnemyLeader(actor);
                     if (target != null)
                     {
-                        __result = RunDiplomacyWithTarget(__instance, target);
+                        __result = __instance.RunDiplomacyWithTarget(target);
                         return false;
                     }
                 }
             }
 
-            // NEW: Strategic expansion targeting - keep ONE enemy neighbor, NAP with all others
+            // Strategic expansion targeting - keep ONE enemy neighbor, NAP with all others
             // This creates focused expansion direction with secure flanks
             Logic.Kingdom expansionTarget = actor.SelectExpansionTarget();
 
@@ -40,41 +40,17 @@ namespace AIOverhaul
             Logic.Kingdom napTarget = actor.FindNonAggressionTarget(expansionTarget);
             if (napTarget != null)
             {
-                float relationship = actor.GetRelationship(napTarget);
-
-                // Check if expansion target is mortal enemy for logging
-                Logic.Kingdom mortalEnemy = AIOverhaulPlugin.GetMortalEnemy(actor, actor.game);
-
-                // TRADE RUSH (Priority over NAP)
-                // If we have few trade partners, try to sign trade agreements first
-                int tradeCount = actor.GetTradeAgreementCount();
-                // User Request: Send to friends or "don't care" (neutral), but NOT enemies.
-                if (tradeCount < 3 && relationship >= 0 && !actor.IsEnemy(napTarget) && napTarget != expansionTarget)
-                {
-                    // Check if we can afford a trade agreement (usually costs gold to establish route if not instant)
-                    // But SignTrade offer validation handles cost.
-                    // We just prefer Trade Agreement over NAP here if we need money/commerce.
-                    
-                    // Re-use napTarget as trade target if they are friendly enough
-                    // But we must check if we already have trade with them
-                    if (!actor.HasTradeAgreement(napTarget))
-                    {
-                        __result = RunTradeAgreementProposal(__instance, napTarget);
-                        return false;
-                    }
-                }
-
-                __result = RunNonAggressionProposal(__instance, napTarget);
+                __result = __instance.RunNonAggressionProposal(napTarget);
                 return false;
             }
 
-            // NEW: Defensive pact formation when facing threats
+            // Defensive pact formation when facing threats
             if (actor.ShouldSeekDefensivePact())
             {
                 Logic.Kingdom pactTarget = actor.FindBestDefensivePactTarget();
                 if (pactTarget != null)
                 {
-                    __result = RunDefensivePactProposal(__instance, pactTarget);
+                    __result = __instance.RunDefensivePactProposal(pactTarget);
                     return false;
                 }
             }
@@ -122,38 +98,12 @@ namespace AIOverhaul
                 if (target != null)
                 {
                     AIOverhaulPlugin.LogDebug($"In survival mode. Focusing on {target.Name}", LogCategory.Diplomacy, actor);
-                    __result = RunDiplomacyWithTarget(__instance, target);
+                    __result = __instance.RunDiplomacyWithTarget(target);
                     return false;
                 }
             }
 
             return true;
-        }
-
-        static IEnumerator RunDiplomacyWithTarget(KingdomAI ai, Logic.Kingdom target)
-        {
-            yield return CoopThread.Call("ThinkProposeOffer", TraverseAPI.ThinkProposeOfferThread(ai, target, "neutral"));
-        }
-
-        static IEnumerator RunDefensivePactProposal(KingdomAI ai, Logic.Kingdom target)
-        {
-            // Try to propose a defensive pact
-            OfferHelper.TrySendOffer("OfferJoinInDefensivePact", ai, target);
-            yield break;
-        }
-
-        static IEnumerator RunTradeAgreementProposal(KingdomAI ai, Logic.Kingdom target)
-        {
-            // Try to propose a Trade Agreement (SignTrade)
-            OfferHelper.TrySendOffer("SignTrade", ai, target);
-            yield break;
-        }
-
-        static IEnumerator RunNonAggressionProposal(KingdomAI ai, Logic.Kingdom target)
-        {
-            // Offer a FREE non-aggression pact (no gold demanded) to build good relations
-            OfferHelper.TrySendOffer("SignNonAggression", ai, target);
-            yield break;
         }
 
         static void Postfix(KingdomAI __instance)

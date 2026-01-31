@@ -13,6 +13,23 @@ namespace AIOverhaul
     {
         public static DebugOverlay Instance;
 
+        // Color Constants (HTML color names or hex codes)
+        const string ColorGold = "orange";
+        const string ColorFood = "yellow";
+        const string ColorMilitary = "#FF6666";      // Light red
+        const string ColorReligion = "#CC99FF";      // Light purple
+        const string ColorVillage = "#66FF66";       // Light green
+        const string ColorCoastal = "#6699FF";       // Blue
+
+        // Utility colors
+        const string ColorGrey = "grey";
+        const string ColorWhite = "white";
+        const string ColorGreen = "green";
+        const string ColorRed = "red";
+        const string ColorCyan = "cyan";
+        const string ColorYellow = "yellow";
+        const string ColorMagenta = "magenta";
+
         // Configuration
         Rect windowRect = new Rect(20, 150, 800, 800);
         Vector2 scrollPosition;
@@ -186,55 +203,47 @@ namespace AIOverhaul
             {
                 if (army == null || !army.IsValid()) continue;
 
-                // Check referencing BuddySystem
-                var buddy = BuddySystem.GetBuddy(army, k);
+                // Only show leaders to avoid duplicate lines (Leader->Follower shown once)
                 bool isFollower = BuddySystem.IsFollower(army, k);
+                if (isFollower) continue;
 
-                if (buddy != null)
+                var follower = BuddySystem.GetBuddy(army, k);
+                if (follower == null) continue;
+
+                activeLinks++;
+                string leaderName = army.leader?.Name ?? "Unknown";
+                string followerName = follower.leader?.Name ?? "Unknown";
+
+                // Get Target Info from the leader army
+                string targetInfo = "";
+                var tgtObj = army.GetTarget();
+                var tgtRealm = army.tgt_realm;
+
+                if (tgtObj != null)
                 {
-                    activeLinks++;
-                    string relation = isFollower ? "<color=cyan>FOLLOWING</color>" : "<color=green>LEADING</color>";
-                    string armyGenName = army.leader?.Name ?? "Unknown";
-                    string buddyGenName = buddy.leader?.Name ?? "Unknown";
-                    
-                    // Identify the actual Leader Army in the relationship to show its target
-                    Logic.Army leaderArmy = isFollower ? buddy : army;
-                    
-                    // Get Target Info
-                    string targetInfo = "";
-                    var tgtObj = leaderArmy.GetTarget();
-                    var tgtRealm = leaderArmy.tgt_realm;
-                    
-                    if (tgtObj != null)
-                    {
-                        string tName = "Unknown";
-                        if (tgtObj is Castle c) tName = c.name; 
-                        else if (tgtObj is Logic.Army a) tName = "Army " + (a.leader?.Name ?? "?");
-                        else if (tgtObj is Logic.Battle b) tName = "Battle";
-                        else tName = tgtObj.ToString();
+                    string tName = "Unknown";
+                    if (tgtObj is Castle c) tName = c.name;
+                    else if (tgtObj is Logic.Army a) tName = "Army " + (a.leader?.Name ?? "?");
+                    else if (tgtObj is Logic.Battle b) tName = "Battle";
+                    else tName = tgtObj.ToString();
 
-                        targetInfo = $" <color=yellow>[Target: {tName}]</color>";
-                    }
-                    else if (tgtRealm != null)
-                    {
-                        targetInfo = $" <color=yellow>[MoveTo: {tgtRealm.name}]</color>";
-                    }
-                    else
-                    {
-                        targetInfo = " <color=grey>[Idle]</color>";
-                    }
-
-                    // User asked for info "next to the army leader"
-                    // If isFollower:  "A FOLLOWING B [Info]"
-                    // If !isFollower: "B LEADING A [Info]"
-                    
-                    GUILayout.Label($"{armyGenName} is {relation} {buddyGenName}{targetInfo}", style);
+                    targetInfo = $" [Target: {tName}]";
                 }
+                else if (tgtRealm != null)
+                {
+                    targetInfo = $" [MoveTo: {tgtRealm.name}]";
+                }
+                else
+                {
+                    targetInfo = " [Idle]";
+                }
+
+                GUILayout.Label($"{leaderName} + {followerName}{targetInfo}", style);
             }
 
             if (activeLinks == 0)
             {
-                GUILayout.Label("<color=grey>No active buddy links</color>", style);
+                GUILayout.Label($"<color={ColorGrey}>No active buddy links</color>", style);
             }
             GUILayout.Space(5);
         }
@@ -301,7 +310,12 @@ namespace AIOverhaul
 
             string barracksColor = hasBarracks ? "green" : "red";
 
-            GUILayout.Label($"Gold: <color=yellow>{gold:F0}</color> (+{goldIncome:F1}/s) | Books: <color=cyan>{books:F0}</color> | Merchants: <color=white>{merchants}</color>", style);
+            float food = KingdomHelper.GetFood(k);
+            float foodIncome = KingdomHelper.GetFoodIncome(k);
+            int tradeAgreements = KingdomHelper.GetTradeAgreementCount(k);
+
+            GUILayout.Label($"Food: <color={ColorFood}>{food:F0}</color> / {foodIncome:F0}", style);
+            GUILayout.Label($"Gold: <color={ColorGold}>{gold:F0}</color> (+{goldIncome:F0}/s) | Books: <color={ColorCyan}>{books:F0}</color> | Merchants: <color={ColorGold}>{merchants}</color> | TA: <color={ColorMagenta}>{tradeAgreements}</color>", style);
             GUILayout.Label($"Has Barracks: <color={barracksColor}>{barracksStatus}</color>", style);
             
             // Build Options stats
@@ -339,12 +353,12 @@ namespace AIOverhaul
         {
             // Mortal Enemy
             var nemesis = AIOverhaulPlugin.GetMortalEnemy(k, k.game);
-            string nemesisDisplay = nemesis != null ? $"<color=red>{nemesis.Name}</color>" : "None";
+            string nemesisDisplay = nemesis != null ? $"<color={ColorRed}>{nemesis.Name}</color>" : "None";
             GUILayout.Label($"Mortal Enemy: {nemesisDisplay}", style);
 
             // Expansion Target
             var expansionTarget = k.SelectExpansionTarget();
-            string expansionDisplay = expansionTarget != null ? $"<color=orange>{expansionTarget.Name}</color>" : "None";
+            string expansionDisplay = expansionTarget != null ? $"<color={ColorMilitary}>{expansionTarget.Name}</color>" : "None";
             GUILayout.Label($"Expansion Target: {expansionDisplay}", style);
 
             // Neighbors - Combined into one label to avoid gaps
@@ -446,20 +460,20 @@ namespace AIOverhaul
 
                 // Order: Keeps, Village, Religious, Farm, Coastal
                 if (keeps > 0)
-                    parts.Add($"<color=orange>{keeps} Keep</color>");
+                    parts.Add($"<color={ColorMilitary}>{keeps} Keep</color>");
                 if (villages > 0)
-                    parts.Add($"<color=#66FF66>{villages} Village</color>");
+                    parts.Add($"<color={ColorVillage}>{villages} Village</color>");
                 if (religious > 0)
-                    parts.Add($"<color=cyan>{religious} Religious</color>");
+                    parts.Add($"<color={ColorReligion}>{religious} Religious</color>");
                 if (farms > 0)
-                    parts.Add($"<color=yellow>{farms} Farm</color>");
+                    parts.Add($"<color={ColorFood}>{farms} Farm</color>");
                 if (coastal > 0)
-                    parts.Add($"<color=#6699FF>{coastal} Coastal</color>");
+                    parts.Add($"<color={ColorCoastal}>{coastal} Coastal</color>");
 
                 if (parts.Count > 0)
                     sb.Append(string.Join(", ", parts));
                 else
-                    sb.Append("<color=grey>Empty</color>");
+                    sb.Append($"<color={ColorGrey}>Empty</color>");
 
                 GUILayout.Label(sb.ToString(), style);
             }

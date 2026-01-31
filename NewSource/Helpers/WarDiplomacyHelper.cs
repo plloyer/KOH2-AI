@@ -5,125 +5,8 @@ using UnityEngine;
 
 namespace AIOverhaul
 {
-    public static class WarLogicHelper
+    public static class WarDiplomacyHelper
     {
-        /// <summary>
-        /// Calculate average war score for a kingdom across all wars.
-        /// Replacement for KingdomAI.GetAverageWarScore() which doesn't exist.
-        /// Negative score = losing, positive = winning.
-        /// </summary>
-        public static float GetAverageWarScore(this Logic.Kingdom k)
-        {
-            if (k == null || k.wars == null || k.wars.Count == 0) return 0f;
-
-            float totalScore = 0f;
-            int validWars = 0;
-
-            foreach (var war in k.wars)
-            {
-                if (war == null) continue;
-
-                try
-                {
-                    int side = TraverseAPI.GetWarSide(war, k);
-                    float warScore = TraverseAPI.GetWarScore(war, side);
-                    totalScore += warScore;
-                    validWars++;
-                }
-                catch
-                {
-                    // Skip wars where we can't get score
-                }
-            }
-
-            return validWars > 0 ? totalScore / validWars : 0f;
-        }
-
-        public static float GetTotalPower(this Logic.Kingdom k)
-        {
-            if (k == null) return 0f;
-            float total = 0f;
-
-            if (k.realms != null)
-            {
-                foreach (var realm in k.realms)
-                {
-                    if (realm.armies != null)
-                    {
-                        foreach (var army in realm.armies)
-                        {
-                            if (army == null) continue;
-                            total += army.EvalStrength();
-                        }
-                    }
-
-                    if (realm.castle != null && k.ai != null)
-                    {
-                        total += KingdomAI.Threat.EvalCastleStrength(realm.castle);
-                    }
-                }
-            }
-
-            return total;
-        }
-
-        public static bool HasDisorder(this Logic.Kingdom k)
-        {
-            if (k == null || k.realms == null) return false;
-
-            foreach (var realm in k.realms)
-            {
-                if (realm != null && realm.IsDisorder())
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        public static float GetNeighborThreat(this Logic.Kingdom k)
-        {
-            if (k == null || k.neighbors == null) return 0f;
-
-            float totalThreat = 0f;
-
-            foreach (var neighbor in k.neighbors)
-            {
-                if (neighbor is Logic.Kingdom neighborKingdom)
-                {
-                    if (neighborKingdom.IsDefeated()) continue;
-
-                    // Consider enemies and those with bad relations as threats
-                    if (k.IsEnemy(neighborKingdom))
-                    {
-                        totalThreat += neighborKingdom.GetTotalPower();
-                    }
-                }
-            }
-
-            return totalThreat;
-        }
-
-        public static bool HasHighThreat(this Logic.Kingdom k)
-        {
-            if (k == null || k.realms == null) return false;
-
-            // Iterate through all realms in the kingdom and check their threat level
-            foreach (var realm in k.realms)
-            {
-                if (realm == null || realm.threat == null) continue;
-                
-                // Level 3 is Level.Attack, 4 is Invaded, 5 is Siege
-                if ((int)realm.threat.level >= GameBalance.KingdomSideAttackLevel) 
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         public static bool WantsInvasionPlan(this Logic.Kingdom k)
         {
             if (k == null) return false;
@@ -374,8 +257,7 @@ namespace AIOverhaul
             }
 
             // Check if target changed and log if it did
-            int previousTargetId = -1;
-            AIOverhaulPlugin.ExpansionTargets.TryGetValue(k.id, out previousTargetId);
+            AIOverhaulPlugin.ExpansionTargets.TryGetValue(k.id, out var previousTargetId);
 
             int newTargetId = selectedTarget?.id ?? -1;
 
@@ -455,53 +337,6 @@ namespace AIOverhaul
             return bestTarget;
         }
 
-        public static bool IsStrategicNeighbor(this Logic.Kingdom a, Logic.Kingdom b)
-        {
-            if (a == null || b == null) return false;
-            if (a.neighbors == null) return false;
-            foreach (var n in a.neighbors)
-            {
-                if (n is Logic.Kingdom k && k == b) return true;
-            }
-
-            return false;
-        }
-
-        public static bool HasCommonEnemyWithAlly(this Logic.Kingdom a, Logic.Kingdom b)
-        {
-            if (a == null || b == null || a.wars == null || b.wars == null) return false;
-            foreach (var warA in a.wars)
-            {
-                Logic.Kingdom enemyA = warA.GetEnemyLeader(a);
-                foreach (var warB in b.wars)
-                {
-                    if (warB.GetEnemyLeader(b) == enemyA) return true;
-                }
-            }
-
-            return false;
-        }
-
-        public static int GetTradeAgreementCount(this Logic.Kingdom k)
-        {
-            if (k == null || k.game == null) return 0;
-
-            // Iterate known kingdoms or just all active kingdoms to count trade agreements
-            int count = 0;
-            if (k.game.kingdoms != null)
-            {
-                foreach (var other in k.game.kingdoms)
-                {
-                    if (other != null && other != k && !other.IsDefeated())
-                    {
-                        if (k.HasTradeAgreement(other))
-                            count++;
-                    }
-                }
-            }
-            return count;
-        }
-
         public static bool IsMortalEnemy(this Logic.Kingdom kingdom, Logic.Kingdom potentialEnemy)
         {
             if (kingdom == null || potentialEnemy == null) return false;
@@ -523,14 +358,18 @@ namespace AIOverhaul
             var kingdom = ai.kingdom;
             if (kingdom?.wars == null || kingdom.wars.Count == 0) return;
 
+            if (kingdom.wars.Count > 1)
+            {
+                foreach (var war in kingdom.wars) 
+                    kingdom.InviteNeighborsToWar(war, ai);
+            }
+            
             foreach (var war in kingdom.wars)
             {
                 if (war == null) continue;
 
-                // Get our side (0 = attackers, 1 = defenders)
-                int ourSide = TraverseAPI.GetWarSide(war, kingdom);
-                var ourKingdoms = (ourSide == 0) ? war.attackers : war.defenders;
-                var enemyKingdoms = (ourSide == 0) ? war.defenders : war.attackers;
+                var ourKingdoms = kingdom.GetAlliesInWar(war);
+                var enemyKingdoms = kingdom.GetEnemiesInWar(war);
 
                 if (ourKingdoms == null || enemyKingdoms == null) continue;
 
@@ -544,8 +383,7 @@ namespace AIOverhaul
                 // Only invite if we need help
                 if (!outnumbered && !outpowered) continue;
 
-                AIOverhaulPlugin.LogDebug($"War needs help: Ours={ourKingdoms.Count} ({ourStrength:F0}) vs Enemy={enemyKingdoms.Count} ({enemyStrength:F0})",
-                    LogCategory.Diplomacy, kingdom);
+                AIOverhaulPlugin.LogDebug($"War needs help: Ours={ourKingdoms.Count} ({ourStrength:F0}) vs Enemy={enemyKingdoms.Count} ({enemyStrength:F0})", LogCategory.Diplomacy, kingdom);
 
                 // Find neighbors with good relations to invite
                 if (kingdom.neighbors == null) continue;
@@ -570,6 +408,33 @@ namespace AIOverhaul
             }
         }
 
+        static void InviteNeighborsToWar(this Logic.Kingdom kingdom, War war, KingdomAI ai)
+        {
+            var enemyKingdoms = kingdom.GetEnemiesInWar(war);
+
+            foreach (var enemyKingdom in enemyKingdoms)
+                foreach (var neighborObj in enemyKingdom.neighbors)
+                    kingdom.InviteNeighborsToWar(neighborObj, war, ai);
+
+            foreach (var neighborObj in kingdom.neighbors)
+                kingdom.InviteNeighborsToWar(neighborObj, war, ai);
+        }
+
+        static void InviteNeighborsToWar(this Logic.Kingdom kingdom, Logic.Kingdom targetKingdom, War war, KingdomAI ai)
+        {
+            foreach (var neighborObj in targetKingdom.neighbors)
+            {
+                if (!(neighborObj is Logic.Kingdom neighbor)) continue;
+                if (neighbor == kingdom) continue;
+                if (neighbor.IsDefeated()) continue;
+                if (kingdom.IsEnemy(neighbor)) continue;
+                
+                float relation = kingdom.GetRelationship(neighbor);
+                if (relation < GameBalance.MinRelationToInviteToWar) continue;
+                OfferHelper.TrySendWarInvite(ai, neighbor, war);
+            }
+        }
+
         static float GetWarSideStrength(List<Logic.Kingdom> kingdoms)
         {
             if (kingdoms == null) return 0f;
@@ -591,7 +456,7 @@ namespace AIOverhaul
         {
             if (k == null || k.realms == null) return false;
             if (k.realms.Count == 0) return true;
-            var armies = k?.armies ?? new List<Logic.Army>();
+            var armies = k.armies ?? new List<Logic.Army>();
             if (armies.Count == 0) return true;
             float totalStr = 0;
             foreach (var a in armies) totalStr += a.EvalStrength();

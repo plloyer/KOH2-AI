@@ -10,28 +10,33 @@ namespace AIOverhaul
     public static class CourtHelper
     {
         // Court Member Counting
-        public static int CountCourtMembers(Logic.Kingdom k, string classId)
+        public static int CountCourtMembers(this Logic.Kingdom k, string classId)
         {
             if (k?.court == null) return 0;
             return k.court.Count(c => c != null && c.class_def?.id == classId);
         }
 
-        public static int CountMerchants(Logic.Kingdom k)
+        public static int CountMerchants(this Logic.Kingdom k)
         {
             return CountCourtMembers(k, CharacterClassNames.Merchant);
         }
 
-        public static int CountClerics(Logic.Kingdom k)
+        public static int CountClerics(this Logic.Kingdom k)
         {
             return CountCourtMembers(k, CharacterClassNames.Cleric);
         }
 
-        public static bool HasCleric(Logic.Kingdom k)
+        public static int CountDiplomats(this Logic.Kingdom k)
+        {
+            return CountCourtMembers(k, CharacterClassNames.Diplomat);
+        }
+
+        public static bool HasCleric(this Logic.Kingdom k)
         {
             return k?.court?.Any(c => c != null && c.IsCleric()) ?? false;
         }
 
-        public static bool HasIdleMerchant(Logic.Kingdom k)
+        public static bool HasIdleMerchant(this Logic.Kingdom k)
         {
             if (k?.court == null) return false;
 
@@ -69,7 +74,7 @@ namespace AIOverhaul
         /// <summary>
         /// Get the knight at a specific UI slot index (0-based)
         /// </summary>
-        public static Logic.Character GetKnightAtSlot(Logic.Kingdom k, int index)
+        public static Logic.Character GetKnightAtSlot(this Logic.Kingdom k, int index)
         {
             if (k?.court == null) return null;
             if (index < 0 || index >= k.court.Count) return null;
