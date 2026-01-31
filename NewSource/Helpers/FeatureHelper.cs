@@ -1,7 +1,6 @@
 using System.Collections.Generic;
-using AIOverhaul.Constants;
 
-namespace AIOverhaul.Helpers
+namespace AIOverhaul
 {
     /// <summary>
     /// Helper for mapping Province Features to Buildings

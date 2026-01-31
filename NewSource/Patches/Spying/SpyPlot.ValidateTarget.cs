@@ -1,7 +1,7 @@
 using HarmonyLib;
 using System;
 
-namespace AIOverhaul.Patches.Spying
+namespace AIOverhaul
 {
     [HarmonyPatch(typeof(Logic.SpyPlot), "ValidateTarget")]
     public class SpyPlot_ValidateTarget

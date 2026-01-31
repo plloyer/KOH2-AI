@@ -3,8 +3,6 @@ using Logic;
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using AIOverhaul.Constants;
-using AIOverhaul.Helpers;
 
 namespace AIOverhaul
 {

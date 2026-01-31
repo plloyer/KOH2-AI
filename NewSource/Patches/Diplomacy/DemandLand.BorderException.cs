@@ -4,7 +4,7 @@ using Logic;
 using System;
 using System.Collections;
 
-namespace AIOverhaul.Patches.Diplomacy
+namespace AIOverhaul
 {
     [HarmonyPatch(typeof(DemandLand))]
     public class DemandLand_BorderException

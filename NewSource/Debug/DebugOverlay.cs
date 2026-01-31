@@ -1,9 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using AIOverhaul.Helpers;
 using Logic;
-using AIOverhaul.Patches.Military;
 
 namespace AIOverhaul
 {

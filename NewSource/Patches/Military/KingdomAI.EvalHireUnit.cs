@@ -1,8 +1,6 @@
 using HarmonyLib;
-using AIOverhaul.Constants;
-using AIOverhaul.Helpers;
 
-namespace AIOverhaul.Patches.Military
+namespace AIOverhaul
 {
     [HarmonyPatch(typeof(Logic.KingdomAI), "EvalHireUnit")]
     public class KingdomAI_EvalHireUnit

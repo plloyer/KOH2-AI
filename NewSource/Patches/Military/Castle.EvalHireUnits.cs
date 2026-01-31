@@ -1,6 +1,6 @@
 using HarmonyLib;
 
-namespace AIOverhaul.Patches.Military
+namespace AIOverhaul
 {
     // "EvalHireUnits" determines if militia/peasants should be raised in a castle.
     // Intent: PeasantRecruitmentBlockPatch

@@ -1,8 +1,6 @@
 using HarmonyLib;
-using AIOverhaul.Constants;
-using AIOverhaul.Helpers;
 
-namespace AIOverhaul.Patches.Military
+namespace AIOverhaul
 {
     [HarmonyPatch(typeof(Logic.Army), "AddUnit", typeof(Logic.Unit.Def), typeof(int), typeof(bool), typeof(bool), typeof(bool))]
     public class Army_AddUnit

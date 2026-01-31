@@ -3,7 +3,6 @@ using HarmonyLib;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using AIOverhaul.Constants;
 using System;
 
 namespace AIOverhaul

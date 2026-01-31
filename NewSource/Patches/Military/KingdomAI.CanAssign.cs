@@ -1,6 +1,6 @@
 using HarmonyLib;
 
-namespace AIOverhaul.Patches.Military
+namespace AIOverhaul
 {
     // "CanAssign" determines if an army is eligible to handle a specific threat.
     // Intent: BuddySystemPatch (Leader Check)

@@ -1,6 +1,6 @@
 using Logic;
 
-namespace AIOverhaul.Helpers
+namespace AIOverhaul
 {
     public static class SkillHelper
     {

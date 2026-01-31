@@ -67,57 +67,6 @@
     //     }
     // }
 
-    // [HarmonyPatch(typeof(KingdomAI), "AddExpense", new[] { typeof(WeightedRandom<KingdomAI.Expense>), typeof(KingdomAI.Expense) })]
-    // public class KingdomAI_AddExpense
-    // {
-    //     static void Prefix(KingdomAI __instance, object expenses, KingdomAI.Expense expense)
-    //     {
-    //         if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return;
-    //
-    //         // URGENT MERCHANT HIRING
-    //         if (expense.type == KingdomAI.Expense.Type.HireChacacter &&
-    //             expense.defParam is CharacterClass.Def cd &&
-    //             cd.id == CharacterClassNames.Merchant)
-    //         {
-    //             float maxCommerce = TraverseAPI.GetMaxCommerce(__instance.kingdom);
-    //             int merchants = KingdomHelper.CountMerchants(__instance.kingdom);
-    //             int usedCommerce = merchants * GameBalance.CommercePerMerchant;
-    //             float availableCommerce = maxCommerce - usedCommerce;
-    //
-    //             // Check if we have idle merchants (merchants without active trade routes)
-    //             bool hasIdleMerchant = KingdomHelper.HasIdleMerchant(__instance.kingdom);
-    //
-    //             // FORCE priority for the first two merchants, OR if we have idle slots and commerce
-    //             if (merchants < GameBalance.RequiredMerchantCount || (availableCommerce >= GameBalance.MinCommerceForMerchant && hasIdleMerchant))
-    //             {
-    //                 expense.eval *= GameBalance.UrgentPriorityMultiplier;
-    //                 AIOverhaulPlugin.LogDebug($"URGENT merchant hire - Merchants: {merchants}, AvailableCommerce: {availableCommerce}, HasIdle: {hasIdleMerchant}", LogCategory.Economy, __instance.kingdom);
-    //             }
-    //         }
-    //
-    //         // URGENT BARRACKS CONSTRUCTION
-    //         if (expense.type == KingdomAI.Expense.Type.BuildStructure &&
-    //             expense.defParam is Logic.Building.Def bd &&
-    //             bd.id == BuildingNames.Barracks)
-    //         {
-    //             if (!BuildingHelper.HasBuilding(__instance.kingdom, BuildingNames.Barracks))
-    //             {
-    //                 expense.eval = 1.0f; // Force to 1.0 - Expense.Set() recalculates eval, so we must SET it, not multiply
-    //                 expense.priority = KingdomAI.Expense.Priority.Urgent;
-    //                 AIOverhaulPlugin.LogDebug("URGENT Barracks construction - Kingdom has no barracks", LogCategory.Economy, __instance.kingdom);
-    //             }
-    //         }
-    //
-    //         if (expense.category == KingdomAI.Expense.Category.Diplomacy)
-    //         {
-    //             // Trade is free, but lowering eval ensures it's prioritized over other free diplomatic actions
-    //             if (expense.defParam is Logic.Action action && action.def.id == ActionNames.Trade)
-    //                 expense.eval *= GameBalance.HighPriorityMultiplier; // Lower eval = higher priority
-    //         }
-    //     }
-    // }
-
-
     // "ConsiderHireMerchant" checks if a Merchant should be hired.
     // Intent: Bypass the "Trade Disagreement" limit for the first 2 merchants.
     // [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderHireMerchant")]

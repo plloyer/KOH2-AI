@@ -1,7 +1,6 @@
 using HarmonyLib;
 using System.Collections;
 using System.Collections.Generic;
-using AIOverhaul.Constants;
 
 namespace AIOverhaul
 {

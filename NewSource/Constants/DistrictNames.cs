@@ -1,4 +1,4 @@
-namespace AIOverhaul.Constants
+namespace AIOverhaul
 {
     /// <summary>
     /// District definition IDs used in the game

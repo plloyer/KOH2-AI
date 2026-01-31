@@ -1,7 +1,6 @@
 using HarmonyLib;
-using AIOverhaul.Constants;
 
-namespace AIOverhaul.Patches.Military
+namespace AIOverhaul
 {
     // "ThinkArmy" handles general army tick logic including movement and actions.
     // Intent: ThinkArmy patches (IdleArmyPatch + HealingLogicPatch)
@@ -53,7 +52,7 @@ namespace AIOverhaul.Patches.Military
                     }
 
                     // No siege battle object - try to find and attack the besieging army directly
-                    var besiegingArmy = AIOverhaul.Helpers.MilitaryHelper.FindEnemyInRealm(r, __instance.kingdom);
+                    var besiegingArmy = MilitaryHelper.FindEnemyInRealm(r, __instance.kingdom);
                     if (besiegingArmy != null && army.GetTarget() != besiegingArmy)
                     {
                         AIOverhaulPlugin.LogDebug($"[ThinkArmy] FORCE DEFEND: Army {army.GetNid()} attacking besieging army at {r.name}! (Str: {armyStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
@@ -63,7 +62,7 @@ namespace AIOverhaul.Patches.Military
                 }
 
                 // 2. Check for Invading Army
-                var invadingArmy = AIOverhaul.Helpers.MilitaryHelper.FindEnemyInRealm(r, __instance.kingdom);
+                var invadingArmy = MilitaryHelper.FindEnemyInRealm(r, __instance.kingdom);
                 if (invadingArmy != null && army.GetTarget() != invadingArmy)
                 {
                     AIOverhaulPlugin.LogDebug($"[ThinkArmy] FORCE DEFEND: Army {army.GetNid()} intercepting invader {invadingArmy.GetNid()} at {r.name}! (Str: {armyStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
@@ -79,11 +78,11 @@ namespace AIOverhaul.Patches.Military
             bool needsHeal = false;
             if (inOwnTerritory)
             {
-                needsHeal = AIOverhaul.Helpers.MilitaryHelper.IsDamaged(army);
+                needsHeal = MilitaryHelper.IsDamaged(army);
             }
             else
             {
-                float healthPerc = AIOverhaul.Helpers.MilitaryHelper.GetArmyHealthPercentage(army);
+                float healthPerc = MilitaryHelper.GetArmyHealthPercentage(army);
                 if (healthPerc < GameBalance.HealthRetreatThreshold)
                 {
                     needsHeal = true;

@@ -1,4 +1,4 @@
-namespace AIOverhaul.Constants
+namespace AIOverhaul
 {
     /// <summary>
     /// Constants for settlement names/types defined in settlements.def

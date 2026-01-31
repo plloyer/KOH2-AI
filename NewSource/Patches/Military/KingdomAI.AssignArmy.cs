@@ -1,7 +1,7 @@
 using HarmonyLib;
 using System.Linq;
 
-namespace AIOverhaul.Patches.Military
+namespace AIOverhaul
 {
     // "AssignArmy" assigns a specific army to a threat.
     // Intent: ArmyCoordinationPatch
@@ -24,7 +24,7 @@ namespace AIOverhaul.Patches.Military
 
                 if (readyArmies < 2)
                 {
-                    //AIOverhaulPlugin.LogDebug($"[AssignArmy] Blocking offensive assignment to {threat.realm?.name}: waiting for 2 full armies (have {readyArmies})", Constants.LogCategory.Military, __instance.kingdom);
+                    //AIOverhaulPlugin.LogDebug($"[AssignArmy] Blocking offensive assignment to {threat.realm?.name}: waiting for 2 full armies (have {readyArmies})", LogCategory.Military, __instance.kingdom);
                     __result = false;
                     return false;
                 }
@@ -38,7 +38,7 @@ namespace AIOverhaul.Patches.Military
                 // Allow defense if we have any assigned strength and are stronger than enemy
                 if (ourStrength > 0 && ourStrength >= enemyStrength * PowerRatioToFight)
                 {
-                    AIOverhaulPlugin.LogDebug($"[AssignArmy] Allowing defensive assignment to {threat.realm?.name}: our strength {ourStrength:F0} >= enemy {enemyStrength:F0}", Constants.LogCategory.Military, __instance.kingdom);
+                    AIOverhaulPlugin.LogDebug($"[AssignArmy] Allowing defensive assignment to {threat.realm?.name}: our strength {ourStrength:F0} >= enemy {enemyStrength:F0}", LogCategory.Military, __instance.kingdom);
                     // Let vanilla handle the assignment
                     return true;
                 }

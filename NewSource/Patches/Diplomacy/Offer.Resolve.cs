@@ -1,8 +1,7 @@
 using HarmonyLib;
 using System;
-using AIOverhaul.Constants;
 
-namespace AIOverhaul.Patches.Diplomacy
+namespace AIOverhaul
 {
     /// <summary>
     /// This patch is used to accept, in spectator mode, diplomacy like if it was a normal AI (instant).
@@ -33,7 +32,7 @@ namespace AIOverhaul.Patches.Diplomacy
                 Logic.Offer counterOffer;
                 string answer = __instance.DecideAIAnswer(out counterOffer);
 
-                if (answer == AIOverhaul.Constants.DiplomacyConstants.CounterOffer)
+                if (answer == DiplomacyConstants.CounterOffer)
                 {
                     __instance.answer = answer;
                     __instance.from.FireEvent("offer_answered", __instance);
@@ -42,7 +41,7 @@ namespace AIOverhaul.Patches.Diplomacy
                 }
                 else
                 {
-                    string finalAnswer = answer ?? __instance.def.default_outcome ?? AIOverhaul.Constants.DiplomacyConstants.Decline;
+                    string finalAnswer = answer ?? __instance.def.default_outcome ?? DiplomacyConstants.Decline;
                     __instance.Answer(finalAnswer);
                 }
 

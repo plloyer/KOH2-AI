@@ -1,6 +1,5 @@
 using HarmonyLib;
 using System.Linq;
-using AIOverhaul.Constants;
 
 namespace AIOverhaul
 {
@@ -60,35 +59,7 @@ namespace AIOverhaul
 
         static float CalcMilitaryPotential(Logic.Realm realm)
         {
-            if (realm == null) return 0f;
-            float score = 0f;
-
-            // 1. Base Military Evaluation from settlements
-            if (realm.settlements != null)
-            {
-                foreach (var s in realm.settlements)
-                {
-                    if (s?.def != null)
-                    {
-                        score += s.def.ai_eval_military;
-                    }
-                }
-            }
-
-            // 2. Iron Ore Bonus (Same as vanilla specialization logic)
-            if (realm.features != null && realm.features.Contains(FeatureNames.IronOre))
-            {
-                score += GameBalance.IronOreMilitaryBonus;
-            }
-
-            // 3. Castle Slots (Districts)
-            if (realm.castle != null)
-            {
-                // Unlocked slots represent "Castle Districts" development
-                score += (float)realm.castle.AvailableBuildingSlots() * GameBalance.DistrictMilitaryMultiplier; 
-            }
-
-            return score;
+            return realm?.GetKeepCount() ?? 0;
         }
     }
 }

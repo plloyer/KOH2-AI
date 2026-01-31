@@ -1,4 +1,4 @@
-namespace AIOverhaul.Helpers
+namespace AIOverhaul
 {
     /// <summary>
     /// Helper methods for kingdom operations
@@ -25,8 +25,6 @@ namespace AIOverhaul.Helpers
         {
             return k?.income?.Get(Logic.ResourceType.Gold) ?? 0f;
         }
-
-
 
         // Validation Helpers
         public static bool IsValidKingdom(Logic.Kingdom k) => k != null && !k.IsDefeated();

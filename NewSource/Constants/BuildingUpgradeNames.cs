@@ -1,4 +1,4 @@
-namespace AIOverhaul.Constants
+namespace AIOverhaul
 {
     /// <summary>
     /// Constants for all building upgrade names in Knights of Honor II

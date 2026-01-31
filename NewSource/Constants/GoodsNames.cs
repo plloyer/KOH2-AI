@@ -1,4 +1,4 @@
-namespace AIOverhaul.Constants
+namespace AIOverhaul
 {
     /// <summary>
     /// Constants for trade goods and resources produced by buildings

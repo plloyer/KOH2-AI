@@ -1,5 +1,3 @@
-using AIOverhaul.Constants;
-using AIOverhaul.Helpers;
 using HarmonyLib;
 using Logic;
 
@@ -118,9 +116,9 @@ namespace AIOverhaul
             if (kingdom == null) return;
 
             // If we already have Village Militia, boost TrainingGrounds upgrade
-            if (BuildingHelper.HasBuilding(kingdom, BuildingNames.VillageMilitia))
+            if (kingdom.HasBuilding(BuildingNames.VillageMilitia))
             {
-                if (!BuildingHelper.HasBuildingUpgrade(kingdom, BuildingUpgradeNames.TrainingGrounds))
+                if (!kingdom.HasBuildingUpgrade(BuildingUpgradeNames.TrainingGrounds))
                 {
                     MultiplyUpgradeOption(BuildingUpgradeNames.TrainingGrounds, GameBalance.HighPriorityBuildingMultiplier);
                 }

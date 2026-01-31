@@ -1,8 +1,7 @@
 using HarmonyLib;
 using System;
-using AIOverhaul.Constants;
 
-namespace AIOverhaul.Patches.Court
+namespace AIOverhaul
 {
     // "ConsiderExpense" is the core method where AI decides to create an expense proposal for an action.
     // Intent: SpyRestrictionsPatch

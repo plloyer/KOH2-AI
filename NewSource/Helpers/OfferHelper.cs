@@ -1,4 +1,4 @@
-namespace AIOverhaul.Helpers
+namespace AIOverhaul
 {
     /// <summary>
     /// Helper methods for creating and sending diplomatic offers

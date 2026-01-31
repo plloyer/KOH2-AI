@@ -1,8 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
-using AIOverhaul.Constants;
 
-namespace AIOverhaul.Patches.Military
+namespace AIOverhaul
 {
     public static class BuddySystem
     {

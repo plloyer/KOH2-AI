@@ -1,5 +1,5 @@
 
-namespace AIOverhaul.Constants
+namespace AIOverhaul
 {
     public static class GameConstants
     {

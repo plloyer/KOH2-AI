@@ -1,7 +1,6 @@
 using HarmonyLib;
-using AIOverhaul.Constants;
 
-namespace AIOverhaul.Patches.Military
+namespace AIOverhaul
 {
     // "ThinkFight" controls whether an army should engage in battle or retreat.
     // Intent: BattleEngagementPatch

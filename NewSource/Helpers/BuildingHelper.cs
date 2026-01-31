@@ -1,7 +1,6 @@
 using System.Collections.Generic;
-using AIOverhaul.Constants;
 
-namespace AIOverhaul.Helpers
+namespace AIOverhaul
 {
     /// <summary>
     /// Helper methods for working with buildings
@@ -276,27 +275,31 @@ namespace AIOverhaul.Helpers
                     return new List<string>();
              }
         }
+
         /// <summary>
         /// Checks if the kingdom has a specific building constructed in any of its realms.
         /// </summary>
-        public static bool HasBuilding(Logic.Kingdom k, string buildingName)
+        public static bool HasBuilding(this Logic.Kingdom k, string buildingName) => k.GetBuildingCount(buildingName) > 0;
+
+        public static int GetBuildingCount(this Logic.Kingdom k, string buildingName)
         {
-            if (k.realms == null) return false;
+            int count = 0;
+            if (k.realms == null) return count;
             foreach (var realm in k.realms)
             {
                 if (realm.castle?.buildings == null) continue;
                 foreach (var b in realm.castle.buildings)
                 {
-                    if (b?.def?.id == buildingName) return true;
+                    if (b?.def?.id == buildingName) count++;
                 }
             }
-            return false;
+            return count;
         }
 
         /// <summary>
         /// Checks if the kingdom has a specific building upgrade in any of its realms.
         /// </summary>
-        public static bool HasBuildingUpgrade(Logic.Kingdom k, string upgradeId)
+        public static bool HasBuildingUpgrade(this Logic.Kingdom k, string upgradeId)
         {
             if (k?.realms == null) return false;
 

@@ -1,5 +1,4 @@
 using HarmonyLib;
-using AIOverhaul.Helpers;
 
 namespace AIOverhaul
 {

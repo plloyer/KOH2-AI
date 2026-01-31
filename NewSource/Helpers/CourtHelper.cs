@@ -1,8 +1,7 @@
 using System.Linq;
-using AIOverhaul.Constants;
 using System.Collections.Generic;
 
-namespace AIOverhaul.Helpers
+namespace AIOverhaul
 {
     /// <summary>
     /// Helper methods for court management and character operations

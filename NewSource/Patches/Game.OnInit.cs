@@ -1,7 +1,7 @@
 using HarmonyLib;
 using Logic;
 
-namespace AIOverhaul.Patches
+namespace AIOverhaul
 {
     /// <summary>
     /// Captures the Game instance when it's initialized.

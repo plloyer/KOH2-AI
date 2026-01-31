@@ -1,6 +1,4 @@
-using AIOverhaul.Constants;
-
-namespace AIOverhaul.Helpers
+namespace AIOverhaul
 {
     public static class ModLog
     {

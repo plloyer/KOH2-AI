@@ -1,6 +1,6 @@
 using HarmonyLib;
 
-namespace AIOverhaul.Patches.Military
+namespace AIOverhaul
 {
     // "ThinkAssaultSiege" decides whether a besieging army should launch an assault on the castle.
     // Intent: AssaultLogicPatch
