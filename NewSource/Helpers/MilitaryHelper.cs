@@ -80,15 +80,11 @@ namespace AIOverhaul
                         if (castle == null || castle.battle != null) continue;
 
                         // Check if within distance
-                        int dist;
-                        if (IsRealmWithinDistance(realm, ourKingdom, maxDistance, out dist))
+                        if (IsRealmWithinDistance(realm, ourKingdom, maxDistance, out var dist))
                         {
                             return realm;
                         }
-                        else
-                        {
-                            AIOverhaulPlugin.LogDebug($"[ThinkPlunder] {enemy.Name}'s realm {realm.name} is in disorder but too far (>{maxDistance} provinces)", LogCategory.Military, ourKingdom);
-                        }
+                        AIOverhaulPlugin.LogDebug($"[ThinkPlunder] {enemy.Name}'s realm {realm.name} is in disorder but too far ({dist}>{maxDistance} provinces)", LogCategory.Military, ourKingdom);
                     }
                 }
             }
