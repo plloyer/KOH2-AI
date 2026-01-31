@@ -158,6 +158,14 @@ namespace AIOverhaul
                             var siegeBattle = Traverse.Create(buddy.castle).Field("battle").GetValue<Logic.Battle>();
                             if (siegeBattle != null && army.GetTarget() != siegeBattle)
                             {
+                                // Check if this army should help (enough units or changes outcome)
+                                float friendlyStr = buddy.EvalStrength();
+                                float enemyStr = threat.enemies_in.eval;
+                                if (!BuddySystem.ShouldBuddyHelp(army, friendlyStr, enemyStr, __instance.kingdom))
+                                {
+                                    AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: Skipping rescue_leader_siege - army too weak to impact", LogCategory.Military, __instance.kingdom);
+                                    return;
+                                }
                                 AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: ACTION=rescue_leader_siege (Leader's castle {buddy.castle.name} under siege!)", LogCategory.Military, __instance.kingdom);
                                 TraverseAPI.SendArmy(__instance, army, siegeBattle, "rescue_leader_siege", null);
                                 return;
@@ -202,9 +210,38 @@ namespace AIOverhaul
                 // Only copy target if it's a military target
                 if (isMilitaryTarget && army.GetTarget() != leaderTarget)
                 {
-                    AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: ACTION=follow_buddy_force (copying leader's military target)", LogCategory.Military, __instance.kingdom);
-                    TraverseAPI.SendArmy(__instance, army, leaderTarget, "follow_buddy_force", null);
-                    return;
+                    // Estimate enemy strength based on target type
+                    float friendlyStr = buddy.EvalStrength();
+                    float enemyStr = 0;
+                    if (leaderTarget is Logic.Army targetArmy2)
+                    {
+                        enemyStr = targetArmy2.EvalStrength();
+                    }
+                    else if (leaderTarget is Logic.Battle || leaderTarget is Logic.Castle)
+                    {
+                        // For battles/castles, check the realm for enemy armies
+                        var targetRealm = buddy.tgt_realm ?? buddy.realm_in;
+                        if (targetRealm != null && targetRealm.armies != null)
+                        {
+                            foreach (var a in targetRealm.armies)
+                            {
+                                if (a != null && __instance.kingdom.IsEnemy(a.kingdom_id))
+                                    enemyStr += a.EvalStrength();
+                            }
+                        }
+                    }
+
+                    // Check if this army should help (enough units or changes outcome)
+                    if (!BuddySystem.ShouldBuddyHelp(army, friendlyStr, enemyStr, __instance.kingdom))
+                    {
+                        AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: Skipping follow_buddy_force - army too weak to impact", LogCategory.Military, __instance.kingdom);
+                    }
+                    else
+                    {
+                        AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: ACTION=follow_buddy_force (copying leader's military target)", LogCategory.Military, __instance.kingdom);
+                        TraverseAPI.SendArmy(__instance, army, leaderTarget, "follow_buddy_force", null);
+                        return;
+                    }
                 }
 
                 // Movement Sync: Only follow if leader is moving toward enemy territory
@@ -237,9 +274,29 @@ namespace AIOverhaul
                          // Check if we are already moving to the battle (reuse currentTarget from line 115)
                          if (currentTarget != buddy && currentTarget != buddy.battle)
                          {
-                             AIOverhaulPlugin.LogDebug($"[ThinkArmy] Leader {army.GetNid()} RESCUING Buddy {buddy.GetNid()} in battle!", LogCategory.Military, __instance.kingdom);
-                             TraverseAPI.SendArmy(__instance, army, buddy, "rescue_buddy", null);
-                             return;
+                             // Estimate battle strength from buddy's realm
+                             float friendlyStr = buddy.EvalStrength();
+                             float enemyStr = 0;
+                             if (buddy.realm_in != null && buddy.realm_in.armies != null)
+                             {
+                                 foreach (var a in buddy.realm_in.armies)
+                                 {
+                                     if (a != null && __instance.kingdom.IsEnemy(a.kingdom_id))
+                                         enemyStr += a.EvalStrength();
+                                 }
+                             }
+
+                             // Check if this army should help (enough units or changes outcome)
+                             if (!BuddySystem.ShouldBuddyHelp(army, friendlyStr, enemyStr, __instance.kingdom))
+                             {
+                                 AIOverhaulPlugin.LogDebug($"[ThinkArmy] Leader {army.GetNid()} skipping rescue - army too weak to impact battle", LogCategory.Military, __instance.kingdom);
+                             }
+                             else
+                             {
+                                 AIOverhaulPlugin.LogDebug($"[ThinkArmy] Leader {army.GetNid()} RESCUING Buddy {buddy.GetNid()} in battle!", LogCategory.Military, __instance.kingdom);
+                                 TraverseAPI.SendArmy(__instance, army, buddy, "rescue_buddy", null);
+                                 return;
+                             }
                          }
                      }
                 }

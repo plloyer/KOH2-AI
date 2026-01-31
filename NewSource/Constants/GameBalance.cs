@@ -18,8 +18,9 @@ namespace AIOverhaul
         public const float MaxBuddyDistance = 300f; // Max distance to assign a buddy
         public const float BuddyBreakDistance = 600f; // Distance to break buddy link
         public const float BuddyWaitDistance = 200f; // Max distance to wait for a buddy
-        public const float BuddyReevalIntervalMinutes = 1f; // Re-evaluate buddies every 1 minute (real time)
+        public const float BuddyReevalIntervalMinutes = 1f; // Re-evaluate buddies every X minute (real time)
         public const int MinArmiesForStrikeForce = 2; // Minimum armies needed to form a strike force
+        public const int MinBuddyUnitsToHelp = 4; // Buddy must have at least X units to be sent to help
 
         // Army Composition - Late Game
         public const int FullArmySize = 8;

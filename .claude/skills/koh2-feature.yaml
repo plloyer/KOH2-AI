@@ -363,6 +363,19 @@ prompt: |
   option.eval *= GameBalance.SwordsmithBoost;
   ```
 
+  ❌ **Hardcoded values in comments:**
+  ```csharp
+  // WRONG - values become outdated when constants change
+  // Require 2 full armies before attacking
+  // Buddy must have 5+ units to help
+  // Wait 30 days before re-evaluating
+
+  // CORRECT - reference constant names instead
+  // Require MinArmiesForWar full armies before attacking
+  // Buddy must have MinBuddyUnitsToHelp+ units to help
+  // Wait BuddyReevalIntervalMinutes before re-evaluating
+  ```
+
   ## File Organization
 
   **Where to add new patches:**

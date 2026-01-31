@@ -81,9 +81,19 @@ namespace AIOverhaul
                     // Do not wait, do not retreat.
                     if (buddy.battle != null)
                     {
-                        AIOverhaulPlugin.LogDebug($"[ThinkFight] Force engaging to help buddy {buddy.GetNid()} in battle!", LogCategory.Military, __instance.kingdom);
-                        __result = true; // Fight!
-                        return false; // Skip vanilla calc
+                        // Check if this army should help (enough units or changes outcome)
+                        float buddyStr = buddy.EvalStrength();
+                        if (!BuddySystem.ShouldBuddyHelp(army, buddyStr, enemyStrength, __instance.kingdom))
+                        {
+                            AIOverhaulPlugin.LogDebug($"[ThinkFight] Army {army.GetNid()} too weak to help buddy {buddy.GetNid()}, not engaging", LogCategory.Military, __instance.kingdom);
+                            // Don't force engage, let vanilla handle it
+                        }
+                        else
+                        {
+                            AIOverhaulPlugin.LogDebug($"[ThinkFight] Force engaging to help buddy {buddy.GetNid()} in battle!", LogCategory.Military, __instance.kingdom);
+                            __result = true; // Fight!
+                            return false; // Skip vanilla calc
+                        }
                     }
 
                     // Check if buddy is available to help

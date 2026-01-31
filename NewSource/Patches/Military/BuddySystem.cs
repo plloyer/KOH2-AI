@@ -154,5 +154,50 @@ namespace AIOverhaul
             }
             return false;
         }
+
+        /// <summary>
+        /// Check if a buddy should be sent to help in battle.
+        /// - If enough units (MinBuddyUnitsToHelp): always help
+        /// - If fewer units: only help if it changes battle outcome
+        /// </summary>
+        /// <param name="buddy">The army considering joining</param>
+        /// <param name="friendlyStrength">Current friendly strength in the fight</param>
+        /// <param name="enemyStrength">Current enemy strength in the fight</param>
+        /// <param name="kingdom">Kingdom for logging</param>
+        public static bool ShouldBuddyHelp(Logic.Army buddy, float friendlyStrength, float enemyStrength, Logic.Kingdom kingdom = null)
+        {
+            if (buddy == null || buddy.units == null) return false;
+
+            int unitCount = buddy.units.Count;
+            string buddyName = buddy.leader?.Name ?? $"Army#{buddy.GetNid()}";
+
+            // Enough units: always help
+            if (unitCount >= GameBalance.MinBuddyUnitsToHelp)
+            {
+                AIOverhaulPlugin.LogDebug($"[Buddy] {buddyName} has {unitCount} units (>={GameBalance.MinBuddyUnitsToHelp}), will help", LogCategory.Military, kingdom);
+                return true;
+            }
+
+            // Fewer units: only help if it changes the outcome
+            if (enemyStrength <= 0) return false;
+
+            float buddyStrength = buddy.EvalStrength();
+
+            // Calculate win chance without buddy
+            float winChanceWithout = friendlyStrength / (friendlyStrength + enemyStrength);
+
+            // Calculate win chance with buddy
+            float winChanceWith = (friendlyStrength + buddyStrength) / (friendlyStrength + buddyStrength + enemyStrength);
+
+            // Only send if it changes from losing to winning
+            bool wouldLoseWithout = winChanceWithout < GameBalance.MinBattleWinChance;
+            bool wouldWinWith = winChanceWith >= GameBalance.MinBattleWinChance;
+            bool changesOutcome = wouldLoseWithout && wouldWinWith;
+
+            AIOverhaulPlugin.LogDebug($"[Buddy] {buddyName} has {unitCount} units (<{GameBalance.MinBuddyUnitsToHelp}), " +
+                $"WinChance: {winChanceWithout:P0}->{winChanceWith:P0}, ChangesOutcome={changesOutcome}", LogCategory.Military, kingdom);
+
+            return changesOutcome;
+        }
     }
 }

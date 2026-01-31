@@ -15,14 +15,14 @@ namespace AIOverhaul
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
             if (threat == null) return true;
 
-            // OFFENSIVE: Attacking enemy territory - require 2 full armies
+            // OFFENSIVE: Attacking enemy territory - require MinArmiesForWar full armies
             if (threat.level == Logic.KingdomAI.Threat.Level.Attack)
             {
                 int readyArmies = 0;
                 if (__instance.kingdom.armies != null)
                     readyArmies = __instance.kingdom.armies.Count(a => a != null && a.IsValid() && Logic.KingdomAI.IsFull(a));
 
-                if (readyArmies < 2)
+                if (readyArmies < GameBalance.MinArmiesForWar)
                 {
                     //AIOverhaulPlugin.LogDebug($"[AssignArmy] Blocking offensive assignment to {threat.realm?.name}: waiting for 2 full armies (have {readyArmies})", LogCategory.Military, __instance.kingdom);
                     __result = false;

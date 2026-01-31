@@ -174,10 +174,10 @@ namespace AIOverhaul
                 return false;
             }
 
-            // 2. Must have at least 2 armies ready (military foundation)
+            // 2. Must have at least MinArmiesForWar armies ready (military foundation)
             if (!MilitaryHelper.HasTwoReadyArmies(k))
             {
-                AIOverhaulPlugin.LogDebug($"BLOCKING diplomat: need 2 ready armies first", LogCategory.Diplomacy, k);
+                AIOverhaulPlugin.LogDebug($"BLOCKING diplomat: need {GameBalance.MinArmiesForWar} ready armies first", LogCategory.Diplomacy, k);
                 return false;
             }
 
@@ -669,7 +669,7 @@ namespace AIOverhaul
                 }
             }
 
-            // NEW: War Preparation - Require 2 Full Armies
+            // NEW: War Preparation - Require MinArmiesForWar Full Armies
             int fullArmies = 0;
             if (__instance.kingdom.armies != null)
             {
@@ -677,7 +677,7 @@ namespace AIOverhaul
                 {
                     // Definition of "Full Army":
                     // 1. Has a leader (Marshal or General)
-                    // 2. Has 8 units (full capacity)
+                    // 2. Has FullArmySize units (full capacity)
                     // 3. Fully replenished (all units healthy)
                     // 4. Not currently in battle
                     if (army.leader != null && army.units.Count >= GameBalance.FullArmySize && army.battle == null)
@@ -701,7 +701,7 @@ namespace AIOverhaul
                 }
             }
 
-            if (fullArmies < 2)
+            if (fullArmies < GameBalance.MinArmiesForWar)
             {
                 __result = false;
                 return false;
@@ -727,7 +727,7 @@ namespace AIOverhaul
                 // Check gold reserves
                 float gold = __instance.kingdom.resources?.Get(ResourceType.Gold) ?? 0f;
 
-                // Well-prepared = 2 armies + at least 1 fortification + 2000+ gold
+                // Well-prepared = MinArmiesForWar armies + MinFortifiedProvincesForAggression fortifications + MinGoldForAggression gold
                 if (fortifiedProvinces >= GameBalance.MinFortifiedProvincesForAggression && gold >= GameBalance.MinGoldForAggression)
                 {
                     isWellPrepared = true;
@@ -740,7 +740,7 @@ namespace AIOverhaul
             // NEW: Mortal Enemy priority - when well-prepared, prioritize attacking mortal enemies
             bool isMortalEnemy = WarLogicHelper.IsMortalEnemy(__instance.kingdom, k);
 
-            // AGGRESSIVE WAR LOGIC (User Request): If 3+ full armies and 1.5x stronger -> FORCE WAR on expansion target
+            // AGGRESSIVE WAR LOGIC: If AggressiveWarMinArmies+ full armies and AggressiveWarPowerRatio stronger -> FORCE WAR on expansion target
             if (fullArmies >= GameBalance.AggressiveWarMinArmies)
             {
                 Logic.Kingdom expansionTarget = WarLogicHelper.SelectExpansionTarget(__instance.kingdom);
