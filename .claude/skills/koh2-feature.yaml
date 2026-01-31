@@ -15,7 +15,8 @@ prompt: |
   6. **NEVER BLINDLY REMOVE CODE** - If a method/API doesn't exist, understand what it does first, then implement a replacement. DO NOT just delete calls without preserving functionality
   7. **NO HARDCODED STRINGS** - Always use constants from Constants/ folder (BuildingNames.*, CharacterClassNames.*, ActionNames.*, etc.)
   8. **NO HARDCODED VALUES** - Always use (or create) constants in GameBalance.cs for all numeric values
-  9. **KEEP AI_ENHANCEMENTS.md IN SYNC** - When implementing/modifying AI features, update AI_ENHANCEMENTS.md to match. When updating AI_ENHANCEMENTS.md, verify code matches documentation
+  9. **NO HARDCODED VALUES IN COMMENTS** - Reference constant names in comments (e.g., "MinArmiesForWar armies" not "2 armies") so comments stay accurate when values change
+  10. **KEEP AI_ENHANCEMENTS.md IN SYNC** - When implementing/modifying AI features, update AI_ENHANCEMENTS.md to match. When updating AI_ENHANCEMENTS.md, verify code matches documentation
 
   # WORKFLOW - FOLLOW EXACTLY
 
