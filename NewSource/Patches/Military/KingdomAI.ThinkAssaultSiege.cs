@@ -15,7 +15,7 @@ namespace AIOverhaul
 
             // BUDDY SYSTEM: Followers should NOT decide to assault independently.
             // They follow the Leader's lead (which is handled by the battle mechanic or tactical follow).
-            if (BuddySystem.IsFollower(a))
+            if (BuddySystem.IsFollower(a, __instance.kingdom))
             {
                 // return false to skip assault logic -> Stay in siege?
                 // OR should we check if leader is assaulting?

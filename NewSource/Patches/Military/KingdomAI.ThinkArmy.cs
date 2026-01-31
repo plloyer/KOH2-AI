@@ -119,7 +119,7 @@ namespace AIOverhaul
             AIOverhaulPlugin.LogDebug($"[Buddy] {armyName}: Status={status}, InCastle={army.castle?.name ?? "No"}, Target={currentTargetName}, TgtRealm={tgtRealmName}, Moving={isMoving}", LogCategory.Military, __instance.kingdom);
 
             // Check buddy relationship
-            bool isFollower = BuddySystem.IsFollower(army);
+            bool isFollower = BuddySystem.IsFollower(army, __instance.kingdom);
             Logic.Army buddy = BuddySystem.GetBuddy(army, __instance.kingdom);
 
             if (buddy == null)

@@ -60,7 +60,7 @@ namespace AIOverhaul
             // If we are a Follower, we DO NOT decide to fight or retreat independently.
             // We rely entirely on the Leader's decision (propagated via ThinkArmy follow logic).
             // If we run this logic, we might decide to "Wait for Buddy" (circular) or Retreat when Leader attacks.
-            if (BuddySystem.IsFollower(army))
+            if (BuddySystem.IsFollower(army, __instance.kingdom))
             {
                 // Verify leader is actually alive/valid before skipping (already checked in IsFollower/GetBuddy somewhat, but let's be safe)
                 // If we skip here (__result = false, return false), we tell ThinkArmy "I didn't do combat logic".

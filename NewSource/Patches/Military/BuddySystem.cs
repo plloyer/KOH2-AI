@@ -140,17 +140,20 @@ namespace AIOverhaul
             return null;
         }
 
-        public static bool IsFollower(Logic.Army army)
+        public static bool IsFollower(Logic.Army army, Logic.Kingdom kingdom)
         {
-            if (army == null) return false;
+            if (army == null || kingdom == null) return false;
 
             // In strike force: weaker army follows stronger army
             if (buddyMap.ContainsKey(army.GetNid()))
             {
                 int buddyId = buddyMap[army.GetNid()];
-                // Lower ID is the follower (preserves original behavior)
-                // This works well since we assign strongest first
-                return army.GetNid() < buddyId;
+                var buddy = kingdom.armies?.Find(a => a.GetNid() == buddyId);
+
+                if (buddy == null || !buddy.IsValid()) return false;
+
+                // Strongest is the leader, weaker follows
+                return army.EvalStrength() < buddy.EvalStrength();
             }
             return false;
         }

@@ -379,30 +379,4 @@ namespace AIOverhaul
 
 
 
-    // "Enabled" is a property getter determining if the AI should be active for a specific kingdom.
-    // Intent: ForceAIEnabledPatch
-    [HarmonyPatch(typeof(Logic.KingdomAI), "Enabled")]
-    public class EnabledPatch
-    {
-        static bool Prefix(Logic.KingdomAI __instance, ref bool __result, Logic.KingdomAI.EnableFlags flag)
-        {
-            // Only interfere if Spectator Mode is ON and this is the PLAYER kingdom
-            if (AIOverhaulPlugin.SpectatorMode && __instance?.kingdom != null && __instance.kingdom.is_player)
-            {
-                // Respect global AI switch (e.g. if game is paused/disabled)
-                if (__instance.game != null && !__instance.game.ai.enabled)
-                {
-                    __result = false;
-                    return false;
-                }
-
-                // BYPASS the internal 'enabled' bitmask check
-                // Force return true to enable AI for player kingdom
-                __result = true;
-                return false; // Skip original method
-            }
-
-            return true; // Run original method
-        }
-    }
 }

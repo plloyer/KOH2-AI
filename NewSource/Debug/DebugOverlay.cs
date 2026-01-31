@@ -184,7 +184,7 @@ namespace AIOverhaul
 
                 // Check referencing BuddySystem
                 var buddy = BuddySystem.GetBuddy(army, k);
-                bool isFollower = BuddySystem.IsFollower(army);
+                bool isFollower = BuddySystem.IsFollower(army, k);
 
                 if (buddy != null)
                 {
