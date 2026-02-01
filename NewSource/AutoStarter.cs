@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Logic;
 using UnityEngine;
 using Time = UnityEngine.Time;
+using HarmonyLib;
 
 namespace AIOverhaul
 {
@@ -16,6 +17,9 @@ namespace AIOverhaul
         const string LogPrefix = "AutoStart";
         
         static Game _capturedGame;
+        static AutoStarter _instance;
+
+        public static bool IsAutoStartEnabled => _instance != null && _instance._hasStarted;
 
         bool _hasStarted;
         string _targetKingdom = KingdomNames.Champagne;
@@ -36,6 +40,7 @@ namespace AIOverhaul
 
         void OnEnable()
         {
+            _instance = this;
             AIOverhaulPlugin.LogInfo("=== AutoStarter Component ENABLED ===");
             ParseArgs();
         }
@@ -59,11 +64,6 @@ namespace AIOverhaul
                     _hasStarted = true;
                     AIOverhaulPlugin.LogInfo("AutoStart: Detected -autoStart flag");
                 }
-                if (args[i] == "-kingdom" && i + 1 < args.Length)
-                {
-                    _targetKingdom = args[i + 1];
-                    AIOverhaulPlugin.LogInfo($"AutoStart: Detected -kingdom '{_targetKingdom}'");
-                }
                 if (args[i] == "-provinces" && i + 1 < args.Length)
                 {
                     int.TryParse(args[i + 1], out _provinces);
@@ -78,7 +78,7 @@ namespace AIOverhaul
 
             if (_hasStarted)
             {
-                AIOverhaulPlugin.LogInfo($"=== AutoStart: ENABLED - kingdom '{_targetKingdom}', provinces {_provinces}, difficulty {_difficulty} ===");
+                AIOverhaulPlugin.LogInfo($"=== AutoStart: ENABLED - provinces {_provinces}, difficulty {_difficulty} ===");
                 AIOverhaulPlugin.LogInfo("AutoStart: Will monitor for scene load before starting...");
                 // DON'T start coroutine immediately - wait for Update() to detect scene is ready
                 _sceneMonitoringStarted = true;
@@ -187,41 +187,21 @@ namespace AIOverhaul
             try
             {
                 // Set Shattered Map configuration
-                // Logic.Game.GetKingdomSizeWhenShatteredMap() reads this from campaignData, NOT game.vars
                 string shatteredVal = $"{_provinces}_shattered";
                 AIOverhaulPlugin.LogInfo($"{LogPrefix}: Setting options on campaignData...");
                 var data = game.campaign.campaignData;
                 
                 data.Set(CampaignVarNames.KingdomSize, new Value(shatteredVal));
-                data.Set(CampaignVarNames.PickKingdom, new Value("pick")); // "pick" allows specific selection
+                // Default kingdom will be picked by the game (usually Aragon/first in list)
                 data.Set(CampaignVarNames.MapSize, new Value("normal"));
                 data.Set(CampaignVarNames.StartPeriod, new Value(PeriodNames.Early));
                 data.Set(CampaignVarNames.AllowOffline, new Value(true));
                 data.Set(CampaignVarNames.MainGoal, new Value("domination")); // Default goal
-
-                // Set Player Kingdom (Pre-selection)
-                // We set the internal lists so that when StartGame runs, it picks up the correct player kingdom.
                 
-                // 1. Set ID
-                int localIndex = 0; 
-                AIOverhaulPlugin.LogInfo($"{LogPrefix}: Pre-selecting kingdom '{_targetKingdom}' for Player " + localIndex);
-                game.campaign.SetPlayerID(localIndex, Campaign.single_player_id, false);
-                if (game.campaign.playerIDs != null && game.campaign.playerIDs.Length > localIndex)
-                    game.campaign.playerIDs[localIndex] = Campaign.single_player_id;
-
-                // 2. Set persistent data name using API
-                // Using SetPlayerKingdomName as requested, which handles persistent data and other logic.
-                game.campaign.SetLocalPlayerKingdomName(_targetKingdom, "");
-
-                // 3. Set internal list override
-                if (game.campaign.player_kingdoms == null)
-                    game.campaign.player_kingdoms = new List<string>();
+                int localIndex = 0;
+                if (game.campaign.player_kingdoms == null) game.campaign.player_kingdoms = new List<string>();
+                while (game.campaign.player_kingdoms.Count <= localIndex) game.campaign.player_kingdoms.Add("");
                 
-                if (game.campaign.player_kingdoms.Count <= localIndex)
-                {
-                    while (game.campaign.player_kingdoms.Count <= localIndex)
-                        game.campaign.player_kingdoms.Add("");
-                }
                 game.campaign.player_kingdoms[localIndex] = _targetKingdom;
                 
             }
@@ -252,6 +232,8 @@ namespace AIOverhaul
             AIOverhaulPlugin.LogInfo($"{LogPrefix}: Step 6 - Enabling Spectator Mode and Speed...");
             AIOverhaulPlugin.ToggleSpectatorMode();
             game.SetSpeed(100f);
+
+            AIOverhaulPlugin.LogInfo($"{LogPrefix}: Step 7 - AutoStart Complete. Ready to play.");
         }
 
         float _lastLoggedHour = -1f;
@@ -317,15 +299,13 @@ namespace AIOverhaul
             float realTimeElapsed = Time.realtimeSinceStartup - _gameStartTime;
             if (realTimeElapsed >= RealTimeLimit)
             {
-            if (realTimeElapsed >= RealTimeLimit)
-            {
                 // Re-calculate hoursPlayed for the log message since it might not be in scope if we didn't just calculate it
                 float currentHoursPlayed = (game.session_time.hours) - _startingGameHours;
                 int hPlayed = Mathf.FloorToInt(currentHoursPlayed);
                 int mPlayed = Mathf.FloorToInt((currentHoursPlayed - hPlayed) * 60);
                 AIOverhaulPlugin.LogInfo($"{LogPrefix}: Real-time limit reached ({realTimeElapsed:F0}s). Played: {hPlayed}h {mPlayed}m. Quitting...");
                 Application.Quit();
-            }}
+            }
         }
     }
 }
