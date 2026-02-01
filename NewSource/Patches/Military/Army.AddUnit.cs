@@ -16,7 +16,7 @@ namespace AIOverhaul
 
             if (!def.is_ranged) return true;
 
-            int rangedCount = MilitaryHelper.CountRangedUnits(__instance);
+            int rangedCount = __instance.CountRangedUnits();
             if (rangedCount >= GameBalance.MaxRangedUnitsPerArmy)
             {
                 AIOverhaulPlugin.LogDebug($"{LogPrefix} BLOCKED ranged unit {def.id} - army already has {rangedCount} ranged units", LogCategory.Military, kingdom);

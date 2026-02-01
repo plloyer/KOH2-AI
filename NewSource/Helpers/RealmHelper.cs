@@ -63,7 +63,7 @@ namespace AIOverhaul
             return false;
         }
 
-        public static void GetGoodsStats(Logic.Realm realm, out int current, out int max)
+        public static void GetGoodsStats(this Logic.Realm realm, out int current, out int max)
         {
             current = 0;
             max = 0;

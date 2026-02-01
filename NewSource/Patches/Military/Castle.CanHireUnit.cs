@@ -17,7 +17,7 @@ namespace AIOverhaul
 
             if (!unitDef.is_ranged) return;
 
-            int rangedCount = MilitaryHelper.CountRangedUnits(army);
+            int rangedCount = army.CountRangedUnits();
             if (rangedCount >= GameBalance.MaxRangedUnitsPerArmy)
             {
                 __result = false;
