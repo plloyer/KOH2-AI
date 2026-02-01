@@ -5,6 +5,7 @@ using Logic;
 
 namespace AIOverhaul
 {
+    // See ARMY_MANAGEMENT_GUIDE.md
     // ThinkArmy is the Strategic General. It manages the high-level state of an army: logistics, movement between realms,
     // retreating from hopeless wars, and deciding when to engage.
     [HarmonyPatch(typeof(KingdomAI), "ThinkArmy")]

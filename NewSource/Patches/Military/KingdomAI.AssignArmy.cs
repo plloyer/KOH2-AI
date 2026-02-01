@@ -5,6 +5,7 @@ using Logic;
 
 namespace AIOverhaul
 {
+    // See ARMY_MANAGEMENT_GUIDE.md
     // "AssignArmy" assigns a specific army to a threat.
     // Intent: ArmyCoordinationPatch
     [HarmonyPatch(typeof(KingdomAI), "AssignArmy")]

@@ -4,7 +4,9 @@ using Logic;
 
 namespace AIOverhaul
 {
+    // See ARMY_MANAGEMENT_GUIDE.md
     /// <summary>
+    /// Called by ThinkFight.
     /// Patch for KingdomAI.ThinkPlunder to prevent AI armies from attacking Keep settlements.
     /// Keeps are military fortifications that should not be targeted for plundering.
     /// </summary>

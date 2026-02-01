@@ -2,6 +2,8 @@
 
 This guide documents the vanilla Knights of Honor II three-tier military AI architecture: **AssignArmy**, **ThinkArmy**, and **ThinkFight**.
 
+---
+
 ## 1. Overview: Three-Tier Military Architecture
 
 The AI's military decision-making follows a hierarchical structure:
@@ -15,12 +17,139 @@ The AI's military decision-making follows a hierarchical structure:
 ### Call Hierarchy
 
 ```
-ThinkMilitary()
-  └─> ThinkThreat() [for each threat]
-      └─> AssignArmy() [loops until threat has enough strength]
-  └─> ThinkArmies() [coroutine]
-      └─> ThinkArmy(army) [for each army]
-          └─> ThinkFight(army) [if army in position]
+ThinkMilitary()                              // Main military AI entry point (coroutine)
+│
+├─> CalcBudget()                             // Calculate available gold budget
+├─> ClearExpenses(military_expenses)         // Reset expense tracking
+├─> ClearExpenses(urgent_expenses)
+│
+├─> CalcThreat()                             // [Coroutine] Evaluate all threats
+│   ├─> For each realm: realm.threat.Recalc(kingdom)
+│   ├─> For each army: Restore army.tgt_realm assignments
+│   └─> Sort threats by priority (highest first)
+│
+├─> ThinkThreats()                           // [Coroutine] Assign armies to threats
+│   ├─> Pass 0: Assign armies to meet min_needed
+│   │   └─> For each threat (sorted by priority):
+│   │       └─> ThinkThreat(threat, pass=0)
+│   │           └─> While assigned.eval < min_needed:
+│   │               └─> AssignArmy(threat, pass)    // Find closest available army
+│   │                   ├─> CanAssign(army, threat) // Check if army can be assigned
+│   │                   ├─> Select closest valid army
+│   │                   ├─> Remove army from old threat
+│   │                   ├─> Set army.tgt_realm = threat.realm
+│   │                   └─> threat.assigned.Add(army)
+│   │
+│   ├─> Pass 1: Assign armies to meet max_needed
+│   │   └─> (Same as Pass 0 but with max_needed threshold)
+│   │
+│   └─> Cleanup: Unassign armies from threats with no need
+│
+├─> ThinkHireUnits()                         // [Coroutine] Unit recruitment
+│   └─> For each realm with castle (not in battle):
+│       ├─> ConsiderTakeGarrison(army)       // Take garrison units into army
+│       ├─> ConsiderHireArmy(army)           // Hire new units for army
+│       ├─> ConsiderHireEquipment(army)      // Equip army with gear
+│       ├─> ConsiderHealArmy(army)           // Heal damaged army
+│       ├─> ConsiderHealUnits(army)          // Heal individual units
+│       ├─> ConsiderHireGarrison(castle)     // Hire garrison troops
+│       └─> ConsiderUpgradeFortifications(castle)
+│
+├─> ThinkArmies()                            // [Coroutine] Per-army decisions
+│   └─> For each army:
+│       └─> ThinkArmy(army)                  // See Section 3 below
+│
+└─> SpendExpenses()                          // Execute queued military expenses
+    ├─> If urgent_expenses exist: SpendExpenses(urgent_expenses)
+    └─> Else: SpendExpenses(military_expenses)
+```
+
+### ThinkArmy Detailed Flow
+
+```
+ThinkArmy(army)                              // Per-army strategic decisions
+│
+├─> [If army in battle]:
+│   ├─> ThinkRetreat(army)                   // Consider retreating
+│   │   ├─> Check CanLeaveBattle()
+│   │   ├─> Calculate win estimation
+│   │   ├─> Check lost units threshold
+│   │   └─> If conditions met: battle.DoAction("retreat")
+│   │
+│   ├─> ThinkBreakSiege(army)                // [If defender in siege]
+│   │   ├─> Check food levels
+│   │   ├─> Check strength estimation
+│   │   └─> If desperate: battle.BreakSiege()
+│   │
+│   └─> ThinkAssaultSiege(army)              // [If attacker in siege]
+│       └─> If win estimation <= 20%: battle.Assault()
+│
+├─> [If army NOT in battle]:
+│   ├─> [If fleeing]: Return (let army flee)
+│   │
+│   ├─> [If has tgt_realm assignment]:
+│   │   ├─> ShouldWait(army)                 // Wait for other armies?
+│   │   │   └─> If waiting: Stop army, set "wait_others"
+│   │   ├─> If not at target: Send(army, tgt_realm.castle)
+│   │   └─> If not in target realm yet: Return (still traveling)
+│   │
+│   ├─> [If not low on units]:
+│   │   └─> ThinkFight(army)                 // See Section 4 below
+│   │       └─> If engaged: Return
+│   │
+│   ├─> [If in own realm, idle]:
+│   │   └─> Send(army, realm.castle, "defend")
+│   │
+│   ├─> [If in castle without supplies]:
+│   │   └─> castle.ResupplyArmy(army)
+│   │
+│   ├─> ConsiderHireMercenaries(army)
+│   │
+│   ├─> [If needs resupply/refill]:
+│   │   ├─> DecideOwnCastleForArmy(army)     // Find best castle
+│   │   └─> Send(army, castle, "resupply" or "refill")
+│   │
+│   └─> ThinkHelpWithRebels(army)            // Help allies with rebels
+```
+
+### ThinkFight Detailed Flow
+
+```
+ThinkFight(army)                             // Tactical combat decisions
+│
+├─> [Pre-checks]:
+│   ├─> If no realm_in or no castle: Return false
+│   └─> TooSoonRetreat(army): Return false if recently retreated
+│
+├─> [Scan realm for forces]:
+│   ├─> Calculate own strength (num2), enemy strength (num)
+│   ├─> Find ongoing battles we can join
+│   ├─> Find closest attackable enemy army (army2)
+│   └─> Calculate strength ratios
+│
+├─> [If enemies too strong (1.5x)]:
+│   ├─> If in own realm + castle available:
+│   │   └─> Send(army, castle, "enemies_too_strong")
+│   ├─> If ally in battle:
+│   │   └─> Send(army, battle, "reinforce_desperate")
+│   └─> If in enemy territory:
+│       └─> Stop and set "wait_for_battle"
+│
+├─> [Priority 1: Join existing battle]:
+│   └─> Send(army, battle, "reinforce")
+│
+├─> [Priority 2: Attack enemy army]:
+│   └─> Send(army, enemy_army, "attack_army")
+│
+├─> [Priority 3: Attack castle]:
+│   ├─> Check if can siege (Battle.CanSiege)
+│   ├─> Check strength vs garrison
+│   └─> Send(army, castle, "attack_castle")
+│
+└─> [Priority 4: Plunder settlements]:
+    └─> ThinkPlunder(army)
+        └─> Find closest unrazed enemy settlement
+        └─> Send(army, settlement, "plunder")
 ```
 
 ### Decision Flow Summary
@@ -38,10 +167,17 @@ ThinkMilitary()
 **When Called**: During `ThinkThreat()` processing, loops until the threat has sufficient assigned strength.
 
 ### Logic
-- Evaluates available armies based on proximity and strength
-- Assigns armies to threats until `threat.assigned.eval` meets the required threshold
-- Prioritizes closer armies to reduce travel time
-- Considers army availability (not already assigned, not in battle)
+- Iterates all kingdom armies looking for assignable ones
+- Calls `CanAssign(army, threat, pass)` to validate each army
+- Selects the **closest** valid army (by `SqrDist` to threat realm castle)
+- Removes the army from any previous threat assignment
+- Sets `army.tgt_realm = threat.realm`
+- Adds army to `threat.assigned`
+- Returns `true` if an army was assigned, `false` if none available
+
+### Two-Pass System
+- **Pass 0**: Assigns armies until `threat.assigned.eval >= threat.min_needed`
+- **Pass 1**: Assigns additional armies until `threat.assigned.eval >= threat.max_needed`
 
 ---
 
@@ -51,12 +187,27 @@ ThinkMilitary()
 
 **When Called**: During `ThinkArmies()` coroutine, once per army per cycle.
 
-### Logic
-- Movement to assigned threat realm (`army.tgt_realm`)
-- Resupply decisions when low on manpower
-- Retreat from superior forces
-- Siege assault timing
-- Calls `ThinkFight()` when army reaches destination and is in position
+### State Checks
+- `IsArmyInOwnRealm(army)` - Is the army in friendly territory?
+- `IsFull(army)` - Does army have max units?
+- `IsLow(army)` - Is army below 50% effective strength?
+- `IsLowSupplies(army)` - Does army need resupply?
+- `HasSupplies(army)` - Does army have supplies?
+
+### In-Battle Logic
+If `army.battle != null`:
+1. **ThinkRetreat**: Consider retreating if losing badly
+2. **ThinkBreakSiege**: If defending a siege, consider sallying out
+3. **ThinkAssaultSiege**: If attacking a siege, consider assault
+
+### Out-of-Battle Logic
+If `army.battle == null`:
+1. **Movement**: If has `tgt_realm`, move toward it
+2. **Wait**: If `ShouldWait()` returns true, stop and wait for allies
+3. **Fight**: If in position, call `ThinkFight(army)`
+4. **Defend**: If in own realm and idle, garrison in castle
+5. **Resupply**: If low supplies/units, find castle to resupply
+6. **Rebels**: Consider helping allies fight rebels
 
 ---
 
@@ -66,11 +217,24 @@ ThinkMilitary()
 
 **When Called**: By `ThinkArmy()` when the army has arrived at its destination realm.
 
-### Logic
-- Evaluates all potential targets in the current realm
-- Selects attack target priority: enemy army > castle > village
-- Considers local strength balance before engaging
-- May retreat if odds are unfavorable
+### Strength Calculation
+Scans all armies in `army.realm_in`:
+- `num` = Total enemy strength
+- `num2` = Total own-kingdom strength
+- `num3` = Enemy strength NOT in battle
+- `num4` = Own strength NOT in battle
+
+### Target Priority (highest to lowest)
+1. **Join Ongoing Battle**: If allies fighting, reinforce them
+2. **Attack Enemy Army**: Target closest non-fleeing enemy army
+3. **Attack Castle**: If can siege and strong enough (1.5x garrison)
+4. **Plunder Settlements**: Attack villages, farms, etc.
+
+### Retreat Conditions
+If enemy strength >= 1.5x own strength:
+- In own realm: Retreat to castle ("enemies_too_strong")
+- Ally in battle: Join anyway ("reinforce_desperate")
+- In enemy territory: Stop and wait ("wait_for_battle")
 
 ---
 
@@ -103,6 +267,9 @@ The `Threat` class contains several `ArmiesEval` fields that break down forces i
 | `enemies_nearby` | Enemy armies in neighboring realms |
 | `assigned` | Armies assigned to respond to this threat |
 | `received_help` | Strength of allied armies sent to help |
+| `min_needed` | Minimum strength needed to handle threat |
+| `max_needed` | Maximum strength desired for threat |
+| `garrison_eval` | Strength of castle garrison |
 
 **Critical Note**: `friends_in` does **NOT** include your own armies. To get total defending strength:
 ```csharp
@@ -173,9 +340,47 @@ float winChanceAfter = (friendlyStr + myStr) / (friendlyStr + myStr + enemyStr);
 | `army.castle` | Castle the army is garrisoned in (null if in field) |
 | `army.ai_status` | Current AI state string |
 | `army.movement` | Movement component for travel state |
+| `army.ai_thinks` | Counter incremented each ThinkArmy call |
+| `army.last_retreat_time` | Timestamp of last retreat (for cooldown) |
 
 ### Army Status Values
 
 The `army.ai_status` field tracks current state:
 - `"idle"` - No current task
-- Various statuses for movement, combat, resupply, etc.
+- `"wait_others"` - Waiting for other armies to arrive
+- `"wait_for_battle"` - Waiting in enemy territory for opportunity
+- `"defend_realm"` - Moving to defend own territory
+- `"attack_realm"` - Moving to attack enemy territory
+- `"defend"` - Garrisoning in castle
+- `"resupply"` - Moving to resupply
+- `"refill"` - Moving to refill units
+- `"reinforce"` - Moving to reinforce a battle
+- `"reinforce_desperate"` - Reinforcing despite bad odds
+- `"attack_army"` - Attacking enemy army
+- `"attack_desperate"` - Attacking despite bad odds
+- `"attack_castle"` - Sieging a castle
+- `"enemies_too_strong"` - Retreating to castle
+- `"plunder"` - Plundering a settlement
+- `"help_with_rebels"` - Helping allies fight rebels
+- `"resupplied"` - Just finished resupplying
+
+---
+
+## 9. Helper Methods Reference
+
+### Army State Checks
+| Method | Description |
+|:-------|:------------|
+| `IsFull(army)` | `units.Count >= MaxUnits() + 1` |
+| `IsLow(army)` | Effective strength < 50% of max |
+| `IsLowSupplies(army)` | Needs supplies |
+| `HasSupplies(army)` | Has supplies |
+| `IsArmyInOwnRealm(army)` | In friendly territory |
+| `TooSoonRetreat(army)` | Recently retreated (cooldown active) |
+
+### Sending Armies
+| Method | Description |
+|:-------|:------------|
+| `Send(army, target, status)` | Move army to target, set status |
+| `DecideOwnCastleForArmy(leader)` | Find best castle for resupply |
+| `ResolveTarget(target)` | Convert target to appropriate object |

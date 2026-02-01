@@ -4,6 +4,7 @@ using Logic;
 
 namespace AIOverhaul
 {
+    // See ARMY_MANAGEMENT_GUIDE.md
     // ThinkFight is the Field Commander. It is called by ThinkArmy when the army is in position. It scans the local province to decide what
     // specifically to attack (an enemy army, a castle, or a village).
     [HarmonyPatch(typeof(KingdomAI), "ThinkFight")]
