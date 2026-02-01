@@ -116,7 +116,7 @@ namespace AIOverhaul
             int count = 0;
             foreach (var s in realm.settlements)
             {
-                if (s?.def != null && IsReligiousSettlement(s.def.id))
+                if (s?.def != null && DistrictHelper.IsReligiousSettlement(s.def.id))
                     count++;
             }
             return count;
@@ -184,13 +184,6 @@ namespace AIOverhaul
                 }
             }
             return true;
-        }
-
-        static bool IsReligiousSettlement(string id)
-        {
-            return id == SettlementNames.Monastery ||
-                   id == SettlementNames.Mosque ||
-                   id == SettlementNames.Shrine;
         }
     }
 }

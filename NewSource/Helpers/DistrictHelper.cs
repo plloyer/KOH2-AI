@@ -1,5 +1,4 @@
 using System;
-using Logic;
 
 namespace AIOverhaul
 {
@@ -8,8 +7,11 @@ namespace AIOverhaul
     /// </summary>
     public static class DistrictHelper
     {
-        /// <summary>
-        /// Get a district definition by name
-        /// </summary>
+        public static bool IsReligiousSettlement(string id)
+        {
+            return id == SettlementNames.Monastery ||
+                id == SettlementNames.Mosque ||
+                id == SettlementNames.Shrine;
+        }
     }
 }

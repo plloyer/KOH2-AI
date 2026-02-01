@@ -181,103 +181,103 @@ namespace AIOverhaul
                 case BuildingNames.LodestoneTrade: return new List<string> { GoodsNames.Lodestone };
 
                 // Upgrades - Farming
-                case "Butcher": // Generic Butcher upgrade name? Or specific per type?
-                case "Butcher_Sheep":
-                case "Butcher_Cattle":
+                case BuildingUpgradeNames.Butcher:
+                case BuildingUpgradeNames.Butcher_Sheep:
+                case BuildingUpgradeNames.Butcher_Cattle:
                     return new List<string> { GoodsNames.Meat };
 
-                case "Tannery":
-                case "Tannery_Sheep":
-                case "Tannery_Cattle":
+                case BuildingUpgradeNames.Tannery:
+                case BuildingUpgradeNames.Tannery_Sheep:
+                case BuildingUpgradeNames.Tannery_Cattle:
                     return new List<string> { GoodsNames.Leather };
 
-                case "Apiary": return new List<string> { GoodsNames.Wax };
-                case "SpiceShop": return new List<string> { GoodsNames.Spices };
-                case "CandleMaker": return new List<string> { GoodsNames.Candles };
-                case "DyeWorkshop": return new List<string> { GoodsNames.Dyes };
-                case "OilPress": return new List<string> { GoodsNames.Oils };
-                case "FlaxWeaver": return new List<string> { GoodsNames.Linen };
-                case "CanvasMaker": return new List<string> { GoodsNames.Canvas };
-                case "Ropewalk": return new List<string> { GoodsNames.Ropes };
-                case "HerbalistShacks": return new List<string> { GoodsNames.Herbs };
+                case BuildingUpgradeNames.Apiary: return new List<string> { GoodsNames.Wax };
+                case BuildingUpgradeNames.SpiceShop: return new List<string> { GoodsNames.Spices };
+                case BuildingUpgradeNames.CandleMaker: return new List<string> { GoodsNames.Candles };
+                case BuildingUpgradeNames.DyeWorkshop: return new List<string> { GoodsNames.Dyes };
+                case BuildingUpgradeNames.OilPress: return new List<string> { GoodsNames.Oils };
+                case BuildingUpgradeNames.FlaxWeaver: return new List<string> { GoodsNames.Linen };
+                case BuildingUpgradeNames.CanvasMaker: return new List<string> { GoodsNames.Canvas };
+                case BuildingUpgradeNames.Ropewalk: return new List<string> { GoodsNames.Ropes };
+                case BuildingUpgradeNames.HerbalistShacks: return new List<string> { GoodsNames.Herbs };
 
-                case "Winery": return new List<string> { GoodsNames.Wine };
-                case "Distillery": return new List<string> { GoodsNames.Spirits };
-                case "SunDryingGrapes": return new List<string> { GoodsNames.Raisins };
+                case BuildingUpgradeNames.Winery: return new List<string> { GoodsNames.Wine };
+                case BuildingUpgradeNames.Distillery: return new List<string> { GoodsNames.Spirits };
+                case BuildingUpgradeNames.SunDryingGrapes: return new List<string> { GoodsNames.Raisins };
 
-                case "WoolWeaver": return new List<string> { GoodsNames.Wool };
-                case "ParchmentMaker": return new List<string> { GoodsNames.Parchment };
+                case BuildingUpgradeNames.WoolWeaver: return new List<string> { GoodsNames.Wool };
+                case BuildingUpgradeNames.ParchmentMaker: return new List<string> { GoodsNames.Parchment };
 
-                case "CattleMarket": return new List<string> { GoodsNames.DraftOxen };
-                case "DairyShop": return new List<string> { GoodsNames.FineCheese };
-                case "SausageMaker": return new List<string> { GoodsNames.Sausages };
+                case BuildingUpgradeNames.CattleMarket: return new List<string> { GoodsNames.DraftOxen };
+                case BuildingUpgradeNames.DairyShop: return new List<string> { GoodsNames.FineCheese };
+                case BuildingUpgradeNames.SausageMaker: return new List<string> { GoodsNames.Sausages };
 
-                case "HorseMarket": return new List<string> { GoodsNames.TrainedHorses };
-                case "WarhorseBreed": return new List<string> { GoodsNames.WarHorses };
+                case BuildingUpgradeNames.HorseMarket: return new List<string> { GoodsNames.TrainedHorses };
+                case BuildingUpgradeNames.WarhorseBreed: return new List<string> { GoodsNames.WarHorses };
 
                 // Upgrades - Industry
-                case "Sawmill": return new List<string> { GoodsNames.Timber };
-                case "TarPit": return new List<string> { GoodsNames.Tar };
-                case "ColliersKiln": return new List<string> { GoodsNames.Charcoal };
-                case "CoopersShop": return new List<string> { GoodsNames.Barrels };
-                case "Glassworks": return new List<string> { GoodsNames.Glass };
-                case "MasterJoiner": return new List<string> { GoodsNames.Furniture };
+                case BuildingUpgradeNames.Sawmill: return new List<string> { GoodsNames.Timber };
+                case BuildingUpgradeNames.TarPit: return new List<string> { GoodsNames.Tar };
+                case BuildingUpgradeNames.ColliersKiln: return new List<string> { GoodsNames.Charcoal };
+                case BuildingUpgradeNames.CoopersShop: return new List<string> { GoodsNames.Barrels };
+                case BuildingUpgradeNames.Glassworks: return new List<string> { GoodsNames.Glass };
+                case BuildingUpgradeNames.MasterJoiner: return new List<string> { GoodsNames.Furniture };
 
-                case "StoneCutters": return new List<string> { GoodsNames.Marble };
-                case "SculpturesShop": return new List<string> { GoodsNames.Sculptures };
-                case "MasonsGuild": return new List<string> { GoodsNames.Masons };
+                case BuildingUpgradeNames.StoneCutters: return new List<string> { GoodsNames.Marble };
+                case BuildingUpgradeNames.SculpturesShop: return new List<string> { GoodsNames.Sculptures };
+                case BuildingUpgradeNames.MasonsGuild: return new List<string> { GoodsNames.Masons };
 
-                case "BlastFurnace": return new List<string> { GoodsNames.Iron };
+                case BuildingUpgradeNames.BlastFurnace: return new List<string> { GoodsNames.Iron };
 
                 // Upgrades - City/Misc
-                case "ShoemakersShop": return new List<string> { GoodsNames.FineBoots };
-                case "JewellersShop": return new List<string> { GoodsNames.Jewellery };
-                case "TailorsShop": return new List<string> { GoodsNames.FineClothing };
-                case "RugsWeaver": return new List<string> { GoodsNames.Carpets };
+                case BuildingUpgradeNames.ShoemakersShop: return new List<string> { GoodsNames.FineBoots };
+                case BuildingUpgradeNames.JewellersShop: return new List<string> { GoodsNames.Jewellery };
+                case BuildingUpgradeNames.TailorsShop: return new List<string> { GoodsNames.FineClothing };
+                case BuildingUpgradeNames.RugsWeaver: return new List<string> { GoodsNames.Carpets };
 
-                case "Alehouse": return new List<string> { GoodsNames.Ale };
-                case "Bakery": return new List<string> { GoodsNames.Pastries };
+                case BuildingUpgradeNames.Alehouse: return new List<string> { GoodsNames.Ale };
+                case BuildingUpgradeNames.Bakery: return new List<string> { GoodsNames.Pastries };
 
-                case "FishMarket": return new List<string> { GoodsNames.SaltedFish };
-                case "Cartographer": return new List<string> { GoodsNames.NavigationMaps };
-                case "SailMaker": return new List<string> { GoodsNames.Sails };
+                case BuildingUpgradeNames.FishMarket: return new List<string> { GoodsNames.SaltedFish };
+                case BuildingUpgradeNames.Cartographer: return new List<string> { GoodsNames.NavigationMaps };
+                case BuildingUpgradeNames.SailMaker: return new List<string> { GoodsNames.Sails };
 
-                case "InkMaker": // InkMaker appears in multiple contexts (Church, etc)
-                case "InkMaker_Christian":
-                case "InkMaker_Muslim":
-                case "InkMaker_Pagan":
+                case BuildingUpgradeNames.InkMaker:
+                case BuildingUpgradeNames.InkMaker_Christian:
+                case BuildingUpgradeNames.InkMaker_Muslim:
+                case BuildingUpgradeNames.InkMaker_Pagan:
                     return new List<string> { GoodsNames.Ink };
 
-                case "Apothecary":
-                case "Apothecary_Christian":
-                case "Apothecary_Muslim":
-                case "Apothecary_Pagan":
+                case BuildingUpgradeNames.Apothecary:
+                case BuildingUpgradeNames.Apothecary_Christian:
+                case BuildingUpgradeNames.Apothecary_Muslim:
+                case BuildingUpgradeNames.Apothecary_Pagan:
                     return new List<string> { GoodsNames.Medicine };
 
-                case "AlchemistLab":
-                case "AlchemistLab_Christian":
-                case "AlchemistLab_Muslim":
+                case BuildingUpgradeNames.AlchemistLab:
+                case BuildingUpgradeNames.AlchemistLab_Christian:
+                case BuildingUpgradeNames.AlchemistLab_Muslim:
                     return new List<string> { GoodsNames.Gunpowder };
 
-                case "Observatory":
-                case "Observatory_Christian":
-                case "Observatory_Muslim":
+                case BuildingUpgradeNames.Observatory:
+                case BuildingUpgradeNames.Observatory_Christian:
+                case BuildingUpgradeNames.Observatory_Muslim:
                     return new List<string> { GoodsNames.Compasses };
 
-                case "GreatLibrary":
-                case "GreatLibrary_Christian":
-                case "GreatLibrary_Muslim":
+                case BuildingUpgradeNames.GreatLibrary:
+                case BuildingUpgradeNames.GreatLibrary_Christian:
+                case BuildingUpgradeNames.GreatLibrary_Muslim:
                     return new List<string> { GoodsNames.IllustratedBooks };
 
-                case "TranslatorsChambers":
-                case "TranslatorsChambers_Christian":
-                case "TranslatorsChambers_Muslim":
+                case BuildingUpgradeNames.TranslatorsChambers:
+                case BuildingUpgradeNames.TranslatorsChambers_Christian:
+                case BuildingUpgradeNames.TranslatorsChambers_Muslim:
                     // produces Scholars - not in GoodsNames
                     return new List<string>();
 
-                case "ArtsSchool":
-                case "ArtsSchool_Christian":
-                case "ArtsSchool_Muslim":
+                case BuildingUpgradeNames.ArtsSchool:
+                case BuildingUpgradeNames.ArtsSchool_Christian:
+                case BuildingUpgradeNames.ArtsSchool_Muslim:
                     return new List<string> { GoodsNames.FineArt }; // and Artists
 
                 default:
