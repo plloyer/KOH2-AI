@@ -4,12 +4,12 @@ namespace AIOverhaul
 {
     public static class DiplomacyConstants
     {
-        // Offer responses
+        // Offer responses (Vanilla Keys)
         public const string Accept = "accept";
         public const string Decline = "decline";
         public const string CounterOffer = "counter_offer";
 
-        // Offer types
+        // Offer types (Vanilla Keys)
         public const string SignNonAggression = "SignNonAggression";
         public const string SignTrade = "SignTrade";
         public const string OfferJoinInDefensivePact = "OfferJoinInDefensivePact";

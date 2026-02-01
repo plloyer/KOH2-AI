@@ -92,7 +92,7 @@ namespace AIOverhaul
             return null;
         }
 
-        public static bool HasTwoReadyArmies(Logic.Kingdom kingdom)
+        public static bool HasTwoReadyArmies(this Logic.Kingdom kingdom)
         {
             if (kingdom?.armies == null || kingdom.armies.Count < GameBalance.FirstTwoArmiesCount)
                 return false;
@@ -114,7 +114,7 @@ namespace AIOverhaul
             return readyArmies >= GameBalance.FirstTwoArmiesCount;
         }
 
-        public static int CountRangedUnits(Logic.Army army)
+        public static int CountRangedUnits(this Logic.Army army)
         {
             int count = 0;
             if (army?.units != null)
@@ -128,7 +128,7 @@ namespace AIOverhaul
             return count;
         }
 
-        public static bool IsDamaged(Logic.Army army)
+        public static bool IsDamaged(this Logic.Army army)
         {
             if (army.units == null) return false;
             foreach (var u in army.units)
@@ -138,7 +138,7 @@ namespace AIOverhaul
             return false;
         }
 
-        public static float GetArmyHealthPercentage(Logic.Army army)
+        public static float GetArmyHealthPercentage(this Logic.Army army)
         {
             if (army.units == null || army.units.Count == 0) return 0;
             float max = 0;
@@ -147,7 +147,7 @@ namespace AIOverhaul
             return max > 0 ? (current / max) : 0; // Avoid division by zero
         }
 
-        public static void FindEnemiesInRealm(Logic.Realm realm, Logic.Kingdom ourKingdom, List<Logic.Army> armyList)
+        public static void FindEnemiesInRealm(this Logic.Realm realm, Logic.Kingdom ourKingdom, List<Logic.Army> armyList)
         {
             if (realm == null || ourKingdom == null || realm.armies == null || armyList == null) return;
 

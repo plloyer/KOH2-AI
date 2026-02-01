@@ -27,8 +27,9 @@ namespace AIOverhaul
         // Used only for logging when target changes (not persisted)
         public static Dictionary<int, int> ExpansionTargets = new Dictionary<int, int>();
 
-        public const string MORTAL_ENEMY_VAR = "aimod_mortal_enemy";
-        public const string MORTAL_ENEMY_SOV_VAR = "aimod_mortal_enemy_sov";
+        // Mortal Enemy tags now moved to CampaignVarNames.cs
+        // public const string MORTAL_ENEMY_VAR = CampaignVarNames.MortalEnemyId;
+        // public const string MORTAL_ENEMY_SOV_VAR = CampaignVarNames.MortalEnemySovereignId;
 
         public static Game CurrentGame => current_game;
         static Game current_game;
@@ -84,7 +85,7 @@ namespace AIOverhaul
             }
         }
 
-        public const string LogPrefix = "[AI-Mod]";
+        public const string LogPrefix = "[AI-Mod]"; // Primary plugin tag, other specific log blocks use local constants
 
         public static bool SpectatorMode;
 
@@ -242,7 +243,7 @@ namespace AIOverhaul
             if (k == null || game == null) return null;
 
             // Try to read from Kingdom vars (persisted data)
-            Value var = k.GetVar(MORTAL_ENEMY_VAR);
+            Value var = k.GetVar(CampaignVarNames.MortalEnemyId);
             if (var.type != Value.Type.Int)
             {
                 // Not set or wrong type, return null
@@ -269,7 +270,7 @@ namespace AIOverhaul
             else
             {
                 // Check if the specific Sovereign we hated is still in charge
-                Value sovVar = k.GetVar(MORTAL_ENEMY_SOV_VAR);
+                Value sovVar = k.GetVar(CampaignVarNames.MortalEnemySovereignId);
                 if (sovVar.type == Value.Type.Int)
                 {
                     int hatedSovId = sovVar;
@@ -285,8 +286,8 @@ namespace AIOverhaul
             if (clearGrudge)
             {
                 LogDebug($"Clearing Mortal Enemy for {k.Name}: {clearReason}", LogCategory.Diplomacy, k);
-                k.SetVar(MORTAL_ENEMY_VAR, new Value()); // Clear the var
-                k.SetVar(MORTAL_ENEMY_SOV_VAR, new Value()); // Clear the sov var
+                k.SetVar(CampaignVarNames.MortalEnemyId, new Value()); // Clear the var
+                k.SetVar(CampaignVarNames.MortalEnemySovereignId, new Value()); // Clear the sov var
                 MortalEnemies.Remove(k.id); // Clear cache too
                 return null;
             }
@@ -418,7 +419,7 @@ namespace AIOverhaul
             if (!AIOverhaulPlugin.IsEnhancedAI(k2)) return;
 
             // Check if defender already has a mortal enemy (check persisted var)
-            Value existingVar = k2.GetVar(AIOverhaulPlugin.MORTAL_ENEMY_VAR);
+            Value existingVar = k2.GetVar(CampaignVarNames.MortalEnemyId);
             if (existingVar.type == Value.Type.Int)
             {
                 // Already has a mortal enemy set
@@ -443,12 +444,12 @@ namespace AIOverhaul
 
             // Record as mortal enemy - the FIRST kingdom to declare war becomes the permanent grudge
             // Store in Kingdom variable for automatic persistence
-            k2.SetVar(AIOverhaulPlugin.MORTAL_ENEMY_VAR, new Value(k1.id));
+            k2.SetVar(CampaignVarNames.MortalEnemyId, new Value(k1.id));
             
             // Record the ID of the Sovereign who attacked us
             if (k1.royalFamily?.Sovereign != null)
             {
-                k2.SetVar(AIOverhaulPlugin.MORTAL_ENEMY_SOV_VAR, new Value(k1.royalFamily.Sovereign.GetNid()));
+                k2.SetVar(CampaignVarNames.MortalEnemySovereignId, new Value(k1.royalFamily.Sovereign.GetNid()));
             }
 
             // Update cache for fast lookups this session

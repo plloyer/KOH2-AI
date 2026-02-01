@@ -27,10 +27,33 @@ namespace AIOverhaul
                 __result = true;
                 return false;
             }
+            
+            Logic.Settlement target = FindNearestSettlementInRealm(army);
+            if (target == null)
+            {
+                // No settlements to plunder - attack the castle if in enemy territory
+                var castle = army.realm_in?.castle;
+                var castleKingdom = castle?.GetKingdom();
+                if (castle != null && castle.battle == null && castleKingdom != null && castleKingdom.IsEnemy(__instance.kingdom.id))
+                {
+                    TraverseAPI.SendArmy(__instance, army, castle, AIStatusNames.AttackRealm);
+                    __result = true;
+                    return false;
+                }
 
+                __result = false;
+                return false;
+            }
+
+            TraverseAPI.SendArmy(__instance, army, target, AIStatusNames.Plunder);
+            __result = true;
+            return false;
+        }
+
+        static Logic.Settlement FindNearestSettlementInRealm(Logic.Army army)
+        {
             Logic.Settlement target = null;
             float minDist = float.MaxValue;
-
             foreach (var settlement in army.realm_in.settlements)
             {
                 // Skip inactive, razed, in-battle, or friendly settlements. Copied from vanilla code.
@@ -51,25 +74,7 @@ namespace AIOverhaul
                 }
             }
 
-            if (target == null)
-            {
-                // No settlements to plunder - attack the castle if in enemy territory
-                var castle = army.realm_in?.castle;
-                var castleKingdom = castle?.GetKingdom();
-                if (castle != null && castle.battle == null && castleKingdom != null && castleKingdom.IsEnemy(__instance.kingdom.id))
-                {
-                    TraverseAPI.SendArmy(__instance, army, castle, AIStatusNames.AttackRealm);
-                    __result = true;
-                    return false;
-                }
-
-                __result = false;
-                return false;
-            }
-
-            TraverseAPI.SendArmy(__instance, army, target, AIStatusNames.Plunder);
-            __result = true;
-            return false;
+            return target;
         }
     }
 }

@@ -11,6 +11,7 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(KingdomAI), "AssignArmy")]
     public class KingdomAI_AssignArmy
     {
+        const string LogPrefix = "[AssignArmy]";
         const float PowerRatioToFight = 1.3f;
         static bool Prefix(KingdomAI __instance, KingdomAI.Threat threat, int pass, ref bool __result)
         {
@@ -30,7 +31,7 @@ namespace AIOverhaul
 
                 if (readyArmies < requiredArmies)
                 {
-                    //AIOverhaulPlugin.LogDebug($"[AssignArmy] Blocking offensive assignment to {threat.realm?.name}: waiting for {requiredArmies} full armies (have {readyArmies})", LogCategory.Military, __instance.kingdom);
+                    //AIOverhaulPlugin.LogDebug($"{LogPrefix} Blocking offensive assignment to {threat.realm?.name}: waiting for {requiredArmies} full armies (have {readyArmies})", LogCategory.Military, __instance.kingdom);
                     __result = false;
                     return false;
                 }
@@ -44,7 +45,7 @@ namespace AIOverhaul
                 // Allow defense if we have any assigned strength and are stronger than enemy
                 if (ourStrength > 0 && ourStrength >= enemyStrength * PowerRatioToFight)
                 {
-                    AIOverhaulPlugin.LogDebug($"[AssignArmy] Allowing defensive assignment to {threat.realm?.name}: our strength {ourStrength:F0} >= enemy {enemyStrength:F0}", LogCategory.Military, __instance.kingdom);
+                    AIOverhaulPlugin.LogDebug($"{LogPrefix} Allowing defensive assignment to {threat.realm?.name}: our strength {ourStrength:F0} >= enemy {enemyStrength:F0}", LogCategory.Military, __instance.kingdom);
                     // Let vanilla handle the assignment
                     return true;
                 }
@@ -93,7 +94,7 @@ namespace AIOverhaul
                         if (!buddyInThreat)
                         {
                             // FORCE ASSIGN BUDDY
-                            // AIOverhaulPlugin.LogDebug($"[AssignArmy] Leader {army.GetNid()} dragging Buddy {buddy.GetNid()} to {threat.realm.name}", LogCategory.Military);
+                            // AIOverhaulPlugin.LogDebug($"{LogPrefix} Leader {army.GetNid()} dragging Buddy {buddy.GetNid()} to {threat.realm.name}", LogCategory.Military);
                             
                             // Remove from old threat if any
                             if (buddy.tgt_realm != null)

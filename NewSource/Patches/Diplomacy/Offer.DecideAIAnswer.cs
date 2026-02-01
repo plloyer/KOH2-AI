@@ -9,6 +9,7 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Offer), "DecideAIAnswer")]
     public class Offer_DecideAIAnswer
     {
+        const string LogPrefix = "[AI Decision]";
         static bool Prefix(Offer __instance, ref string __result)
         {
             // Only intervene if the receiver is a Kingdom
@@ -35,7 +36,7 @@ namespace AIOverhaul
             if (!isTrade && !isNAP) return true;
 
             string offerTypeName = __instance.GetType().Name;
-            AIOverhaulPlugin.LogDebug($"[Offer] {sender.Name} -> {receiver.Name}: {offerTypeName}", LogCategory.Diplomacy, receiver);
+            AIOverhaulPlugin.LogDebug($"{LogPrefix} {sender.Name} -> {receiver.Name}: {offerTypeName}", LogCategory.Diplomacy, receiver);
 
             // LOGIC: Accept unless it's a target or mortal enemy
 
@@ -59,7 +60,7 @@ namespace AIOverhaul
             if (receiver.IsEnemy(sender)) return true;
 
             AIOverhaulPlugin.LogDebug($"AUTO-ACCEPTING {offerTypeName} from {sender.Name}", LogCategory.Diplomacy, receiver);
-            __result = "accept";
+            __result = DiplomacyConstants.Accept;
             return false;
         }
 
@@ -72,7 +73,7 @@ namespace AIOverhaul
         static bool HandlePeaceOffer(Offer offer, Logic.Kingdom receiver, Logic.Kingdom sender, ref string result)
         {
             string offerKey = offer.def?.field?.key ?? DiplomacyConstants.Peace;
-            AIOverhaulPlugin.LogDebug($"[Peace] {sender.Name} -> {receiver.Name}: {offerKey}", LogCategory.Diplomacy, receiver);
+            AIOverhaulPlugin.LogDebug($"{LogPrefix} [Peace] {sender.Name} -> {receiver.Name}: {offerKey}", LogCategory.Diplomacy, receiver);
 
             // Find the war between sender and receiver
             var war = receiver.wars?.Find(w => w.GetEnemyLeader(receiver) == sender);
@@ -89,7 +90,7 @@ namespace AIOverhaul
             if (score >= GameBalance.WarScoreRejectPeace)
             {
                 AIOverhaulPlugin.LogInfo($"[Peace] Rejecting peace from {sender.Name} - winning (score: {score:F1})", LogCategory.Diplomacy, receiver);
-                result = "reject";
+                result = DiplomacyConstants.Decline;
                 return false;
             }
 
@@ -97,7 +98,7 @@ namespace AIOverhaul
             if (receiver.IsSiegingEnemyCastle())
             {
                 AIOverhaulPlugin.LogInfo($"[Peace] Rejecting peace from {sender.Name} - currently sieging", LogCategory.Diplomacy, receiver);
-                result = "reject";
+                result = DiplomacyConstants.Decline;
                 return false;
             }
 

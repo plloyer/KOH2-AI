@@ -10,10 +10,19 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(KingdomAI), "ThinkFight")]
     public class KingdomAI_ThinkFight
     {
+        const string LogPrefix = "[ThinkFight]";
         static bool Prefix(KingdomAI __instance, Logic.Army army, ref bool __result)
         {
             Logic.Realm realmIn = army?.realm_in;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom) || realmIn == null) return true;
+            
+            // If we are a Follower, we DO NOT decide to fight or retreat independently.
+            // We rely entirely on the Leader's decision (propagated via ThinkArmy follow logic).
+            if (BuddySystem.IsFollower(army, __instance.kingdom))
+            {
+                __result = false; 
+                return false; 
+            }
 
             float ownStrength = 0;
             float friendStrength = 0;
@@ -40,19 +49,7 @@ namespace AIOverhaul
             bool buddyPresent = false;
             if (buddy?.realm_in == realmIn)
                 buddyPresent = true;
-
-            // If we are a Follower, we DO NOT decide to fight or retreat independently.
-            // We rely entirely on the Leader's decision (propagated via ThinkArmy follow logic).
-            // If we run this logic, we might decide to "Wait for Buddy" (circular) or Retreat when Leader attacks.
-            if (BuddySystem.IsFollower(army, __instance.kingdom))
-            {
-                // Verify leader is actually alive/valid before skipping (already checked in IsFollower/GetBuddy somewhat, but let's be safe)
-                // If we skip here (__result = false, return false), we tell ThinkArmy "I didn't do combat logic".
-                // ThinkArmy then proceeds. Our ThinkArmy Postfix then forces us to follow the Leader's target.
-                __result = false; 
-                return false; 
-            }
-
+            
             if (ownStrength + friendStrength + enemyStrength > 0)
             {
                 float totalFriendly = ownStrength + friendStrength;
@@ -69,12 +66,12 @@ namespace AIOverhaul
                         float buddyStr = buddy.EvalStrength();
                         if (!BuddySystem.ShouldBuddyHelp(army, buddyStr, enemyStrength, __instance.kingdom))
                         {
-                            AIOverhaulPlugin.LogDebug($"[ThinkFight] Army {army.GetNid()} too weak to help buddy {buddy.GetNid()}, not engaging", LogCategory.Military, __instance.kingdom);
+                            AIOverhaulPlugin.LogDebug($"{LogPrefix} Army {army.GetNid()} too weak to help buddy {buddy.GetNid()}, not engaging", LogCategory.Military, __instance.kingdom);
                             // Don't force engage, let vanilla handle it
                         }
                         else
                         {
-                            AIOverhaulPlugin.LogDebug($"[ThinkFight] Force engaging to help buddy {buddy.GetNid()} in battle!", LogCategory.Military, __instance.kingdom);
+                            AIOverhaulPlugin.LogDebug($"{LogPrefix} Force engaging to help buddy {buddy.GetNid()} in battle!", LogCategory.Military, __instance.kingdom);
                             __result = true; // Fight!
                             return false; // Skip vanilla calc
                         }
@@ -92,8 +89,9 @@ namespace AIOverhaul
                         float soloWinChance = ownStrength / (ownStrength + enemyStrength);
                         if (soloWinChance < GameBalance.MinBattleWinChance && winChance >= GameBalance.MinBattleWinChance)
                         {
+                            AIOverhaulPlugin.LogDebug($"{LogPrefix} Leader {army.GetNid()} is waiting for buddy {buddy.GetNid()}", LogCategory.Military, __instance.kingdom);
                             army.Stop();
-                            army.ai_status = "wait_for_buddy";
+                            army.SetAIStatus(AIStatusNames.WaitForBuddy);
                             __result = true;
                             return false;
                         }
@@ -102,6 +100,7 @@ namespace AIOverhaul
 
                 if (winChance < GameBalance.MinBattleWinChance)
                 {
+                    // If is home and not in castle
                     if (realmIn.kingdom_id == __instance.kingdom.id && army.castle == null)
                     {
                         Castle castle = realmIn.castle;
@@ -109,7 +108,7 @@ namespace AIOverhaul
                         {
                             if (castle.army == null || castle.army == army)
                             {
-                                TraverseAPI.SendArmy(__instance, army, castle, "retreat_low_chance");
+                                TraverseAPI.SendArmy(__instance, army, castle, AIStatusNames.RetreatLowChance);
                                 __result = true;
                                 return false;
                             }

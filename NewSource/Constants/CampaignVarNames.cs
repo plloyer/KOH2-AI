@@ -31,5 +31,10 @@ namespace AIOverhaul
         public const string GameLoaded = "game_loaded";
         public const string Victor = "victor";
         public const string Team = "team";
+
+        // --- AIOverhaul Custom Vars (Non-Vanilla) ---
+        // Used to track AI-specific state between saves
+        public const string MortalEnemyId = "aimod_mortal_enemy";           // Points to the kingdom_id of the current target kingdom
+        public const string MortalEnemySovereignId = "aimod_mortal_enemy_sov"; // Points to the nid of the target sovereign
     }
 }

@@ -9,6 +9,7 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Castle), nameof(Castle.ChooseBuildOption))]
     public static class Castle_ChooseBuildOption
     {
+        const string LogPrefix = "[AI Decision]";
         public static void Prefix(Game game, List<Castle.BuildOption> options, float sum)
         {
             if (options == null || options.Count == 0) return;
@@ -20,7 +21,7 @@ namespace AIOverhaul
             if (kingdom == null || kingdom.is_player) return;
 
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"[AI Decision] {kingdom.Name} ({castle.name}) Choosing Build/Upgrade from {options.Count} options:");
+            sb.AppendLine($"{LogPrefix} {kingdom.Name} ({castle.name}) Choosing Build/Upgrade from {options.Count} options:");
             
             var sortedOptions = new List<Castle.BuildOption>(options);
             sortedOptions.Sort((a, b) => b.eval.CompareTo(a.eval));

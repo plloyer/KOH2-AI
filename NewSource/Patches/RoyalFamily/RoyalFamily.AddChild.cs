@@ -11,6 +11,7 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Logic.RoyalFamily), "AddChild")]
     public class RoyalFamily_AddChild
     {
+        const string LogPrefix = "[WeightedRoyalFamily]";
         static void Postfix(Logic.RoyalFamily __instance, Logic.Character child)
         {
             // Only relevant for Enhanced AI kingdoms and alive children
@@ -43,7 +44,7 @@ namespace AIOverhaul
                 // Override the default class if it's different
                 if (child.class_def != classDef)
                 {
-                    AIOverhaulPlugin.LogDebug($"[WeightedRoyalFamily] Assigning {selectedClassName} to Prince {child.Name} (Roll: {roll:F2}/{totalWeight})", LogCategory.RoyalFamily, child.GetKingdom());
+                    AIOverhaulPlugin.LogDebug($"{LogPrefix} Assigning {selectedClassName} to Prince {child.Name} (Roll: {roll:F2}/{totalWeight})", LogCategory.RoyalFamily, child.GetKingdom());
                     child.SetClass(classDef);
                 }
             }
