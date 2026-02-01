@@ -1,58 +1,29 @@
 using System;
-using System.Collections.Generic;
 
 namespace AIOverhaul
 {
     public static class MilitaryHelper
     {
-        /// <summary>
-        /// Checks if a target realm is within maxDistance provinces of any of the kingdom's realms.
-        /// Uses breadth-first search from all owned realms.
-        /// </summary>
-        public static bool IsRealmWithinDistance(Logic.Realm targetRealm, Logic.Kingdom ourKingdom, int maxDistance, out int distance)
+        public static bool HasTwoReadyArmies(Logic.Kingdom kingdom)
         {
-            distance = 0;
-            if (targetRealm == null || ourKingdom == null || ourKingdom.realms == null) return false;
+            if (kingdom?.armies == null || kingdom.armies.Count < GameBalance.FirstTwoArmiesCount)
+                return false;
 
-            // BFS from all our realms
-            var visited = new HashSet<Logic.Realm>();
-            var queue = new Queue<(Logic.Realm realm, int distance)>();
-
-            // Start from all our realms at distance 0
-            foreach (var ourRealm in ourKingdom.realms)
+            int readyArmies = 0;
+            for (int i = 0; i < Math.Min(GameBalance.FirstTwoArmiesCount, kingdom.armies.Count); i++)
             {
-                if (ourRealm != null)
-                {
-                    visited.Add(ourRealm);
-                    queue.Enqueue((ourRealm, 0));
-                }
+                var army = kingdom.armies[i];
+                if (army == null) continue;
+
+                bool isFull = army.units.Count >= GameBalance.FullArmySize;
+                int strength = army.EvalStrength();
+                bool hasStrength = strength >= GameBalance.MinArmyStrengthForFortification;
+
+                if (isFull && hasStrength)
+                    readyArmies++;
             }
 
-            while (queue.Count > 0)
-            {
-                var (current, dist) = queue.Dequeue();
-
-                // Check neighbors at dist+1
-                if (dist < maxDistance && current.neighbors != null)
-                {
-                    foreach (var neighbor in current.neighbors)
-                    {
-                        if (neighbor == null || visited.Contains(neighbor)) continue;
-
-                        // Found target within range
-                        if (neighbor == targetRealm) 
-                        {
-                            distance = dist + 1;
-                            return true;
-                        }
-
-                        visited.Add(neighbor);
-                        queue.Enqueue((neighbor, dist + 1));
-                    }
-                }
-            }
-
-            return false;
+            return readyArmies >= GameBalance.FirstTwoArmiesCount;
         }
 
         /// <summary>
@@ -80,10 +51,9 @@ namespace AIOverhaul
                         if (castle == null || castle.battle != null) continue;
 
                         // Check if within distance
-                        if (IsRealmWithinDistance(realm, ourKingdom, maxDistance, out var dist))
-                        {
+                        if (ourKingdom.IsRealmWithinDistance(realm, maxDistance, out var dist))
                             return realm;
-                        }
+                        
                         AIOverhaulPlugin.LogDebug($"[ThinkPlunder] {enemy.Name}'s realm {realm.name} is in disorder but too far ({dist}>{maxDistance} provinces)", LogCategory.Military, ourKingdom);
                     }
                 }

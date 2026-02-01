@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using Logic;
 
 namespace AIOverhaul
 {
@@ -74,7 +72,7 @@ namespace AIOverhaul
             var kingdom = army.GetKingdom();
             if (kingdom != null)
             {
-                var buddy = AIOverhaul.BuddySystem.GetBuddy(army, kingdom);
+                var buddy = BuddySystem.GetBuddy(army, kingdom);
                 if (buddy != null && buddy.IsValid())
                 {
                     strength += buddy.EvalStrength();

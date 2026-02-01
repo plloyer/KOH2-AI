@@ -4,7 +4,7 @@ using Logic;
 
 namespace AIOverhaul
 {
-    public static class MultiplayerAIHelper
+    public static class MultiplayerAICommandHelper
     {
         // Tracks kingdom IDs where the AI is forced ON (even if it's a human player)
         // Key = Kingdom ID

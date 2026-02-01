@@ -146,7 +146,7 @@ namespace AIOverhaul
             return count;
         }
 
-        public static void FindEnemiesInRealm(this Logic.Realm realm, Logic.Kingdom ourKingdom, System.Collections.Generic.List<Logic.Army> armyList)
+        public static void FindEnemiesInRealm(this Logic.Realm realm, Logic.Kingdom ourKingdom, List<Logic.Army> armyList)
         {
             if (realm == null || ourKingdom == null || realm.armies == null || armyList == null) return;
 

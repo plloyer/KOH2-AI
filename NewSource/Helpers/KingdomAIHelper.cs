@@ -81,8 +81,8 @@ namespace AIOverhaul
             {
                 if (war == null) continue;
 
-                var ourKingdoms = kingdom.GetAlliesInWar(war);
-                var enemyKingdoms = kingdom.GetEnemiesInWar(war);
+                var ourKingdoms = war.GetAlliesInWar(kingdom);
+                var enemyKingdoms = war.GetEnemiesInWar(kingdom);
 
                 if (ourKingdoms == null || enemyKingdoms == null) continue;
 

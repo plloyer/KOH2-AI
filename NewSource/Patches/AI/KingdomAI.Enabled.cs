@@ -16,7 +16,7 @@ namespace AIOverhaul.Patches.AI
             bool isSpectator = AIOverhaulPlugin.SpectatorMode && kingdom.is_player;
 
             // Scenario 2: Multiplayer Forced AI (Host delegates for Client)
-            bool isForcedMP = MultiplayerAIHelper.IsAIForced(kingdom.id);
+            bool isForcedMP = MultiplayerAICommandHelper.IsAIForced(kingdom.id);
 
             if (isSpectator || isForcedMP)
             {
