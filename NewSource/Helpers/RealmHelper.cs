@@ -6,72 +6,14 @@ namespace AIOverhaul
 {
     public static class RealmHelper
     {
-        // Cache to avoid iterating defs every frame
-        static List<Logic.Building.Def> s_ProductiveBuildings;
-
-        // Cache for max goods per realm (init once, usable by all threads safe enough for read)
-        // Key: Realm ID, Value: Max Goods Count
-        static Dictionary<int, int> s_RealmMaxGoodsCache = new Dictionary<int, int>();
-        
-        static void EnsureCache(Logic.Game game)
-        {
-            if (s_ProductiveBuildings != null) return;
-            s_ProductiveBuildings = new List<Logic.Building.Def>();
-
-            if (game?.defs == null) return;
-
-            var allBuildings = game.defs.GetDefs<Logic.Building.Def>();
-            if (allBuildings == null) return;
-
-            foreach (var def in allBuildings)
-            {
-                if (def == null) continue;
-                bool producesGoods = false;
-
-                // Check basics
-                if (HasTradeGood(def.produces, game)) producesGoods = true;
-                else if (HasTradeGood(def.produces_completed, game)) producesGoods = true;
-
-                if (producesGoods)
-                {
-                    s_ProductiveBuildings.Add(def);
-                }
-            }
-        }
-
-        static bool HasTradeGood(List<Logic.Building.Def.ProducedResource> list, Logic.Game game)
-        {
-            if (list == null) return false;
-            foreach (var p in list)
-            {
-                if (IsTradeGood(p.resource, game)) return true;
-            }
-            return false;
-        }
-
-        public static bool IsTradeGood(string resourceName, Logic.Game game)
-        {
-            if (string.IsNullOrEmpty(resourceName) || game == null) return false;
-
-            // NATIVE DETECT: Check if a Resource.Def exists and has a Name.
-            // Base resources (Gold, Food, etc.) do not have a loaded Resource.Def with a Name.
-            var def = game.defs.Find<Logic.Resource.Def>(resourceName);
-            if (def != null && !string.IsNullOrEmpty(def.Name))
-            {
-                return true;
-            }
-            return false;
-        }
-
         public static void GetGoodsStats(this Logic.Realm realm, out int current, out int max)
         {
             current = 0;
             max = 0;
             if (realm == null || realm.game == null) return;
 
-            EnsureCache(realm.game);
+            GoodsHelper.EnsureCache(realm.game);
 
-            // 1. Calculate Current (Dynamic, must check every frame)
             // 1. Calculate Current (Dynamic, must check every frame)
             HashSet<string> currentGoods = new HashSet<string>();
             if (realm.castle != null)
@@ -85,12 +27,12 @@ namespace AIOverhaul
                         // Check produces
                         if (b.IsBuilt() && b.IsFullyFunctional())
                         {
-                            AddGoodsFromList(b.def.produces, currentGoods, realm.game);
+                            GoodsHelper.AddGoodsFromList(b.def.produces, currentGoods, realm.game);
                         }
                         // Check produces_completed
                         if (b.IsBuilt() && b.CalcCompleted())
                         {
-                            AddGoodsFromList(b.def.produces_completed, currentGoods, realm.game);
+                            GoodsHelper.AddGoodsFromList(b.def.produces_completed, currentGoods, realm.game);
                         }
                     }
                 }
@@ -104,13 +46,11 @@ namespace AIOverhaul
                         // Upgrades must be built and functional
                         if (u.IsBuilt() && u.IsFullyFunctional())
                         {
-                            AddGoodsFromList(u.def.produces, currentGoods, realm.game);
+                            GoodsHelper.AddGoodsFromList(u.def.produces, currentGoods, realm.game);
                             
-                            // Upgrades usually don't have "completed" state separate from built, 
-                            // but let's check just in case or if it behaves like buildings
                             if (u.CalcCompleted())
                             {
-                                AddGoodsFromList(u.def.produces_completed, currentGoods, realm.game);
+                                GoodsHelper.AddGoodsFromList(u.def.produces_completed, currentGoods, realm.game);
                             }
                         }
                     }
@@ -119,7 +59,7 @@ namespace AIOverhaul
             current = currentGoods.Count;
 
             // 2. Calculate Potential (Cached per realm)
-            if (s_RealmMaxGoodsCache.TryGetValue(realm.id, out int cachedMax))
+            if (GoodsHelper.RealmMaxGoodsCache.TryGetValue(realm.id, out int cachedMax))
             {
                 max = cachedMax;
             }
@@ -127,32 +67,100 @@ namespace AIOverhaul
             {
                 // Calculate and cache
                 HashSet<string> potentialGoods = new HashSet<string>();
-                foreach (var def in s_ProductiveBuildings)
+                foreach (var def in GoodsHelper.ProductiveBuildings)
                 {
                     // Must be buildable in this realm
-                    if (!IsPotentiallyBuildable(def, realm)) continue;
+                    if (!realm.IsPotentiallyBuildable(def)) continue;
 
-                    AddGoodsFromList(def.produces, potentialGoods, realm.game);
-                    AddGoodsFromList(def.produces_completed, potentialGoods, realm.game);
+                    GoodsHelper.AddGoodsFromList(def.produces, potentialGoods, realm.game);
+                    GoodsHelper.AddGoodsFromList(def.produces_completed, potentialGoods, realm.game);
                 }
                 max = potentialGoods.Count;
-                s_RealmMaxGoodsCache[realm.id] = max;
+                GoodsHelper.RealmMaxGoodsCache[realm.id] = max;
             }
         }
 
-        static void AddGoodsFromList(List<Logic.Building.Def.ProducedResource> list, HashSet<string> set, Logic.Game game)
+        public static bool HasReligiousSettlement(this Logic.Realm realm)
         {
-            if (list == null) return;
-            foreach (var p in list)
+            if (realm == null) return false;
+            return realm.GetReligiousCount() > 0;
+        }
+
+        public static int GetKeepCount(this Logic.Realm realm)
+        {
+            if (realm?.settlements == null) return 0;
+            int count = 0;
+            foreach (var s in realm.settlements)
             {
-                if (IsTradeGood(p.resource, game))
-                {
-                    set.Add(p.resource);
-                }
+                if (s?.def?.id == SettlementNames.Keep)
+                    count++;
+            }
+            return count;
+        }
+
+        public static int GetVillageCount(this Logic.Realm realm)
+        {
+            if (realm?.settlements == null) return 0;
+            int count = 0;
+            foreach (var s in realm.settlements)
+            {
+                if (s?.def?.id == SettlementNames.Village)
+                    count++;
+            }
+            return count;
+        }
+
+        public static int GetReligiousCount(this Logic.Realm realm)
+        {
+            if (realm?.settlements == null) return 0;
+            int count = 0;
+            foreach (var s in realm.settlements)
+            {
+                if (s?.def != null && IsReligiousSettlement(s.def.id))
+                    count++;
+            }
+            return count;
+        }
+
+        public static int GetFarmCount(this Logic.Realm realm)
+        {
+            if (realm?.settlements == null) return 0;
+            int count = 0;
+            foreach (var s in realm.settlements)
+            {
+                if (s?.def?.id == SettlementNames.Farm)
+                    count++;
+            }
+            return count;
+        }
+
+        public static int GetCoastalCount(this Logic.Realm realm)
+        {
+            if (realm?.settlements == null) return 0;
+            int count = 0;
+            foreach (var s in realm.settlements)
+            {
+                if (s != null && s != realm.castle && s.coastal)
+                    count++;
+            }
+            return count;
+        }
+
+        public static void FindEnemiesInRealm(this Logic.Realm realm, Logic.Kingdom ourKingdom, System.Collections.Generic.List<Logic.Army> armyList)
+        {
+            if (realm == null || ourKingdom == null || realm.armies == null || armyList == null) return;
+
+            foreach (var army in realm.armies)
+            {
+                if (army == null || !army.IsValid()) continue;
+
+                var armyOwner = army.GetKingdom();
+                if (armyOwner != null && armyOwner != ourKingdom && ourKingdom.IsEnemy(armyOwner))
+                    armyList.Add(army);
             }
         }
 
-        static bool IsPotentiallyBuildable(Logic.Building.Def def, Logic.Realm realm)
+        public static bool IsPotentiallyBuildable(this Logic.Realm realm, Logic.Building.Def def)
         {
             // Check features
             if (def.requires != null)
@@ -176,6 +184,13 @@ namespace AIOverhaul
                 }
             }
             return true;
+        }
+
+        static bool IsReligiousSettlement(string id)
+        {
+            return id == SettlementNames.Monastery ||
+                   id == SettlementNames.Mosque ||
+                   id == SettlementNames.Shrine;
         }
     }
 }

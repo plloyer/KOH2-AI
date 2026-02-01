@@ -46,7 +46,7 @@ namespace AIOverhaul
                 if (localStrength < enemyStrength)
                     continue;
 
-                MilitaryHelper.FindEnemiesInRealm(r, __instance.kingdom, invadingArmies);
+                r.FindEnemiesInRealm(__instance.kingdom, invadingArmies);
 
                 // Check for Siege Battle
                 if (threat.level == KingdomAI.Threat.Level.Siege && r.castle != null)

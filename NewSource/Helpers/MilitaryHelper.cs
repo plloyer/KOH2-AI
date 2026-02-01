@@ -92,40 +92,5 @@ namespace AIOverhaul
             return null;
         }
 
-        public static bool HasTwoReadyArmies(this Logic.Kingdom kingdom)
-        {
-            if (kingdom?.armies == null || kingdom.armies.Count < GameBalance.FirstTwoArmiesCount)
-                return false;
-
-            int readyArmies = 0;
-            for (int i = 0; i < Math.Min(GameBalance.FirstTwoArmiesCount, kingdom.armies.Count); i++)
-            {
-                var army = kingdom.armies[i];
-                if (army == null) continue;
-
-                bool isFull = army.units.Count >= GameBalance.FullArmySize;
-                int strength = army.EvalStrength();
-                bool hasStrength = strength >= GameBalance.MinArmyStrengthForFortification;
-
-                if (isFull && hasStrength)
-                    readyArmies++;
-            }
-
-            return readyArmies >= GameBalance.FirstTwoArmiesCount;
-        }
-
-        public static void FindEnemiesInRealm(this Logic.Realm realm, Logic.Kingdom ourKingdom, List<Logic.Army> armyList)
-        {
-            if (realm == null || ourKingdom == null || realm.armies == null || armyList == null) return;
-
-            foreach (var army in realm.armies)
-            {
-                if (army == null || !army.IsValid()) continue;
-
-                var armyOwner = army.GetKingdom();
-                if (armyOwner != null && armyOwner != ourKingdom && ourKingdom.IsEnemy(armyOwner))
-                    armyList.Add(army);
-            }
-        }
     }
 }

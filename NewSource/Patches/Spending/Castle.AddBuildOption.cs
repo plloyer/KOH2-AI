@@ -132,7 +132,7 @@ namespace AIOverhaul
                 {
                     if (r == null || r.castle == null) continue;
 
-                    int vCount = DistrictHelper.GetVillageCount(r);
+                    int vCount = r.GetVillageCount();
                     if (vCount >= MinVillagesForMilitia)
                     {
                         if (vCount > maxVillages)

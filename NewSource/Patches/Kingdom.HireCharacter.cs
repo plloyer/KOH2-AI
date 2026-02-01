@@ -13,7 +13,7 @@ namespace AIOverhaul
             if (__instance == null || __result == null) return;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance)) return;
             
-            CourtHelper.OrganizeCourt(__instance);
+            __instance.OrganizeCourt();
         }
     }
 }

@@ -300,10 +300,10 @@ namespace AIOverhaul
 
         void DrawKingdomStats(Logic.Kingdom k, GUIStyle style)
         {
-            float gold = KingdomHelper.GetGold(k);
-            float goldIncome = KingdomHelper.GetGoldIncome(k);
-            float books = KingdomHelper.GetBooks(k);
-            int merchants = CourtHelper.CountMerchants(k);
+            float gold = k.GetGold();
+            float goldIncome = k.GetGoldIncome();
+            float books = k.GetBooks();
+            int merchants = k.CountMerchants();
 
             bool hasBarracks = k.HasBuilding(BuildingNames.Barracks);
 
@@ -311,9 +311,9 @@ namespace AIOverhaul
 
             string barracksColor = hasBarracks ? "green" : "red";
 
-            float food = KingdomHelper.GetFood(k);
-            float foodIncome = KingdomHelper.GetFoodIncome(k);
-            int tradeAgreements = KingdomHelper.GetTradeAgreementCount(k);
+            float food = k.GetFood();
+            float foodIncome = k.GetFoodIncome();
+            int tradeAgreements = k.GetTradeAgreementCount();
 
             GUILayout.Label($"Food: <color={ColorFood}>{food:F0} / {foodIncome:F0}</color>", style);
             GUILayout.Label($"Gold: <color={ColorEconomy}>{gold:F0}</color> (+{goldIncome:F0}/s) | Books: <color={ColorReligion}>{books:F0}</color> | Merchants: <color={ColorEconomy}>{merchants}</color> | TA: <color={ColorEconomy}>{tradeAgreements}</color>", style);
@@ -446,7 +446,7 @@ namespace AIOverhaul
 
                 // Get counts using DistrictHelper - Order: Keeps, Village, Religious, Farm, Coastal
                 int keeps = r.GetKeepCount();
-                int villages = DistrictHelper.GetVillageCount(r);
+                int villages = r.GetVillageCount();
                 int religious = r.GetReligiousCount();
                 int farms = r.GetFarmCount();
                 int coastal = r.GetCoastalCount();
