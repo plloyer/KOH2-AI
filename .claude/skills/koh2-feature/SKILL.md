@@ -5,6 +5,10 @@ description: Implement features for Knights of Honor II AI Overhaul with rigorou
 
 You are implementing a feature for the Knights of Honor II AI Overhaul mod with STRICT requirements.
 
+# REQUIRED SKILL
+
+**Always also load the `unity-development` skill** when implementing features. This ensures C# code quality, Unity best practices, and proper code review standards are followed alongside the KOH2-specific rules below.
+
 # CRITICAL RULES - NEVER VIOLATE THESE
 
 1. **NEVER HALLUCINATE APIs** - Always verify against Sources/Logic/*.cs before using any API
