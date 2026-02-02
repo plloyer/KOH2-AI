@@ -230,6 +230,7 @@ namespace AIOverhaul
             // Enable Spectator & Speed
             AIOverhaulPlugin.LogInfo($"{k_LogPrefix}: Step 6 - Enabling Spectator Mode and Speed...");
             AIOverhaulPlugin.ToggleSpectatorMode();
+            m_SpectatorEnabled = true;
             game.SetSpeed(100f);
 
             AIOverhaulPlugin.LogInfo($"{k_LogPrefix}: Step 7 - AutoStart Complete. Ready to play.");
