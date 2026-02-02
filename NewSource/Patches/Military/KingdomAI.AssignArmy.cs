@@ -15,9 +15,7 @@ namespace AIOverhaul
         const float PowerRatioToFight = 1.3f;
         static bool Prefix(KingdomAI __instance, KingdomAI.Threat threat, int pass, ref bool __result)
         {
-            if (__instance == null || __instance.kingdom == null) return true;
-            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
-            if (threat == null) return true;
+            if (__instance?.kingdom?.IsEnhancedAI() ?? threat == null) return true;
 
             // OFFENSIVE: Attacking enemy territory - require MinArmiesForWar full armies
             // Exception: In dominant 1v1 wars, allow attacking with just 1 full army

@@ -10,6 +10,8 @@ namespace AIOverhaul
     /// </summary>
     public static class KingdomHelper
     {
+        public static bool IsEnhancedAI(this Logic.Kingdom k) => AIOverhaulPlugin.IsEnhancedAI(k);
+        
         // Resource Access
         public static float GetGold(this Logic.Kingdom k) => k?.resources?[ResourceType.Gold] ?? 0f;
 

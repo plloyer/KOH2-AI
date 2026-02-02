@@ -89,7 +89,7 @@ A mobile military force on the map.
 2.  **Strategic AI (`Logic/KingdomAI.cs`)**:
     *   **Economy**: `ThinkBuild` (Buildings), `ConsiderExpense` (Hiring, Upgrades).
     *   **Diplomacy**: `ThinkDiplomacy` (Offers, Wars).
-    *   **Military**: 
+    *   **Military**:
         *   `ThinkMilitary` -> calls `ThinkArmies`.
         *   `ThinkArmies` -> calls `ThinkArmy` for each army.
         *   `ThinkArmy`: Strategic movement (Attack/Defend Realm), Resupply, Rebel suppression.
