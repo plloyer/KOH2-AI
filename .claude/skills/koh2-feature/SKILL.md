@@ -132,18 +132,31 @@ Before writing ANY code:
    - **Postfix**: Add logic after original method runs
    - **Transpiler**: Modify IL (advanced, avoid if possible)
 
-3. **Write the patch following patterns:**
+3. **Follow the Harmony patch naming convention (MANDATORY):**
+   - **Class name**: `OriginalClass_MethodName` (underscore separator)
+   - **File name**: `OriginalClass.MethodName.cs` (dot separator)
+   - **Location**: Appropriate subfolder in `Patches/`
+
+   **Examples:**
+   | Patching | Class Name | File Name | Location |
+   |----------|------------|-----------|----------|
+   | `Offer.DecideAIAnswer` | `Offer_DecideAIAnswer` | `Offer.DecideAIAnswer.cs` | `Patches/Diplomacy/` |
+   | `KingdomAI.ThinkArmy` | `KingdomAI_ThinkArmy` | `KingdomAI.ThinkArmy.cs` | `Patches/Military/` |
+   | `Castle.AddBuildOption` | `Castle_AddBuildOption` | `Castle.AddBuildOption.cs` | `Patches/Spending/` |
+
+4. **Write the patch following patterns:**
    ```csharp
-   [HarmonyPatch(typeof(Logic.KingdomAI), "MethodName")]
-   public class MyFeaturePatch
+   // File: Patches/Diplomacy/Offer.DecideAIAnswer.cs
+   [HarmonyPatch(typeof(Logic.Offer), "DecideAIAnswer")]
+   public class Offer_DecideAIAnswer
    {
-       static bool Prefix(Logic.KingdomAI __instance, ParamType param, ref ReturnType __result)
+       static bool Prefix(Logic.Offer __instance, ref bool __result)
        {
            // Enhanced AI only (if applicable)
-           if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+           if (!AIOverhaulPlugin.IsEnhancedAI(__instance.from)) return true;
 
            // Null checks
-           if (__instance.kingdom == null) return true;
+           if (__instance.from == null) return true;
 
            // Your logic using VERIFIED APIs only
 
@@ -154,7 +167,7 @@ Before writing ANY code:
    }
    ```
 
-4. **Add logging for debugging**
+5. **Add logging for debugging**
    ```csharp
    AIOverhaulPlugin.LogInfo("Your message here", LogCategory.General, kingdom);
    AIOverhaulPlugin.LogWarning("Warning message", LogCategory.General, kingdom);
@@ -513,10 +526,15 @@ Comments with numeric values become stale when constants change. Always referenc
 
 ## File Organization
 
+**Patch naming convention (MANDATORY):**
+- File name: `OriginalClass.MethodName.cs` (e.g., `Offer.DecideAIAnswer.cs`)
+- Class name: `OriginalClass_MethodName` (e.g., `Offer_DecideAIAnswer`)
+- One patch per file for clarity
+
 **Where to add new patches:**
-- Military/Battle: `Patches/Military/`
-- Diplomacy/War declaration: `Patches/Diplomacy/`
-- Economy/Spending: `Patches/Spending/`
+- Military/Battle: `Patches/Military/` (e.g., `KingdomAI.ThinkArmy.cs`)
+- Diplomacy/War declaration: `Patches/Diplomacy/` (e.g., `Offer.DecideAIAnswer.cs`)
+- Economy/Spending: `Patches/Spending/` (e.g., `Castle.AddBuildOption.cs`)
 - Court/Characters: `Patches/Court/`
 - Royal Family: `Patches/RoyalFamily/`
 - Logging only: `Patches/Logging/`

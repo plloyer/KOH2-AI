@@ -123,23 +123,6 @@ namespace AIOverhaul
             return totalThreat;
         }
 
-        public static bool HasHighThreat(this Logic.Kingdom k)
-        {
-            if (k == null || k.realms == null) return false;
-
-            // Iterate through all realms in the kingdom and check their threat level
-            foreach (var realm in k.realms)
-            {
-                if (realm == null || realm.threat == null) continue;
-                
-                // Level 3 is Level.Attack, 4 is Invaded, 5 is Siege
-                if ((int)realm.threat.level >= GameBalance.KingdomSideAttackLevel) 
-                    return true;
-            }
-
-            return false;
-        }
-
         public static bool IsStrategicNeighbor(this Logic.Kingdom a, Logic.Kingdom b)
         {
             if (a == null || b == null) return false;

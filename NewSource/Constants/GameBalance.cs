@@ -11,13 +11,8 @@ namespace AIOverhaul
         public const float MinBattleWinChance = 0.45f;
         public const float HealthRetreatThreshold = 0.7f;
 
-        // Army Composition - Early Game (First Two Armies)
-        public const int FirstTwoArmiesCount = 2;
-        public const int EarlyGameRangedCount = 4;
-        public const int EarlyGameMeleeCount = 4;
 
         // Buddy System
-        public const float MaxBuddyDistance = 300f; // Max distance to assign a buddy
         public const float BuddyBreakDistance = 600f; // Distance to break buddy link
         public const float BuddyWaitDistance = 200f; // Max distance to wait for a buddy
         public const float BuddyReevalIntervalMinutes = 1f; // Re-evaluate buddies interval (real time)
@@ -28,27 +23,15 @@ namespace AIOverhaul
         // Army Composition - Late Game
         public const int FullArmySize = 8;
         public const int MaxRangedUnitsPerArmy = 4; // Hard cap on ranged units per army
-        public const float LateGameRangedMeleeRatio = 0.8f; // Target ratio of ranged to melee
-        public const float RatioToleranceLow = 0.9f; // Tolerance lower bound of target ratio
 
         // Army Strength Requirements
+        public const int FirstTwoArmiesCount = 2;
         public const int MinArmyStrengthForFortification = 250;
         public const int MinArmyStrengthPerRealm = 250;
         public const int MinFullArmyUnits = 4;
 
         // Attack Priority
         public const int DisorderAttackMaxDistance = 2; // Max provinces away to prioritize disorder attack
-
-        // Evaluation Multipliers
-        // CRITICAL: Higher eval = higher priority. Multiply eval by these values to increase priority.
-        public const float StrongBoostMultiplier = 2.0f;    // Strong priority increase
-        public const float MediumBoostMultiplier = 1.5f;   // Medium priority increase
-        public const float WeakBoostMultiplier = 1.3f;     // Weak priority increase
-        public const float StrongPenaltyMultiplier = 0.1f; // Strong priority decrease
-        public const float MediumPenaltyMultiplier = 0.2f;  // Medium priority decrease
-        public const float HighPriorityMultiplier = 1.4f;   // Check logic for specific multiplier usage
-        public const float StrictBlockMultiplier = 0.01f;  // Effective block
-        public const float UrgentPriorityMultiplier = 100.0f; // Extreme priority
 
         // War Score Thresholds (negative = losing, positive = winning)
         public const float WarScorePeaceSeeking = -15f;
@@ -60,22 +43,9 @@ namespace AIOverhaul
 
         // Diplomacy - Power Ratios
         public const float PowerRatioSoloCapable = 2.0f; // We can handle alone if stronger by this ratio
-        public const float PowerRatioWeakAttack = 1.5f; // Don't attack if weaker by this ratio
-        public const float PowerRatioVeryWeak = 2.5f; // Never attack if significantly weaker
-        public const float PowerRatioThreatening = 0.75f; // Seek help if neighbors are nearing our power
-        public const float PowerRatioCombinedThreat = 2.0f; // Defer war if combined threat is stronger
         public const float PowerRatioStrongerEnemy = 1.3f; // Consider peace if enemy is stronger
-        public const float PowerRatioStrongerNeighbor = 1.2f; // Neighbor is "stronger threat"
-        public const int MinStrongerThreatsForDiplomat = 2; // Need strong neighbors to hire diplomat
-
-        // Diplomacy - Target Selection
-        public const float TargetPowerRatioMin = 0.3f;
-        public const float TargetPowerRatioMax = 1.0f;
-        public const float TargetWeaknessScore = 100f;
-        public const float TargetRelationshipMultiplier = 0.1f;
 
         // Diplomacy Thresholds
-        public const float MinGoldForDiplomacy = 5000f;
         public const int MaxWarsCount = 2;
         public const float NeutralRelationThreshold = 0f; 
         public const float MinRelationToInviteToWar = 5f; 
@@ -83,28 +53,12 @@ namespace AIOverhaul
 
         // Diplomacy - War Preparation
         public const int MinArmiesToDeclareWar = 2; 
-        public const int MinFortifiedProvincesForAggression = 1; // Need at least one fortified province to be "well-prepared"
-        public const float MinGoldForAggression = 1000f; 
-        public const float MortalEnemyWarPowerRatio = 1.5f; // Power ratio required to attack mortal enemy
-        public const float MortalEnemyDistractedPowerRatio = 0.8f; // Attack mortal enemy if distracted and we have relative power
-        public const float StrongerEnemyAllianceThreshold = 1.2f; // Seek allies if enemy is stronger
         public const float FullHealthThreshold = 1f; // Unit considered replenished at full health
-        public const int AggressiveWarMinArmies = 3; // Minimum full armies for aggressive war logic
-        public const float AggressiveWarPowerRatio = 1.5f; // Power ratio required for aggressive war logic
 
         // Diplomacy - Alliance Scoring
         public const int AllianceScoreFightingMortalEnemy = 10; // Ally already fighting our mortal enemy
         public const int AllianceScoreNeighborOfMortalEnemy = 5; // Ally is neighbor of our mortal enemy
         public const int AllianceScoreUnfriendlyNeighbor = 3; // Ally is unfriendly neighbor (shared border concern)
-
-        // Economy - Court Hiring
-        public const int RequiredMerchantCount = 2;
-        public const float MinGoldForCourtHiring = 500f;
-        public const float MinGoldIncomeForSpies = 500f;
-        public const float MinGoldIncomeForDiplomats = 150f;
-        public const float MinGoldIncomeForClerics = 50f;
-        public const int CommercePerMerchant = 10;
-        public const float MinCommerceForMerchant = 10f; // Minimum available commerce to trigger urgent merchant hire
 
         // Economy - Resource Thresholds
         public const float MinBooksForFirstTradition = 400f;
@@ -116,7 +70,6 @@ namespace AIOverhaul
         public const float MerchantGovernorMarketBonus = 20f; // Bonus for merchant governor in town with market
         public const float MarshalEarlyGameBoost = 10000f; // Massive boost for Marshals in best military province
         public const float IronOreMilitaryBonus = 15f; // Bonus for Iron Ore in military potential calc
-        public const float DistrictMilitaryBonus = 10f;
 
         // Building Priority Multipliers
         // CRITICAL: Higher eval = higher priority. Multiply eval by these values (eval *= multiplier) to increase priority.
@@ -125,20 +78,12 @@ namespace AIOverhaul
         public const float BarracksPriorityMultiplier = 100.0f; // Very high priority on first barracks
         public const float HighPriorityBuildingMultiplier = 100.0f;
 
-        // Island Detection
-        public const int IslandMaxNeighbors = 1;
-        public const int IslandMinRealms = 2;
-
         // Time Conversion
         public const float HoursPerDay = 24f;
         public const float DaysPerYear = 365f;
 
         // Logging
         public const int AggregateLogInterval = 50; // Log interval (cycles)
-
-        // Misc
-        public const float MinYearsElapsedForStats = 0.1f; // Avoid division by zero
-        public const int KingdomSideAttackLevel = 3; // Level.Attack or higher
 
         // Speed Control
         public const float HighSpeed = 20f; // F7 high speed toggle
