@@ -9,9 +9,9 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(KingdomAI), "ThinkDeclareWar")]
     public class KingdomAI_ThinkDeclareWar
     {
-        const string LogPrefix = "[KingdomAI_ThinkDeclareWar] ";
-        const int MinArmiesToDeclareWar = 2;
-        const float MinPowerRatio = 1.2f;
+        const string k_LogPrefix = "[KingdomAI_ThinkDeclareWar] ";
+        const int k_MinArmiesToDeclareWar = 2;
+        const float k_MinPowerRatio = 1.2f;
         
         static bool Prefix(KingdomAI __instance, Logic.Kingdom k, ref bool __result)
         {
@@ -23,22 +23,22 @@ namespace AIOverhaul
             
             if (__instance.kingdom.HasDisorder())
             {
-                AIOverhaulPlugin.LogDebug($"{LogPrefix} Blocked: Has disorder.", LogCategory.Diplomacy,  __instance.kingdom);
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocked: Has disorder.", LogCategory.Diplomacy,  __instance.kingdom);
                 return false;
             }
 
             if (!__instance.kingdom.IsStrategicNeighbor(k))
             {
-                AIOverhaulPlugin.LogDebug($"{LogPrefix} Blocked: {k.Name} not a strategic neighbor.", LogCategory.Diplomacy,  __instance.kingdom);
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocked: {k.Name} not a strategic neighbor.", LogCategory.Diplomacy,  __instance.kingdom);
                 return false;
             }
 
             float ownPower = __instance.kingdom.GetTotalPower();
             float targetPower = k.GetTotalPower();
             float powerRatio = targetPower > 0 ? ownPower / targetPower : 10f;
-            if (powerRatio < MinPowerRatio)
+            if (powerRatio < k_MinPowerRatio)
             {
-                AIOverhaulPlugin.LogDebug($"{LogPrefix} Blocked: {k.Name} too strong. Us ({ownPower}) / Them ({targetPower}). Power Ratio {powerRatio}", LogCategory.Diplomacy,  __instance.kingdom);
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocked: {k.Name} too strong. Us ({ownPower}) / Them ({targetPower}). Power Ratio {powerRatio}", LogCategory.Diplomacy,  __instance.kingdom);
                 return false;
             }
 
@@ -70,7 +70,7 @@ namespace AIOverhaul
                 }
             }
 
-            if (fullArmies < MinArmiesToDeclareWar)
+            if (fullArmies < k_MinArmiesToDeclareWar)
             {
                 AIOverhaulPlugin.LogDebug($"[War] {__instance.kingdom.Name}: Not enough full armies to declare war. Has {fullArmies}, needs {GameBalance.MinArmiesToDeclareWar}.", LogCategory.Diplomacy, __instance.kingdom);
                 return false;

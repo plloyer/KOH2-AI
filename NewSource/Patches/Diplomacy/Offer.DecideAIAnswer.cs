@@ -9,7 +9,8 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Offer), "DecideAIAnswer")]
     public class Offer_DecideAIAnswer
     {
-        const string LogPrefix = "[AI Decision]";
+        const string k_LogPrefix = "[AI Decision]";
+        
         static bool Prefix(Offer __instance, ref string __result)
         {
             // Only intervene if the receiver is a Kingdom
@@ -36,7 +37,7 @@ namespace AIOverhaul
             if (!isTrade && !isNAP) return true;
 
             string offerTypeName = __instance.GetType().Name;
-            AIOverhaulPlugin.LogDebug($"{LogPrefix} {sender.Name} -> {receiver.Name}: {offerTypeName}", LogCategory.Diplomacy, receiver);
+            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {sender.Name} -> {receiver.Name}: {offerTypeName}", LogCategory.Diplomacy, receiver);
 
             // LOGIC: Accept unless it's a target or mortal enemy
 
@@ -73,7 +74,7 @@ namespace AIOverhaul
         static bool HandlePeaceOffer(Offer offer, Logic.Kingdom receiver, Logic.Kingdom sender, ref string result)
         {
             string offerKey = offer.def?.field?.key ?? DiplomacyConstants.Peace;
-            AIOverhaulPlugin.LogDebug($"{LogPrefix} [Peace] {sender.Name} -> {receiver.Name}: {offerKey}", LogCategory.Diplomacy, receiver);
+            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} [Peace] {sender.Name} -> {receiver.Name}: {offerKey}", LogCategory.Diplomacy, receiver);
 
             // Find the war between sender and receiver
             var war = receiver.wars?.Find(w => w.GetEnemyLeader(receiver) == sender);

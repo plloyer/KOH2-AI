@@ -8,7 +8,7 @@ namespace AIOverhaul
     {
         // Tracks kingdom IDs where the AI is forced ON (even if it's a human player)
         // Key = Kingdom ID
-        public static HashSet<int> ForcedAIKingdoms = new HashSet<int>();
+        public static HashSet<int> ForcedAIKingdoms { get; } = new HashSet<int>();
 
         /// <summary>
         /// Enable AI for a specific kingdom ID (e.g. human player going AFK)

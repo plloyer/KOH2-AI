@@ -8,7 +8,7 @@ namespace AIOverhaul
     /// </summary>
     public static class FeatureHelper
     {
-        static readonly Dictionary<string, string> FeatureToBuildingMap = new Dictionary<string, string>
+        static readonly Dictionary<string, string> s_FeatureToBuildingMap = new Dictionary<string, string>
         {
             // Animals
             { FeatureNames.Cattle, BuildingNames.CattleFarming },
@@ -41,24 +41,24 @@ namespace AIOverhaul
             { FeatureNames.Coastal, BuildingNames.Harbor }
         };
 
-        static readonly Dictionary<string, string> BuildingToFeatureMap = new Dictionary<string, string>();
+        static readonly Dictionary<string, string> s_BuildingToFeatureMap = new Dictionary<string, string>();
 
         static FeatureHelper()
         {
             // Reverse map
-            foreach (var kvp in FeatureToBuildingMap)
+            foreach (var kvp in s_FeatureToBuildingMap)
             {
-                if (!BuildingToFeatureMap.ContainsKey(kvp.Value))
+                if (!s_BuildingToFeatureMap.ContainsKey(kvp.Value))
                 {
-                    BuildingToFeatureMap[kvp.Value] = kvp.Key;
+                    s_BuildingToFeatureMap[kvp.Value] = kvp.Key;
                 }
             }
             
             // Manual overrides or additions for reverse map if needed
             // e.g. Coastal buildings
-            BuildingToFeatureMap[BuildingNames.Shipyard] = FeatureNames.Coastal;
-            BuildingToFeatureMap[BuildingNames.Admiralty] = FeatureNames.Coastal;
-            BuildingToFeatureMap[BuildingNames.TradePort] = FeatureNames.Coastal;
+            s_BuildingToFeatureMap[BuildingNames.Shipyard] = FeatureNames.Coastal;
+            s_BuildingToFeatureMap[BuildingNames.Admiralty] = FeatureNames.Coastal;
+            s_BuildingToFeatureMap[BuildingNames.TradePort] = FeatureNames.Coastal;
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace AIOverhaul
         /// </summary>
         public static string GetRelatedBuilding(string featureName)
         {
-            return FeatureToBuildingMap.TryGetValue(featureName, out var building) ? building : null;
+            return s_FeatureToBuildingMap.TryGetValue(featureName, out var building) ? building : null;
         }
 
         /// <summary>
@@ -74,7 +74,7 @@ namespace AIOverhaul
         /// </summary>
         public static string GetRequiredFeature(string buildingName)
         {
-             return BuildingToFeatureMap.TryGetValue(buildingName, out var feature) ? feature : null;
+             return s_BuildingToFeatureMap.TryGetValue(buildingName, out var feature) ? feature : null;
         }
 
         /// <summary>

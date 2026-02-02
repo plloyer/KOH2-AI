@@ -12,27 +12,23 @@ namespace AIOverhaul
     [BepInPlugin("com.mod.aioverhaul", "AI Overhaul", "1.1.0")]
     public class AIOverhaulPlugin : BaseUnityPlugin
     {
-        public static AIOverhaulPlugin Instance;
-        public static HashSet<int> EnhancedKingdomIds = new HashSet<int>();
-        public static HashSet<int> BaselineKingdomIds = new HashSet<int>();
+        public static AIOverhaulPlugin Instance { get; set; }
+        public static HashSet<int> EnhancedKingdomIds { get; } = new HashSet<int>();
+        public static HashSet<int> BaselineKingdomIds { get; } = new HashSet<int>();
 
         // Mortal Enemy System: Tracks the FIRST kingdom that declared war on each Enhanced AI kingdom
         // Now persisted using Kingdom.SetVar/GetVar for automatic save/load support
         // Key = defender kingdom ID, Value = attacker kingdom ID (mortal enemy)
         // NOTE: Dictionary kept for backwards compatibility and fast lookups, but data is actually stored in Kingdom vars
-        public static Dictionary<int, int> MortalEnemies = new Dictionary<int, int>();
+        public static Dictionary<int, int> MortalEnemies { get; } = new Dictionary<int, int>();
 
         // Expansion Target Tracking: Caches current expansion target to detect changes
         // Key = kingdom ID, Value = expansion target kingdom ID
         // Used only for logging when target changes (not persisted)
-        public static Dictionary<int, int> ExpansionTargets = new Dictionary<int, int>();
+        public static Dictionary<int, int> ExpansionTargets { get; } = new Dictionary<int, int>();
 
-        // Mortal Enemy tags now moved to CampaignVarNames.cs
-        // public const string MORTAL_ENEMY_VAR = CampaignVarNames.MortalEnemyId;
-        // public const string MORTAL_ENEMY_SOV_VAR = CampaignVarNames.MortalEnemySovereignId;
-
-        public static Game CurrentGame => current_game;
-        static Game current_game;
+        public static Game CurrentGame => s_CurrentGame;
+        static Game s_CurrentGame;
 
         void Awake()
         {
@@ -68,7 +64,7 @@ namespace AIOverhaul
             if (condition.Contains("invalid remote vars") || condition.Contains("Received data_changed")) return;
 
             // Ignore our own logs and BepInEx logs to prevent infinite recursion
-            if (condition.StartsWith(LogPrefix) || condition.StartsWith("[BepInEx]")) return;
+            if (condition.StartsWith(k_LogPrefix) || condition.StartsWith("[BepInEx]")) return;
 
             string prefix = "[Unity] ";
             switch (type)
@@ -85,9 +81,9 @@ namespace AIOverhaul
             }
         }
 
-        public const string LogPrefix = "[AI-Mod]"; // Primary plugin tag, other specific log blocks use local constants
+        const string k_LogPrefix = "[AI-Mod]"; // Primary plugin tag, other specific log blocks use local constants
 
-        public static bool SpectatorMode;
+        public static bool SpectatorMode { get; set; }
 
         /// <summary>
         /// Log an error message
@@ -131,7 +127,7 @@ namespace AIOverhaul
         static void Log(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null, LogLevel level = LogLevel.Log)
         {
             string levelTag = level == LogLevel.Diagnostic ? "[DIAG]" : "";
-            string formattedMessage = $"{LogPrefix}{levelTag}[{kingdom?.Name}][{category}]{message}";
+            string formattedMessage = $"{k_LogPrefix}{levelTag}[{kingdom?.Name}][{category}]{message}";
 
             // Call the appropriate Logger method based on log level
             switch (level)
@@ -169,8 +165,8 @@ namespace AIOverhaul
         public static void InitializeEnhancedKingdoms(Game game)
         {
             if (game == null || game.kingdoms == null) return;
-            if (game == current_game) return;
-            current_game = game;
+            if (game == s_CurrentGame) return;
+            s_CurrentGame = game;
 
             EnhancedKingdomIds.Clear();
             BaselineKingdomIds.Clear();
@@ -343,8 +339,8 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Game), "Update")]
     public class UpdatePatch
     {
-        static bool _ultraSpeedActive;
-        static float _previousSpeed = 1f;
+        static bool s_UltraSpeedActive;
+        static float s_PreviousSpeed = 1f;
 
         static void Postfix(Game __instance)
         {
@@ -357,38 +353,38 @@ namespace AIOverhaul
             // Detect F8 key press to toggle 50x speed
                 if (Input.GetKeyDown(KeyCode.F8))
             {
-                if (_ultraSpeedActive)
+                if (s_UltraSpeedActive)
                 {
                     // Restore previous speed
-                    __instance.speed = _previousSpeed;
-                    _ultraSpeedActive = false;
-                    AIOverhaulPlugin.LogInfo($"Ultra Speed DISABLED - Restored to {_previousSpeed}x");
+                    __instance.speed = s_PreviousSpeed;
+                    s_UltraSpeedActive = false;
+                    AIOverhaulPlugin.LogInfo($"Ultra Speed DISABLED - Restored to {s_PreviousSpeed}x");
                 }
                 else
                 {
                     // Save current speed and set 50x
-                    _previousSpeed = __instance.speed;
+                    s_PreviousSpeed = __instance.speed;
                     __instance.SetSpeed(GameBalance.UltraSpeed);
-                    _ultraSpeedActive = true;
+                    s_UltraSpeedActive = true;
                     AIOverhaulPlugin.LogInfo($"Ultra Speed ENABLED - {GameBalance.UltraSpeed}x speed");
                 }
             }
 
             if (Input.GetKeyDown(KeyCode.F7))
             {
-                if (_ultraSpeedActive)
+                if (s_UltraSpeedActive)
                 {
-                    // Restore previous speed (re-using _ultraSpeedActive for simplicity as "any boost active")
-                    __instance.speed = _previousSpeed;
-                    _ultraSpeedActive = false;
-                    AIOverhaulPlugin.LogInfo($"High Speed DISABLED - Restored to {_previousSpeed}x");
+                    // Restore previous speed (re-using s_UltraSpeedActive for simplicity as "any boost active")
+                    __instance.speed = s_PreviousSpeed;
+                    s_UltraSpeedActive = false;
+                    AIOverhaulPlugin.LogInfo($"High Speed DISABLED - Restored to {s_PreviousSpeed}x");
                 }
                 else
                 {
                     // Save current speed and set 20x
-                    _previousSpeed = __instance.speed;
+                    s_PreviousSpeed = __instance.speed;
                     __instance.SetSpeed(GameBalance.HighSpeed);
-                    _ultraSpeedActive = true;
+                    s_UltraSpeedActive = true;
                     AIOverhaulPlugin.LogInfo($"High Speed ENABLED - {GameBalance.HighSpeed}x speed");
                 }
             }

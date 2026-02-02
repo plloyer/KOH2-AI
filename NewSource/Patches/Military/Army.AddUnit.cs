@@ -6,7 +6,7 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Logic.Army), "AddUnit", typeof(Logic.Unit.Def), typeof(int), typeof(bool), typeof(bool), typeof(bool))]
     public class Army_AddUnit
     {
-        const string LogPrefix = "[AddUnit]";
+        const string k_LogPrefix = "[AddUnit]";
         static bool Prefix(Logic.Army __instance, Logic.Unit.Def def, ref Logic.Unit __result)
         {
             if (__instance == null || def == null) return true;
@@ -19,7 +19,7 @@ namespace AIOverhaul
             int rangedCount = __instance.CountRangedUnits();
             if (rangedCount >= GameBalance.MaxRangedUnitsPerArmy)
             {
-                AIOverhaulPlugin.LogDebug($"{LogPrefix} BLOCKED ranged unit {def.id} - army already has {rangedCount} ranged units", LogCategory.Military, kingdom);
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BLOCKED ranged unit {def.id} - army already has {rangedCount} ranged units", LogCategory.Military, kingdom);
                 __result = null;
                 return false;
             }

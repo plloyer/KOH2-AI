@@ -18,13 +18,13 @@ namespace AIOverhaul
     /// </summary>
     public static class EnhancedPerformanceLogger
     {
-        static string PerformanceLogPath = IOPath.Combine(Paths.ConfigPath, "AI_Performance_Enhanced.csv");
-        static string BaselineLogPath = IOPath.Combine(Paths.ConfigPath, "AI_Baseline_Initial.csv");
-        static string AggregateLogPath = IOPath.Combine(Paths.ConfigPath, "AI_Aggregate_Stats.csv");
+        static string s_PerformanceLogPath = IOPath.Combine(Paths.ConfigPath, "AI_Performance_Enhanced.csv");
+        static string s_BaselineLogPath = IOPath.Combine(Paths.ConfigPath, "AI_Baseline_Initial.csv");
+        static string s_AggregateLogPath = IOPath.Combine(Paths.ConfigPath, "AI_Aggregate_Stats.csv");
 
-        static Dictionary<int, KingdomBaseline> kingdomBaselines = new Dictionary<int, KingdomBaseline>();
-        static int logCounter;
-        static readonly int AGGREGATE_LOG_INTERVAL = GameBalance.AggregateLogInterval;
+        static Dictionary<int, KingdomBaseline> s_KingdomBaselines = new Dictionary<int, KingdomBaseline>();
+        static int s_LogCounter;
+        const int k_AggregateLogInterval = 50;
 
         static EnhancedPerformanceLogger()
         {
@@ -36,7 +36,7 @@ namespace AIOverhaul
             try
             {
                 // Performance log
-                if (!File.Exists(PerformanceLogPath))
+                if (!File.Exists(s_PerformanceLogPath))
                 {
                     string header = "Timestamp,GameYear,KingdomName,AI_Type," +
                                    // Current state
@@ -49,18 +49,18 @@ namespace AIOverhaul
                                    "KingWritingSkill,KingClass,YearsElapsed," +
                                    // Status
                                    "IsDefeated,SurvivalYears\n";
-                    File.WriteAllText(PerformanceLogPath, header);
+                    File.WriteAllText(s_PerformanceLogPath, header);
                 }
 
                 // Baseline log
-                if (!File.Exists(BaselineLogPath))
+                if (!File.Exists(s_BaselineLogPath))
                 {
                     var dummy = new KingdomBaseline();
-                    File.WriteAllText(BaselineLogPath, dummy.ToCsvHeader() + ",AI_Type\n");
+                    File.WriteAllText(s_BaselineLogPath, dummy.ToCsvHeader() + ",AI_Type\n");
                 }
 
                 // Aggregate stats log
-                if (!File.Exists(AggregateLogPath))
+                if (!File.Exists(s_AggregateLogPath))
                 {
                     string header = "Timestamp,GameYear," +
                                    "EnhancedCount,BaselineCount," +
@@ -70,7 +70,7 @@ namespace AIOverhaul
                                    "EnhancedAvgBooks,BaselineAvgBooks,BooksRatio," +
                                    "EnhancedDefeated,BaselineDefeated," +
                                    "EnhancedSurvivalRate,BaselineSurvivalRate\n";
-                    File.WriteAllText(AggregateLogPath, header);
+                    File.WriteAllText(s_AggregateLogPath, header);
                 }
             }
             catch (Exception ex)
@@ -81,18 +81,18 @@ namespace AIOverhaul
 
         public static void RecordBaseline(Logic.Kingdom k, string aiType, Game game)
         {
-            if (k == null || kingdomBaselines.ContainsKey(k.id)) return;
+            if (k == null || s_KingdomBaselines.ContainsKey(k.id)) return;
 
             var baseline = KingdomBaseline.Create(k, game);
             if (baseline == null) return;
 
-            kingdomBaselines[k.id] = baseline;
+            s_KingdomBaselines[k.id] = baseline;
 
             // Log to baseline file
             try
             {
                 string line = baseline.ToCsvLine() + $",{aiType}";
-                File.AppendAllText(BaselineLogPath, line + "\n");
+                File.AppendAllText(s_BaselineLogPath, line + "\n");
             }
             catch (Exception ex)
             {
@@ -127,13 +127,13 @@ namespace AIOverhaul
                 string aiType = isEnhanced ? "Enhanced" : "Baseline";
 
                 // Get or create baseline
-                if (!kingdomBaselines.ContainsKey(k.id))
+                if (!s_KingdomBaselines.ContainsKey(k.id))
                 {
                     RecordBaseline(k, aiType, game);
                 }
 
                 KingdomBaseline baseline;
-                if (!kingdomBaselines.TryGetValue(k.id, out baseline) || baseline == null) continue;
+                if (!s_KingdomBaselines.TryGetValue(k.id, out baseline) || baseline == null) continue;
 
                 // Current metrics
                 int currentRealms = k.realms?.Count ?? 0;
@@ -181,7 +181,7 @@ namespace AIOverhaul
             {
                 try
                 {
-                    File.AppendAllLines(PerformanceLogPath, lines);
+                    File.AppendAllLines(s_PerformanceLogPath, lines);
                 }
                 catch (Exception ex)
                 {
@@ -190,11 +190,11 @@ namespace AIOverhaul
             }
 
             // Periodic aggregate logging
-            logCounter++;
-            if (logCounter >= AGGREGATE_LOG_INTERVAL)
+            s_LogCounter++;
+            if (s_LogCounter >= k_AggregateLogInterval)
             {
                 LogAggregateStats(game);
-                logCounter = 0;
+                s_LogCounter = 0;
             }
         }
 
@@ -209,7 +209,7 @@ namespace AIOverhaul
             string aiType = isEnhanced ? "Enhanced" : "Baseline";
 
             // Update baseline with defeat info
-            if (kingdomBaselines.TryGetValue(k.id, out var baseline))
+            if (s_KingdomBaselines.TryGetValue(k.id, out var baseline))
             {
                 if (!baseline.IsDefeated)
                 {
@@ -225,7 +225,7 @@ namespace AIOverhaul
 
                     try
                     {
-                        File.AppendAllText(PerformanceLogPath, line + "\n");
+                        File.AppendAllText(s_PerformanceLogPath, line + "\n");
                     }
                     catch (Exception ex)
                     {
@@ -264,8 +264,8 @@ namespace AIOverhaul
             float booksRatio = baselineAvgBooks > 0 ? enhancedAvgBooks / baselineAvgBooks : 0;
 
             // Count defeated
-            int enhancedDefeated = kingdomBaselines.Values.Count(kb => kb.IsDefeated && AIOverhaulPlugin.EnhancedKingdomIds.Contains(kb.KingdomId));
-            int baselineDefeated = kingdomBaselines.Values.Count(kb => kb.IsDefeated && AIOverhaulPlugin.BaselineKingdomIds.Contains(kb.KingdomId));
+            int enhancedDefeated = s_KingdomBaselines.Values.Count(kb => kb.IsDefeated && AIOverhaulPlugin.EnhancedKingdomIds.Contains(kb.KingdomId));
+            int baselineDefeated = s_KingdomBaselines.Values.Count(kb => kb.IsDefeated && AIOverhaulPlugin.BaselineKingdomIds.Contains(kb.KingdomId));
 
             int totalEnhanced = AIOverhaulPlugin.EnhancedKingdomIds.Count;
             int totalBaseline = AIOverhaulPlugin.BaselineKingdomIds.Count;
@@ -292,7 +292,7 @@ namespace AIOverhaul
 
             try
             {
-                File.AppendAllText(AggregateLogPath, line + "\n");
+                File.AppendAllText(s_AggregateLogPath, line + "\n");
             }
             catch (Exception ex)
             {
@@ -309,8 +309,8 @@ namespace AIOverhaul
 
         public static void ClearData()
         {
-            kingdomBaselines.Clear();
-            logCounter = 0;
+            s_KingdomBaselines.Clear();
+            s_LogCounter = 0;
         }
     }
 

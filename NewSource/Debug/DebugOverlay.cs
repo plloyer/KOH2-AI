@@ -11,30 +11,30 @@ namespace AIOverhaul
 {
     public class DebugOverlay : MonoBehaviour
     {
-        public static DebugOverlay Instance;
+        public static DebugOverlay Instance { get; set; }
 
         // Utility colors
-        const string ColorGrey = "grey";
-        const string ColorWhite = "white";
-        const string ColorGreen = "green";
-        const string ColorRed = "red";
-        const string ColorCyan = "cyan";
-        const string ColorYellow = "yellow";
-        const string ColorOrange = "orange";
-        const string ColorMagenta = "magenta";
-        
+        const string k_ColorGrey = "grey";
+        const string k_ColorWhite = "white";
+        const string k_ColorGreen = "green";
+        const string k_ColorRed = "red";
+        const string k_ColorCyan = "cyan";
+        const string k_ColorYellow = "yellow";
+        const string k_ColorOrange = "orange";
+        const string k_ColorMagenta = "magenta";
+
         // Color Constants (HTML color names or hex codes)
-        const string ColorEconomy = ColorOrange;
-        const string ColorFood = ColorYellow;
-        const string ColorMilitary = "#FF6666";      // Light red
-        const string ColorReligion = "#CC99FF";      // Light purple
-        const string ColorCoastal = "#6699FF";       // Blue
+        const string k_ColorEconomy = k_ColorOrange;
+        const string k_ColorFood = k_ColorYellow;
+        const string k_ColorMilitary = "#FF6666";      // Light red
+        const string k_ColorReligion = "#CC99FF";      // Light purple
+        const string k_ColorCoastal = "#6699FF";       // Blue
 
 
         // Configuration
-        Rect windowRect = new Rect(20, 150, 800, 800);
-        Vector2 scrollPosition;
-        bool isVisible;
+        Rect m_WindowRect = new Rect(20, 150, 800, 800);
+        Vector2 m_ScrollPosition;
+        bool m_IsVisible;
 
         // Data Storage
         public struct ExpenseRecord
@@ -44,7 +44,7 @@ namespace AIOverhaul
             public string Category;
         }
 
-        List<ExpenseRecord> consideredExpenses = new List<ExpenseRecord>();
+        List<ExpenseRecord> m_ConsideredExpenses = new List<ExpenseRecord>();
 
         void Awake()
         {
@@ -80,13 +80,13 @@ namespace AIOverhaul
 
         void OnSpectatorModeChanged(bool isSpectatorMode)
         {
-            bool wasVisible = isVisible;
-            isVisible = isSpectatorMode;
+            bool wasVisible = m_IsVisible;
+            m_IsVisible = isSpectatorMode;
 
-            if (isVisible && !wasVisible)
+            if (m_IsVisible && !wasVisible)
             {
                 // Reset to default position if toggled on
-                windowRect = new Rect(50, 150, 800, 800);
+                m_WindowRect = new Rect(50, 150, 800, 800);
                 AIOverhaulPlugin.LogInfo("Overlay toggled ON via Event.");
             }
         }
@@ -104,28 +104,28 @@ namespace AIOverhaul
 
         public void RecordConsideredExpense(string name, float score, string category)
         {
-            if (!isVisible) return;
+            if (!m_IsVisible) return;
 
-            consideredExpenses.Add(new ExpenseRecord { Name = name, Score = score, Category = category });
+            m_ConsideredExpenses.Add(new ExpenseRecord { Name = name, Score = score, Category = category });
             
             // Keep list manageable
-            if (consideredExpenses.Count > 100)
+            if (m_ConsideredExpenses.Count > 100)
             {
-                consideredExpenses.RemoveAt(0);
+                m_ConsideredExpenses.RemoveAt(0);
             }
         }
 
         void ClearExpenses()
         {
-            consideredExpenses.Clear();
+            m_ConsideredExpenses.Clear();
         }
 
         void OnGUI()
         {
-            if (!isVisible) return;
+            if (!m_IsVisible) return;
 
             // Use GUILayout.Area for a non-interactive, transparent overlay
-            GUILayout.BeginArea(windowRect);
+            GUILayout.BeginArea(m_WindowRect);
             
             // Define Custom Style for larger text and compact spacing
             GUIStyle style = new GUIStyle(GUI.skin.label);
@@ -244,7 +244,7 @@ namespace AIOverhaul
 
             if (activeLinks == 0)
             {
-                GUILayout.Label($"<color={ColorGrey}>No active buddy links</color>", style);
+                GUILayout.Label($"<color={k_ColorGrey}>No active buddy links</color>", style);
             }
             GUILayout.Space(5);
         }
@@ -315,8 +315,8 @@ namespace AIOverhaul
             float foodIncome = k.GetFoodIncome();
             int tradeAgreements = k.GetTradeAgreementCount();
 
-            GUILayout.Label($"Food: <color={ColorFood}>{food:F0} / {foodIncome:F0}</color>", style);
-            GUILayout.Label($"Gold: <color={ColorEconomy}>{gold:F0}</color> (+{goldIncome:F0}/s) | Books: <color={ColorReligion}>{books:F0}</color> | Merchants: <color={ColorEconomy}>{merchants}</color> | TA: <color={ColorEconomy}>{tradeAgreements}</color>", style);
+            GUILayout.Label($"Food: <color={k_ColorFood}>{food:F0} / {foodIncome:F0}</color>", style);
+            GUILayout.Label($"Gold: <color={k_ColorEconomy}>{gold:F0}</color> (+{goldIncome:F0}/s) | Books: <color={k_ColorReligion}>{books:F0}</color> | Merchants: <color={k_ColorEconomy}>{merchants}</color> | TA: <color={k_ColorEconomy}>{tradeAgreements}</color>", style);
             
             // Build Options stats
             int buildCount = Castle.last_build_options.Count;
@@ -353,12 +353,12 @@ namespace AIOverhaul
         {
             // Mortal Enemy
             var nemesis = AIOverhaulPlugin.GetMortalEnemy(k, k.game);
-            string nemesisDisplay = nemesis != null ? $"<color={ColorRed}>{nemesis.Name}</color>" : "None";
+            string nemesisDisplay = nemesis != null ? $"<color={k_ColorRed}>{nemesis.Name}</color>" : "None";
             GUILayout.Label($"Mortal Enemy: {nemesisDisplay}", style);
 
             // Expansion Target
             var expansionTarget = k.SelectExpansionTarget();
-            string expansionDisplay = expansionTarget != null ? $"<color={ColorMilitary}>{expansionTarget.Name}</color>" : "None";
+            string expansionDisplay = expansionTarget != null ? $"<color={k_ColorMilitary}>{expansionTarget.Name}</color>" : "None";
             GUILayout.Label($"Expansion Target: {expansionDisplay}", style);
 
             // Neighbors - Combined into one label to avoid gaps
@@ -420,9 +420,9 @@ namespace AIOverhaul
             GUILayout.Label("<b>--- Considered Expenses (Until Next Cycle) ---</b>", style);
             
             // Sort by Score descending
-            var sorted = consideredExpenses.OrderByDescending(e => e.Score).ToList();
+            var sorted = m_ConsideredExpenses.OrderByDescending(e => e.Score).ToList();
 
-            scrollPosition = GUILayout.BeginScrollView(scrollPosition, GUILayout.Height(300));
+            m_ScrollPosition = GUILayout.BeginScrollView(m_ScrollPosition, GUILayout.Height(300));
             
             foreach (var record in sorted)
             {
@@ -454,7 +454,7 @@ namespace AIOverhaul
                 // Get Goods stats
                 int currentGoods, maxGoods;
                 RealmHelper.GetGoodsStats(r, out currentGoods, out maxGoods);
-                string goodsColor = currentGoods > 0 ? (currentGoods >= maxGoods ? ColorGreen : ColorYellow) : ColorGrey;
+                string goodsColor = currentGoods > 0 ? (currentGoods >= maxGoods ? k_ColorGreen : k_ColorYellow) : k_ColorGrey;
 
                 // Format the output string with color coding
                 StringBuilder sb = new StringBuilder();
@@ -465,20 +465,20 @@ namespace AIOverhaul
 
                 // Order: Keeps, Village, Religious, Farm, Coastal
                 if (keeps > 0)
-                    parts.Add($"<color={ColorMilitary}>{keeps} Keep</color>");
+                    parts.Add($"<color={k_ColorMilitary}>{keeps} Keep</color>");
                 if (villages > 0)
-                    parts.Add($"<color={ColorEconomy}>{villages} Village</color>");
+                    parts.Add($"<color={k_ColorEconomy}>{villages} Village</color>");
                 if (religious > 0)
-                    parts.Add($"<color={ColorReligion}>{religious} Religious</color>");
+                    parts.Add($"<color={k_ColorReligion}>{religious} Religious</color>");
                 if (farms > 0)
-                    parts.Add($"<color={ColorFood}>{farms} Farm</color>");
+                    parts.Add($"<color={k_ColorFood}>{farms} Farm</color>");
                 if (coastal > 0)
-                    parts.Add($"<color={ColorCoastal}>{coastal} Coastal</color>");
+                    parts.Add($"<color={k_ColorCoastal}>{coastal} Coastal</color>");
 
                 if (parts.Count > 0)
                     sb.Append(string.Join(", ", parts));
                 else
-                    sb.Append($"<color={ColorGrey}>Empty</color>");
+                    sb.Append($"<color={k_ColorGrey}>Empty</color>");
 
                 GUILayout.Label(sb.ToString(), style);
             }

@@ -11,35 +11,35 @@ namespace AIOverhaul
     public class DemandLand_BorderException
     {
         // Kingdom fields
-        const string FIELD_EXTERNAL_BORDER_REALMS = "externalBorderRealms"; 
-        const string FIELD_REALMS = "realms"; 
-        const string FIELD_SOVEREIGN_STATE = "sovereignState"; 
-        const string FIELD_CULTURE = "culture"; 
-        const string FIELD_RELIGION = "religion";
-        const string FIELD_IS_ECUMENICAL = "is_ecumenical_patriarchate";
+        const string k_FieldExternalBorderRealms = "externalBorderRealms";
+        const string k_FieldRealms = "realms";
+        const string k_FieldSovereignState = "sovereignState";
+        const string k_FieldCulture = "culture";
+        const string k_FieldReligion = "religion";
+        const string k_FieldIsEcumenical = "is_ecumenical_patriarchate";
 
         // Kingdom methods
-        const string METHOD_IS_PAPACY = "IsPapacy";
-        const string METHOD_IS_ENEMY = "IsEnemy";
+        const string k_MethodIsPapacy = "IsPapacy";
+        const string k_MethodIsEnemy = "IsEnemy";
 
         // Realm fields
-        const string FIELD_CASTLE = "castle";
-        const string FIELD_REALM_CULTURE = "culture";
+        const string k_FieldCastle = "castle";
+        const string k_FieldRealmCulture = "culture";
 
         // Realm methods
-        const string METHOD_IS_OCCUPIED = "IsOccupied";
+        const string k_MethodIsOccupied = "IsOccupied";
 
         // Battle fields
-        const string FIELD_BATTLE = "battle";
-        const string FIELD_ATTACKER_KINGDOM = "attacker_kingdom";
-        const string FIELD_DEFENDER_KINGDOM = "defender_kingdom";
+        const string k_FieldBattle = "battle";
+        const string k_FieldAttackerKingdom = "attacker_kingdom";
+        const string k_FieldDefenderKingdom = "defender_kingdom";
 
         // Religion fields
-        const string FIELD_HQ_REALM = "hq_realm";
+        const string k_FieldHqRealm = "hq_realm";
 
         // Validation error string
-        const string ERROR_CULTURE_MISMATCH = "pop_majoirt_not_from_recieving";
-        const string VALIDATION_OK = "ok";
+        const string k_ErrorCultureMismatch = "pop_majoirt_not_from_recieving";
+        const string k_ValidationOk = "ok";
 
         // Helper to safely get value as type (for reference types)
         static T GetSafe<T>(Traverse t) where T : class
@@ -89,7 +89,7 @@ namespace AIOverhaul
         {
             try
             {
-                if (__result != ERROR_CULTURE_MISMATCH)
+                if (__result != k_ErrorCultureMismatch)
                     return;
 
                 var realm = __instance.GetArg<object>(0);
@@ -99,7 +99,7 @@ namespace AIOverhaul
                 if (receiverObj == null) return;
 
                 var receiverTraverse = Traverse.Create(receiverObj);
-                var borderRealmsObj = receiverTraverse.Field(FIELD_EXTERNAL_BORDER_REALMS).GetValue();
+                var borderRealmsObj = receiverTraverse.Field(k_FieldExternalBorderRealms).GetValue();
                 
                 if (borderRealmsObj == null) return;
 
@@ -107,7 +107,7 @@ namespace AIOverhaul
                 {
                     if (externalBorderRealms.Contains(realm))
                     {
-                        __result = VALIDATION_OK;
+                        __result = k_ValidationOk;
                     }
                 }
             }
@@ -133,7 +133,7 @@ namespace AIOverhaul
                 var kingdomTraverse = Traverse.Create(kingdom);
                 var kingdom2Traverse = Traverse.Create(kingdom2);
 
-                var realmsObj = kingdomTraverse.Field(FIELD_REALMS).GetValue();
+                var realmsObj = kingdomTraverse.Field(k_FieldRealms).GetValue();
                 if (realmsObj == null) return;
                 
                 IList kingdomRealms = realmsObj as IList;
@@ -147,10 +147,10 @@ namespace AIOverhaul
                 }
 
                 // Safe access to sovereign
-                var sobj = kingdom2Traverse.Field(FIELD_SOVEREIGN_STATE).GetValue();
+                var sobj = kingdom2Traverse.Field(k_FieldSovereignState).GetValue();
                 
                 // Safe access to border realms
-                var borderRealmsObj = kingdom2Traverse.Field(FIELD_EXTERNAL_BORDER_REALMS).GetValue();
+                var borderRealmsObj = kingdom2Traverse.Field(k_FieldExternalBorderRealms).GetValue();
                 IList kingdom2BorderRealms = borderRealmsObj as IList;
 
                 foreach (object realm in kingdomRealms)
@@ -160,32 +160,32 @@ namespace AIOverhaul
 
                     var realmTraverse = Traverse.Create(realm);
                     
-                    var realmCastle = realmTraverse.Field(FIELD_CASTLE).GetValue();
+                    var realmCastle = realmTraverse.Field(k_FieldCastle).GetValue();
                     if (realmCastle == null) continue;
                     
-                    bool isOccupied = GetBoolSafe(realmTraverse.Method(METHOD_IS_OCCUPIED));
+                    bool isOccupied = GetBoolSafe(realmTraverse.Method(k_MethodIsOccupied));
                     if (isOccupied) continue;
 
                     var castleTraverse = Traverse.Create(realmCastle);
-                    var castleBattle = castleTraverse.Field(FIELD_BATTLE).GetValue();
+                    var castleBattle = castleTraverse.Field(k_FieldBattle).GetValue();
                     
                     if (castleBattle != null)
                     {
                         var battleTraverse = Traverse.Create(castleBattle);
-                        var att = battleTraverse.Field(FIELD_ATTACKER_KINGDOM).GetValue();
-                        var def = battleTraverse.Field(FIELD_DEFENDER_KINGDOM).GetValue();
+                        var att = battleTraverse.Field(k_FieldAttackerKingdom).GetValue();
+                        var def = battleTraverse.Field(k_FieldDefenderKingdom).GetValue();
                         
                         if (att != kingdom2 && def != kingdom2)
                             continue;
                     }
 
                     // Religion checks
-                    var kingdomReligion = kingdomTraverse.Field(FIELD_RELIGION).GetValue();
+                    var kingdomReligion = kingdomTraverse.Field(k_FieldReligion).GetValue();
                     if (kingdomReligion != null)
                     {
-                         var hqRealm = Traverse.Create(kingdomReligion).Field(FIELD_HQ_REALM).GetValue();
-                         bool isPapacy = GetBoolSafe(kingdomTraverse.Method(METHOD_IS_PAPACY));
-                         bool isEcumenical = GetBoolSafe(kingdomTraverse.Field(FIELD_IS_ECUMENICAL));
+                         var hqRealm = Traverse.Create(kingdomReligion).Field(k_FieldHqRealm).GetValue();
+                         bool isPapacy = GetBoolSafe(kingdomTraverse.Method(k_MethodIsPapacy));
+                         bool isEcumenical = GetBoolSafe(kingdomTraverse.Field(k_FieldIsEcumenical));
                          
                          if (realm == hqRealm && (isPapacy || isEcumenical))
                              continue;
@@ -201,7 +201,7 @@ namespace AIOverhaul
                     bool isEnemy = false;
                     try 
                     {
-                        var isEnemyObj = kingdomTraverse.Method(METHOD_IS_ENEMY, kingdom2).GetValue();
+                        var isEnemyObj = kingdomTraverse.Method(k_MethodIsEnemy, kingdom2).GetValue();
                         if (isEnemyObj is bool b) isEnemy = b;
                     } 
                     catch {isEnemy = true;} // Default to unsafe if check fails
@@ -209,8 +209,8 @@ namespace AIOverhaul
                     
                     if (!isEnemy && sobj != kingdom)
                     {
-                        string realmCulture = GetStringSafe(realmTraverse.Field(FIELD_REALM_CULTURE));
-                        string k2Culture = GetStringSafe(kingdom2Traverse.Field(FIELD_CULTURE));
+                        string realmCulture = GetStringSafe(realmTraverse.Field(k_FieldRealmCulture));
+                        string k2Culture = GetStringSafe(kingdom2Traverse.Field(k_FieldCulture));
                         
                         if (realmCulture != k2Culture && realmCulture != null && k2Culture != null)
                         {

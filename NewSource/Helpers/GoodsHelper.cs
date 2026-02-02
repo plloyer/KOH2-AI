@@ -6,11 +6,11 @@ namespace AIOverhaul
     public static class GoodsHelper
     {
         // Cache to avoid iterating defs every frame
-        public static List<Logic.Building.Def> ProductiveBuildings;
+        public static List<Logic.Building.Def> ProductiveBuildings { get; set; }
 
         // Cache for max goods per realm (init once, usable by all threads safe enough for read)
         // Key: Realm ID, Value: Max Goods Count
-        public static Dictionary<int, int> RealmMaxGoodsCache = new Dictionary<int, int>();
+        public static Dictionary<int, int> RealmMaxGoodsCache { get; } = new Dictionary<int, int>();
         
         public static void EnsureCache(Logic.Game game)
         {

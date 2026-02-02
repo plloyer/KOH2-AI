@@ -8,19 +8,19 @@ namespace AIOverhaul
     public static class BuddySystem
     {
         // Key: Army ID, Value: Buddy Army ID
-        public static Dictionary<int, int> buddyMap = new Dictionary<int, int>();
+        public static Dictionary<int, int> BuddyMap { get; } = new Dictionary<int, int>();
 
         // Key: Kingdom ID, Value: Last re-evaluation time (real time seconds)
-        static Dictionary<int, float> lastReevalTime = new Dictionary<int, float>();
+        static Dictionary<int, float> s_LastReevalTime = new Dictionary<int, float>();
 
         // Key: Kingdom ID, Value: Strike force army IDs (the two strongest)
-        static Dictionary<int, (int, int)> strikeForceMap = new Dictionary<int, (int, int)>();
+        static Dictionary<int, (int, int)> s_StrikeForceMap = new Dictionary<int, (int, int)>();
 
         public static void ClearCache()
         {
-            buddyMap.Clear();
-            lastReevalTime.Clear();
-            strikeForceMap.Clear();
+            BuddyMap.Clear();
+            s_LastReevalTime.Clear();
+            s_StrikeForceMap.Clear();
         }
 
         /// <summary>
@@ -35,14 +35,14 @@ namespace AIOverhaul
             float currentTime = Time.time;
 
             // Check if re-evaluation is needed
-            if (lastReevalTime.TryGetValue(kingdomId, out float lastTime))
+            if (s_LastReevalTime.TryGetValue(kingdomId, out float lastTime))
             {
                 float elapsed = currentTime - lastTime;
                 if (elapsed < GameBalance.BuddyReevalIntervalMinutes * 60f)
                     return; // Not time yet
             }
 
-            lastReevalTime[kingdomId] = currentTime;
+            s_LastReevalTime[kingdomId] = currentTime;
 
             // Get all valid armies sorted by strength (strongest first)
             var validArmies = kingdom.armies
@@ -53,7 +53,7 @@ namespace AIOverhaul
             if (validArmies.Count < GameBalance.MinArmiesForStrikeForce)
             {
                 // Not enough armies for strike force
-                strikeForceMap.Remove(kingdomId);
+                s_StrikeForceMap.Remove(kingdomId);
                 return;
             }
 
@@ -61,12 +61,12 @@ namespace AIOverhaul
             foreach (var army in validArmies)
             {
                 int armyId = army.GetNid();
-                if (buddyMap.ContainsKey(armyId))
+                if (BuddyMap.ContainsKey(armyId))
                 {
-                    int oldBuddyId = buddyMap[armyId];
-                    buddyMap.Remove(armyId);
-                    if (buddyMap.ContainsKey(oldBuddyId) && buddyMap[oldBuddyId] == armyId)
-                        buddyMap.Remove(oldBuddyId);
+                    int oldBuddyId = BuddyMap[armyId];
+                    BuddyMap.Remove(armyId);
+                    if (BuddyMap.ContainsKey(oldBuddyId) && BuddyMap[oldBuddyId] == armyId)
+                        BuddyMap.Remove(oldBuddyId);
                 }
             }
 
@@ -77,9 +77,9 @@ namespace AIOverhaul
             int id1 = strongest.GetNid();
             int id2 = secondStrongest.GetNid();
 
-            buddyMap[id1] = id2;
-            buddyMap[id2] = id1;
-            strikeForceMap[kingdomId] = (id1, id2);
+            BuddyMap[id1] = id2;
+            BuddyMap[id2] = id1;
+            s_StrikeForceMap[kingdomId] = (id1, id2);
 
             AIOverhaulPlugin.LogDebug($"[Buddy] Strike Force formed: {strongest.leader?.Name ?? $"Army#{id1}"} (Str:{strongest.EvalStrength():F0}) + {secondStrongest.leader?.Name ?? $"Army#{id2}"} (Str:{secondStrongest.EvalStrength():F0})", LogCategory.Military, kingdom);
         }
@@ -91,7 +91,7 @@ namespace AIOverhaul
         {
             if (army == null || kingdom == null) return false;
 
-            if (strikeForceMap.TryGetValue(kingdom.id, out var pair))
+            if (s_StrikeForceMap.TryGetValue(kingdom.id, out var pair))
             {
                 int armyId = army.GetNid();
                 return armyId == pair.Item1 || armyId == pair.Item2;
@@ -109,9 +109,9 @@ namespace AIOverhaul
             int armyId = army.GetNid();
 
             // Check existing buddy
-            if (buddyMap.ContainsKey(armyId))
+            if (BuddyMap.ContainsKey(armyId))
             {
-                int buddyId = buddyMap[armyId];
+                int buddyId = BuddyMap[armyId];
                 var buddy = kingdom.armies.Find(a => a.GetNid() == buddyId);
 
                 // Validate buddy exists and is valid
@@ -134,9 +134,9 @@ namespace AIOverhaul
                 }
 
                 // Buddy died, invalid, or too far (non-strike force)
-                buddyMap.Remove(armyId);
-                if (buddyMap.ContainsKey(buddyId) && buddyMap[buddyId] == armyId)
-                    buddyMap.Remove(buddyId);
+                BuddyMap.Remove(armyId);
+                if (BuddyMap.ContainsKey(buddyId) && BuddyMap[buddyId] == armyId)
+                    BuddyMap.Remove(buddyId);
             }
 
             return null;
@@ -147,9 +147,9 @@ namespace AIOverhaul
             if (army == null || kingdom == null) return false;
 
             // In strike force: weaker army follows stronger army
-            if (buddyMap.ContainsKey(army.GetNid()))
+            if (BuddyMap.ContainsKey(army.GetNid()))
             {
-                int buddyId = buddyMap[army.GetNid()];
+                int buddyId = BuddyMap[army.GetNid()];
                 var buddy = kingdom.armies?.Find(a => a.GetNid() == buddyId);
 
                 if (buddy == null || !buddy.IsValid()) return false;

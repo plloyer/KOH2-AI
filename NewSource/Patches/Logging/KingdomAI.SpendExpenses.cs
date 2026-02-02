@@ -7,7 +7,7 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(KingdomAI), "SpendExpenses")]
     public static class KingdomAI_SpendExpenses
     {
-        const string LogPrefix = "[AI EXPENSE OPTIONS]";
+        const string k_LogPrefix = "[AI EXPENSE OPTIONS]";
         public static void Prefix(KingdomAI __instance, WeightedRandom<KingdomAI.Expense> expenses)
         {
             if (__instance.kingdom == null || __instance.kingdom.is_player) return;
@@ -15,7 +15,7 @@ namespace AIOverhaul
 
             // dump() returns a string summary of options
             string dump = expenses.Dump();
-            AIOverhaulPlugin.LogDebug($"{LogPrefix} {__instance.kingdom.Name}:\n{dump}",  LogCategory.Economy, __instance.kingdom);
+            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {__instance.kingdom.Name}:\n{dump}",  LogCategory.Economy, __instance.kingdom);
         }
     }
 }

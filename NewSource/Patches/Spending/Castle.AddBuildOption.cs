@@ -10,8 +10,8 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Castle), "AddBuildOptions", typeof(bool), typeof(Resource))]
     public class Castle_AddBuildOptions
     {
-        const float HighPriorityEval = 100000f;
-        const int MinVillagesForMilitia = 2;
+        const float k_HighPriorityEval = 100000f;
+        const int k_MinVillagesForMilitia = 2;
 
         static void Postfix(Castle __instance)
         {
@@ -68,7 +68,7 @@ namespace AIOverhaul
                     if (option.def.id == BuildingNames.CropFarming)
                     {
                         // Boost based on Farm count
-                        option.eval = HighPriorityEval * (1 + farmCount) * 2; // Prioritize farm over harbor
+                        option.eval = k_HighPriorityEval * (1 + farmCount) * 2; // Prioritize farm over harbor
                         option.priority = KingdomAI.Expense.Priority.Urgent;
                         Castle.build_options[i] = option;
                         AIOverhaulPlugin.LogDebug($"BOOSTING CropFarming in {castle.name}: eval={option.eval}", LogCategory.Spending, kingdom);
@@ -76,7 +76,7 @@ namespace AIOverhaul
                     else if (option.def.id == BuildingNames.Harbor)
                     {
                         // Boost based on Coastal count
-                        option.eval = HighPriorityEval * (1 + coastalCount);
+                        option.eval = k_HighPriorityEval * (1 + coastalCount);
                         option.priority = KingdomAI.Expense.Priority.Urgent;
                         Castle.build_options[i] = option;
                         AIOverhaulPlugin.LogDebug($"BOOSTING Harbor in {castle.name}: eval={option.eval}", LogCategory.Spending, kingdom);
@@ -91,14 +91,14 @@ namespace AIOverhaul
 
                     if (option.def.id == BuildingUpgradeNames.CropsRotation)
                     {
-                        option.eval = HighPriorityEval * (1 + farmCount) * 2;
+                        option.eval = k_HighPriorityEval * (1 + farmCount) * 2;
                         option.priority = KingdomAI.Expense.Priority.Urgent;
                         Castle.upgrade_options[i] = option;
                         AIOverhaulPlugin.LogDebug($"BOOSTING CropsRotation upgrade in {castle.name}: eval={option.eval}", LogCategory.Spending, kingdom);
                     }
                     else if (option.def.id == BuildingUpgradeNames.Docks_Harbor)
                     {
-                        option.eval = HighPriorityEval * (1 + coastalCount);
+                        option.eval = k_HighPriorityEval * (1 + coastalCount);
                         option.priority = KingdomAI.Expense.Priority.Urgent;
                         Castle.upgrade_options[i] = option;
                         AIOverhaulPlugin.LogDebug($"BOOSTING Docks upgrade in {castle.name}: eval={option.eval}", LogCategory.Spending, kingdom);
@@ -133,7 +133,7 @@ namespace AIOverhaul
                     if (r == null || r.castle == null) continue;
 
                     int vCount = r.GetVillageCount();
-                    if (vCount >= MinVillagesForMilitia)
+                    if (vCount >= k_MinVillagesForMilitia)
                     {
                         if (vCount > maxVillages)
                         {
@@ -155,7 +155,7 @@ namespace AIOverhaul
                     var option = Castle.build_options[i];
                     if (option.def != null && option.def.id == BuildingNames.VillageMilitia)
                     {
-                        option.eval = HighPriorityEval;
+                        option.eval = k_HighPriorityEval;
                         option.priority = KingdomAI.Expense.Priority.Urgent;
                         Castle.build_options[i] = option;
 

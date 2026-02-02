@@ -12,7 +12,7 @@ namespace AIOverhaul
     public class KingdomAI_ConsiderExpense
     {
         const float k_MinIncomeToHireSpy = 300f;
-        const string LogPrefix = "[KingdomAI_ConsiderExpense]";
+        const string k_LogPrefix = "[KingdomAI_ConsiderExpense]";
         
         static bool Prefix(KingdomAI __instance, KingdomAI.Expense.Type type, BaseObject defParam)
         {
@@ -37,7 +37,7 @@ namespace AIOverhaul
                     float income = kingdomAI.kingdom.income[ResourceType.Gold];
                     if (income < k_MinIncomeToHireSpy)
                     {
-                        AIOverhaulPlugin.LogDebug($"{LogPrefix} Blocking Spy hiring: Income {income:F1} < {k_MinIncomeToHireSpy}", LogCategory.Knights, kingdomAI.kingdom);
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocking Spy hiring: Income {income:F1} < {k_MinIncomeToHireSpy}", LogCategory.Knights, kingdomAI.kingdom);
                         return false; // Skip execution (don't consider this expense)
                     }
 

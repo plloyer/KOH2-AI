@@ -10,7 +10,7 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(KingdomAI), "ThinkFight")]
     public class KingdomAI_ThinkFight
     {
-        const string LogPrefix = "[ThinkFight]";
+        const string k_LogPrefix = "[ThinkFight]";
         static bool Prefix(KingdomAI __instance, Logic.Army army, ref bool __result)
         {
             Logic.Realm realmIn = army?.realm_in;
@@ -66,12 +66,12 @@ namespace AIOverhaul
                         float buddyStr = buddy.EvalStrength();
                         if (!BuddySystem.ShouldBuddyHelp(army, buddyStr, enemyStrength, __instance.kingdom))
                         {
-                            AIOverhaulPlugin.LogDebug($"{LogPrefix} Army {army.GetNid()} too weak to help buddy {buddy.GetNid()}, not engaging", LogCategory.Military, __instance.kingdom);
+                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Army {army.GetNid()} too weak to help buddy {buddy.GetNid()}, not engaging", LogCategory.Military, __instance.kingdom);
                             // Don't force engage, let vanilla handle it
                         }
                         else
                         {
-                            AIOverhaulPlugin.LogDebug($"{LogPrefix} Force engaging to help buddy {buddy.GetNid()} in battle!", LogCategory.Military, __instance.kingdom);
+                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Force engaging to help buddy {buddy.GetNid()} in battle!", LogCategory.Military, __instance.kingdom);
                             __result = true; // Fight!
                             return false; // Skip vanilla calc
                         }
@@ -89,7 +89,7 @@ namespace AIOverhaul
                         float soloWinChance = ownStrength / (ownStrength + enemyStrength);
                         if (soloWinChance < GameBalance.MinBattleWinChance && winChance >= GameBalance.MinBattleWinChance)
                         {
-                            AIOverhaulPlugin.LogDebug($"{LogPrefix} Leader {army.GetNid()} is waiting for buddy {buddy.GetNid()}", LogCategory.Military, __instance.kingdom);
+                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Leader {army.GetNid()} is waiting for buddy {buddy.GetNid()}", LogCategory.Military, __instance.kingdom);
                             army.Stop();
                             army.SetAIStatus(AIStatusNames.WaitForBuddy);
                             __result = true;

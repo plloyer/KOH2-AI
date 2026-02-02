@@ -11,9 +11,9 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(KingdomAI), "ThinkArmy")]
     public class KingdomAI_ThinkArmy
     {
-        const string LogPrefixThink = "[ThinkArmy]";
-        const string LogPrefixBuddy = "[Buddy]";
-        const float SallyOutStrengthRatio = 1.2f;
+        const string k_LogPrefixThink = "[ThinkArmy]";
+        const string k_LogPrefixBuddy = "[Buddy]";
+        const float k_SallyOutStrengthRatio = 1.2f;
 
         static bool Prefix(KingdomAI __instance, Logic.Army army)
         {
@@ -40,7 +40,7 @@ namespace AIOverhaul
                 float localStrength = threat.friends_in.eval;
 
                 if (threat.level == KingdomAI.Threat.Level.Siege)
-                    AIOverhaulPlugin.LogDebug($"{LogPrefixThink} SIEGE detected at {r.name}! Army {army.GetNid()} Str: {armyStrength:F0}, Enemy: {enemyStrength:F0}, Stronger: {armyStrength >= enemyStrength}", LogCategory.Military, __instance.kingdom);
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefixThink} SIEGE detected at {r.name}! Army {army.GetNid()} Str: {armyStrength:F0}, Enemy: {enemyStrength:F0}, Stronger: {armyStrength >= enemyStrength}", LogCategory.Military, __instance.kingdom);
 
                 // Only prioritize defense if we're stronger than the enemy
                 if (localStrength < enemyStrength)
@@ -54,7 +54,7 @@ namespace AIOverhaul
                     var siegeBattle = Traverse.Create(r.castle).Field("battle").GetValue<Logic.Battle>();
                     if (siegeBattle != null && army.battle != siegeBattle)
                     {
-                        AIOverhaulPlugin.LogDebug($"{LogPrefixThink} FORCE DEFEND: Army {army.GetNid()} breaking siege at {r.name}! (Str: {armyStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefixThink} FORCE DEFEND: Army {army.GetNid()} breaking siege at {r.name}! (Str: {armyStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
                         TraverseAPI.SendArmy(__instance, army, siegeBattle, AIStatusNames.Attack);
                         return false;
                     }
@@ -66,7 +66,7 @@ namespace AIOverhaul
                         {
                             if (enemyArmy.IsSieging() && army.GetTarget() != enemyArmy)
                             {
-                                AIOverhaulPlugin.LogDebug($"{LogPrefixThink} FORCE DEFEND: Army {army.GetNid()} attacking besieging army at {r.name}! (Str: {armyStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
+                                AIOverhaulPlugin.LogDebug($"{k_LogPrefixThink} FORCE DEFEND: Army {army.GetNid()} attacking besieging army at {r.name}! (Str: {armyStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
                                 TraverseAPI.SendArmy(__instance, army, enemyArmy, AIStatusNames.Attack);
                                 return false;
                             }
@@ -89,14 +89,14 @@ namespace AIOverhaul
                 Castle nearest = TraverseAPI.FindNearestOwnCastle(__instance, army, false);
                 if (nearest != null)
                 {
-                    AIOverhaulPlugin.LogDebug($"{LogPrefixThink} Army {army.GetNid()} retreating for healing to {nearest.name}", LogCategory.Military, __instance.kingdom);
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefixThink} Army {army.GetNid()} retreating for healing to {nearest.name}", LogCategory.Military, __instance.kingdom);
                     TraverseAPI.SendArmy(__instance, army, nearest, AIStatusNames.RetreatHeal);
 
                     // If this army has a buddy, signal them to retreat too
                     var healBuddy = BuddySystem.GetBuddy(army, __instance.kingdom);
                     if (healBuddy != null && healBuddy.IsValid() && healBuddy.castle == null && healBuddy.battle == null)
                     {
-                        AIOverhaulPlugin.LogDebug($"{LogPrefixThink} Buddy {healBuddy.GetNid()} also retreating with {army.GetNid()}", LogCategory.Military, __instance.kingdom);
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefixThink} Buddy {healBuddy.GetNid()} also retreating with {army.GetNid()}", LogCategory.Military, __instance.kingdom);
                         TraverseAPI.SendArmy(__instance, healBuddy, nearest, AIStatusNames.RetreatHealBuddy);
                     }
                     return;
@@ -112,7 +112,7 @@ namespace AIOverhaul
             string tgtRealmName = army.tgt_realm?.name ?? "None";
             bool isMoving = army.movement?.IsMoving() ?? false;
 
-            AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: Status={status}, InCastle={army.castle?.name ?? "No"}, Target={currentTargetName}, TgtRealm={tgtRealmName}, Moving={isMoving}", LogCategory.Military, __instance.kingdom);
+            AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: Status={status}, InCastle={army.castle?.name ?? "No"}, Target={currentTargetName}, TgtRealm={tgtRealmName}, Moving={isMoving}", LogCategory.Military, __instance.kingdom);
 
             // Check buddy relationship
             bool isFollower = BuddySystem.IsFollower(army, __instance.kingdom);
@@ -120,13 +120,13 @@ namespace AIOverhaul
 
             // if (buddy == null)
             // {
-            //     AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: No buddy assigned", LogCategory.Military, __instance.kingdom);
+            //     AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: No buddy assigned", LogCategory.Military, __instance.kingdom);
             // }
             // else
             // {
             //     string buddyName = buddy.leader?.Name ?? $"Army#{buddy.GetNid()}";
             //     string role = isFollower ? "FOLLOWER" : "LEADER";
-            //     AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: Role={role}, Buddy={buddyName}", LogCategory.Military, __instance.kingdom);
+            //     AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: Role={role}, Buddy={buddyName}", LogCategory.Military, __instance.kingdom);
             // }
 
             if (isFollower && buddy != null && buddy.IsValid())
@@ -140,7 +140,7 @@ namespace AIOverhaul
                 bool leaderMoving = buddy.movement?.IsMoving() ?? false;
                 bool leaderInCastle = buddy.castle != null;
 
-                AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} Leader {leaderName} state: InCastle={buddy.castle?.name ?? "No"}, Target={leaderTargetName}, TgtRealm={leaderTgtRealm}, Moving={leaderMoving}", LogCategory.Military, __instance.kingdom);
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} Leader {leaderName} state: InCastle={buddy.castle?.name ?? "No"}, Target={leaderTargetName}, TgtRealm={leaderTgtRealm}, Moving={leaderMoving}", LogCategory.Military, __instance.kingdom);
 
                 // If leader is garrisoned (inside a castle), check if castle is under siege
                 if (leaderInCastle)
@@ -159,16 +159,16 @@ namespace AIOverhaul
                                 float enemyStr = threat.enemies_in.eval;
                                 if (!BuddySystem.ShouldBuddyHelp(army, friendlyStr, enemyStr, __instance.kingdom))
                                 {
-                                    AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: Skipping rescue_leader_siege - army too weak to impact", LogCategory.Military, __instance.kingdom);
+                                    AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: Skipping rescue_leader_siege - army too weak to impact", LogCategory.Military, __instance.kingdom);
                                     return;
                                 }
-                                AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: ACTION=rescue_leader_siege (Leader's castle {buddy.castle.name} under siege!)", LogCategory.Military, __instance.kingdom);
+                                AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: ACTION=rescue_leader_siege (Leader's castle {buddy.castle.name} under siege!)", LogCategory.Military, __instance.kingdom);
                                 TraverseAPI.SendArmy(__instance, army, siegeBattle, AIStatusNames.RescueLeaderSiege);
                                 return;
                             }
                         }
                     }
-                    AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: Leader in castle (no siege) -> follower acts independently", LogCategory.Military, __instance.kingdom);
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: Leader in castle (no siege) -> follower acts independently", LogCategory.Military, __instance.kingdom);
                     return;
                 }
 
@@ -178,7 +178,7 @@ namespace AIOverhaul
                     var buddyTarget = buddy.GetTarget();
                     if (buddyTarget is Castle targetCastle && army.GetTarget() != targetCastle)
                     {
-                        AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: Following buddy retreat to {targetCastle.name}",
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: Following buddy retreat to {targetCastle.name}",
                             LogCategory.Military, __instance.kingdom);
                         TraverseAPI.SendArmy(__instance, army, targetCastle, AIStatusNames.RetreatHealBuddy);
                         return;
@@ -205,11 +205,11 @@ namespace AIOverhaul
 
                     if (!BuddySystem.ShouldBuddyHelp(army, friendlyStr, enemyStr, __instance.kingdom))
                     {
-                        AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: Skipping join_leader_battle - army too weak to impact", LogCategory.Military, __instance.kingdom);
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: Skipping join_leader_battle - army too weak to impact", LogCategory.Military, __instance.kingdom);
                     }
                     else if (army.GetTarget() != buddy.battle && army.GetTarget() != buddy)
                     {
-                        AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: ACTION=join_leader_battle (Leader is in battle!)", LogCategory.Military, __instance.kingdom);
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: ACTION=join_leader_battle (Leader is in battle!)", LogCategory.Military, __instance.kingdom);
                         TraverseAPI.SendArmy(__instance, army, buddy.battle, AIStatusNames.JoinLeaderBattle);
                         return;
                     }
@@ -244,7 +244,7 @@ namespace AIOverhaul
                     }
                 }
 
-                AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: Leader target type={targetType}, IsMilitary={isMilitaryTarget}", LogCategory.Military, __instance.kingdom);
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: Leader target type={targetType}, IsMilitary={isMilitaryTarget}", LogCategory.Military, __instance.kingdom);
 
                 // Only copy target if it's a military target
                 if (isMilitaryTarget && army.GetTarget() != leaderTarget)
@@ -273,11 +273,11 @@ namespace AIOverhaul
                     // Check if this army should help (enough units or changes outcome)
                     if (!BuddySystem.ShouldBuddyHelp(army, friendlyStr, enemyStr, __instance.kingdom))
                     {
-                        AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: Skipping follow_buddy_force - army too weak to impact", LogCategory.Military, __instance.kingdom);
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: Skipping follow_buddy_force - army too weak to impact", LogCategory.Military, __instance.kingdom);
                     }
                     else
                     {
-                        AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: ACTION=follow_buddy_force (copying leader's military target)", LogCategory.Military, __instance.kingdom);
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: ACTION=follow_buddy_force (copying leader's military target)", LogCategory.Military, __instance.kingdom);
                         TraverseAPI.SendArmy(__instance, army, leaderTarget, AIStatusNames.FollowBuddyForce);
                         return;
                     }
@@ -289,11 +289,11 @@ namespace AIOverhaul
                     var tgtRealmKingdom = buddy.tgt_realm.GetKingdom();
                     bool isEnemyTerritory = tgtRealmKingdom != null && tgtRealmKingdom.IsEnemy(__instance.kingdom.id);
 
-                    AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: Leader moving to {buddy.tgt_realm.name} (Owner: {tgtRealmKingdom?.Name ?? "None"}, IsEnemy={isEnemyTerritory})", LogCategory.Military, __instance.kingdom);
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: Leader moving to {buddy.tgt_realm.name} (Owner: {tgtRealmKingdom?.Name ?? "None"}, IsEnemy={isEnemyTerritory})", LogCategory.Military, __instance.kingdom);
 
                     if (isEnemyTerritory && army.GetTarget() != buddy)
                     {
-                        AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: ACTION=follow_buddy_move (following leader to enemy territory)", LogCategory.Military, __instance.kingdom);
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: ACTION=follow_buddy_move (following leader to enemy territory)", LogCategory.Military, __instance.kingdom);
                         TraverseAPI.SendArmy(__instance, army, buddy, AIStatusNames.FollowBuddyMove);
                         return;
                     }
@@ -308,14 +308,14 @@ namespace AIOverhaul
 
                     if (isEnemyTerritory && army.GetTarget() != buddy)
                     {
-                        AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: Leader stationary at enemy realm {buddy.tgt_realm.name}", LogCategory.Military, __instance.kingdom);
-                        AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: ACTION=join_leader_territory (going to leader in enemy territory)", LogCategory.Military, __instance.kingdom);
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: Leader stationary at enemy realm {buddy.tgt_realm.name}", LogCategory.Military, __instance.kingdom);
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: ACTION=join_leader_territory (going to leader in enemy territory)", LogCategory.Military, __instance.kingdom);
                         TraverseAPI.SendArmy(__instance, army, buddy, AIStatusNames.JoinLeaderTerritory);
                         return;
                     }
                 }
 
-                AIOverhaulPlugin.LogDebug($"{LogPrefixBuddy} {armyName}: No action taken - leader not doing military action", LogCategory.Military, __instance.kingdom);
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefixBuddy} {armyName}: No action taken - leader not doing military action", LogCategory.Military, __instance.kingdom);
             }
             else
             {
@@ -344,11 +344,11 @@ namespace AIOverhaul
                              // Check if this army should help (enough units or changes outcome)
                              if (!BuddySystem.ShouldBuddyHelp(army, friendlyStr, enemyStr, __instance.kingdom))
                              {
-                                 AIOverhaulPlugin.LogDebug($"{LogPrefixThink} Leader {army.GetNid()} skipping rescue - army too weak to impact battle", LogCategory.Military, __instance.kingdom);
+                                 AIOverhaulPlugin.LogDebug($"{k_LogPrefixThink} Leader {army.GetNid()} skipping rescue - army too weak to impact battle", LogCategory.Military, __instance.kingdom);
                              }
                              else
                              {
-                                 AIOverhaulPlugin.LogDebug($"{LogPrefixThink} Leader {army.GetNid()} RESCUING Buddy {buddy.GetNid()} in battle!", LogCategory.Military, __instance.kingdom);
+                                 AIOverhaulPlugin.LogDebug($"{k_LogPrefixThink} Leader {army.GetNid()} RESCUING Buddy {buddy.GetNid()} in battle!", LogCategory.Military, __instance.kingdom);
                                  TraverseAPI.SendArmy(__instance, army, buddy, AIStatusNames.RescueBuddy);
                                  return;
                              }
@@ -371,7 +371,7 @@ namespace AIOverhaul
                             float enemyStrength = threat.enemies_in.eval;
 
                             // If we are stronger (with buffer), attack!
-                            if (enemyStrength > 0 && myStrength > enemyStrength * SallyOutStrengthRatio)
+                            if (enemyStrength > 0 && myStrength > enemyStrength * k_SallyOutStrengthRatio)
                             {
                                 // Find the battle (Siege) attached to the castle
                                 // Using Reflection to access 'battle' field on Castle/Settlement to be safe
@@ -379,7 +379,7 @@ namespace AIOverhaul
                                 
                                 if (siegeBattle != null)
                                 {
-                                    AIOverhaulPlugin.LogDebug($"{LogPrefixThink} Garrison {army.GetNid()} SALLYING OUT from {army.castle.name}! (Str: {myStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
+                                    AIOverhaulPlugin.LogDebug($"{k_LogPrefixThink} Garrison {army.GetNid()} SALLYING OUT from {army.castle.name}! (Str: {myStrength:F0} vs {enemyStrength:F0})", LogCategory.Military, __instance.kingdom);
                                     TraverseAPI.SendArmy(__instance, army, siegeBattle, AIStatusNames.AttackSallyOut);
                                     return;
                                 }

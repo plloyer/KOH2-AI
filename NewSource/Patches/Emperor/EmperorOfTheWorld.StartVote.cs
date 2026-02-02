@@ -7,7 +7,7 @@ namespace AIOverhaul.Patches.Emperor
     [HarmonyPatch(typeof(EmperorOfTheWorld), "StartVote")]
     public static class EmperorOfTheWorld_StartVote
     {
-        const string LogPrefix = "[EoW]";
+        const string k_LogPrefix = "[EoW]";
 
         public static void Postfix(EmperorOfTheWorld __instance)
         {
@@ -19,7 +19,7 @@ namespace AIOverhaul.Patches.Emperor
                 // Only act if we are in Spectator Mode
                 if (!AIOverhaulPlugin.SpectatorMode) return;
 
-                AIOverhaulPlugin.LogInfo($"{LogPrefix} Spectator Mode detected during Vote Start. Attempting Auto-Resolve...", LogCategory.Spectator);
+                AIOverhaulPlugin.LogInfo($"{k_LogPrefix} Spectator Mode detected during Vote Start. Attempting Auto-Resolve...", LogCategory.Spectator);
 
                 // Find the player voter index
                 int playerVoterIdx = -1;
@@ -37,7 +37,7 @@ namespace AIOverhaul.Patches.Emperor
 
                 if (playerVoterIdx == -1 || playerKingdom == null)
                 {
-                    AIOverhaulPlugin.LogInfo($"{LogPrefix} Player is not a voter. No action needed.", LogCategory.Spectator);
+                    AIOverhaulPlugin.LogInfo($"{k_LogPrefix} Player is not a voter. No action needed.", LogCategory.Spectator);
                     return;
                 }
 
@@ -69,7 +69,7 @@ namespace AIOverhaul.Patches.Emperor
                 if (bestCandidateId != -1)
                 {
                     string candidateName = bestCandidate != null ? bestCandidate.Name : "Unknown";
-                    AIOverhaulPlugin.LogInfo($"{LogPrefix} Auto-Voting for {candidateName} (ID: {bestCandidateId}) with weight {bestWeight}.", LogCategory.Spectator, playerKingdom);
+                    AIOverhaulPlugin.LogInfo($"{k_LogPrefix} Auto-Voting for {candidateName} (ID: {bestCandidateId}) with weight {bestWeight}.", LogCategory.Spectator, playerKingdom);
                     
                     // Force casting the vote
                     __instance.SetPlayerVote(playerVoterIdx, bestCandidateId);
@@ -78,17 +78,17 @@ namespace AIOverhaul.Patches.Emperor
                     // This is key to bypassing the "waiting for players" pause
                     __instance.SetEndVoting();
                     
-                    AIOverhaulPlugin.LogInfo($"{LogPrefix} Vote finalized and game unpaused.", LogCategory.Spectator, playerKingdom);
+                    AIOverhaulPlugin.LogInfo($"{k_LogPrefix} Vote finalized and game unpaused.", LogCategory.Spectator, playerKingdom);
                 }
                 else
                 {
-                     AIOverhaulPlugin.LogInfo($"{LogPrefix} Could not determine best candidate. Skipping auto-vote.", LogCategory.Spectator, playerKingdom);
+                     AIOverhaulPlugin.LogInfo($"{k_LogPrefix} Could not determine best candidate. Skipping auto-vote.", LogCategory.Spectator, playerKingdom);
                 }
 
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.LogInfo($"{LogPrefix} Exception in Auto-Vote: {ex.Message}", LogCategory.Spectator);
+                AIOverhaulPlugin.LogInfo($"{k_LogPrefix} Exception in Auto-Vote: {ex.Message}", LogCategory.Spectator);
             }
         }
     }
