@@ -153,7 +153,7 @@ namespace AIOverhaul
                 for (int i = 0; i < Castle.build_options.Count; i++)
                 {
                     var option = Castle.build_options[i];
-                    if (option.def != null && option.def.id == BuildingNames.VillageMilitia)
+                    if (option.castle == castle && option.def != null && option.def.id == BuildingNames.VillageMilitia)
                     {
                         option.eval = k_HighPriorityEval;
                         option.priority = KingdomAI.Expense.Priority.Urgent;

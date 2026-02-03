@@ -13,8 +13,6 @@ namespace AIOverhaul
     /// </summary>
     public class AutoStarter : MonoBehaviour
     {
-        const string k_LogPrefix = "AutoStart";
-
         static Game s_CapturedGame;
         static AutoStarter s_Instance;
 
@@ -34,13 +32,13 @@ namespace AIOverhaul
         public static void SetGameInstance(Game game)
         {
             s_CapturedGame = game;
-            AIOverhaulPlugin.LogInfo("[AutoStarter] Game instance received and stored");
+            AIOverhaulPlugin.LogInfo("Game instance received and stored", LogCategory.AutoStart);
         }
 
         void OnEnable()
         {
             s_Instance = this;
-            AIOverhaulPlugin.LogInfo("=== AutoStarter Component ENABLED ===");
+            AIOverhaulPlugin.LogInfo("Component enabled", LogCategory.AutoStart);
             ParseArgs();
         }
 
@@ -49,42 +47,42 @@ namespace AIOverhaul
             var args = Environment.GetCommandLineArgs();
 
             // Log ALL command line arguments for debugging
-            AIOverhaulPlugin.LogInfo($"AutoStart: Parsing {args.Length} command line arguments:");
+            AIOverhaulPlugin.LogInfo($"Parsing {args.Length} command line arguments:", LogCategory.AutoStart);
             for (int i = 0; i < args.Length; i++)
             {
-                AIOverhaulPlugin.LogInfo($"  arg[{i}] = '{args[i]}'");
+                AIOverhaulPlugin.LogInfo($"  arg[{i}] = '{args[i]}'", LogCategory.AutoStart);
             }
 
             // Parse arguments
             for (int i = 0; i < args.Length; i++)
             {
-                if (args[i] == "-autoStart")
+                if (args[i] == "-autostart")
                 {
                     m_HasStarted = true;
-                    AIOverhaulPlugin.LogInfo("AutoStart: Detected -autoStart flag");
+                    AIOverhaulPlugin.LogInfo("Detected -autostart flag", LogCategory.AutoStart);
                 }
                 if (args[i] == "-provinces" && i + 1 < args.Length)
                 {
                     int.TryParse(args[i + 1], out m_Provinces);
-                    AIOverhaulPlugin.LogInfo($"AutoStart: Detected -provinces {m_Provinces}");
+                    AIOverhaulPlugin.LogInfo($"Detected -provinces {m_Provinces}", LogCategory.AutoStart);
                 }
                 if (args[i] == "-difficulty" && i + 1 < args.Length)
                 {
                     int.TryParse(args[i + 1], out m_Difficulty);
-                    AIOverhaulPlugin.LogInfo($"AutoStart: Detected -difficulty {m_Difficulty}");
+                    AIOverhaulPlugin.LogInfo($"Detected -difficulty {m_Difficulty}", LogCategory.AutoStart);
                 }
             }
 
             if (m_HasStarted)
             {
-                AIOverhaulPlugin.LogInfo($"=== AutoStart: ENABLED - provinces {m_Provinces}, difficulty {m_Difficulty} ===");
-                AIOverhaulPlugin.LogInfo("AutoStart: Will monitor for scene load before starting...");
+                AIOverhaulPlugin.LogInfo($"Enabled with provinces={m_Provinces}, difficulty={m_Difficulty}", LogCategory.AutoStart);
+                AIOverhaulPlugin.LogInfo("Will monitor for scene load before starting...", LogCategory.AutoStart);
                 // DON'T start coroutine immediately - wait for Update() to detect scene is ready
                 m_SceneMonitoringStarted = true;
             }
             else
             {
-                AIOverhaulPlugin.LogInfo("AutoStart: NOT enabled (-autoStart flag not found)");
+                AIOverhaulPlugin.LogInfo("NOT enabled (-autostart flag not found)", LogCategory.AutoStart);
             }
         }
 
@@ -111,7 +109,7 @@ namespace AIOverhaul
             if (m_SceneCheckStartTime < 0)
             {
                 m_SceneCheckStartTime = Time.realtimeSinceStartup;
-                AIOverhaulPlugin.LogInfo("AutoStart: Started monitoring for scene load...");
+                AIOverhaulPlugin.LogInfo("Started monitoring for scene load...", LogCategory.AutoStart);
             }
 
             float elapsed = Time.realtimeSinceStartup - m_SceneCheckStartTime;
@@ -120,7 +118,7 @@ namespace AIOverhaul
             // This gives Unity time to load all assets and initialize the UI
             if (elapsed >= 20f)
             {
-                AIOverhaulPlugin.LogInfo($"AutoStart: {elapsed:F1}s elapsed - Main menu should be ready. Starting routine...");
+                AIOverhaulPlugin.LogInfo($"{elapsed:F1}s elapsed - Main menu should be ready. Starting routine...", LogCategory.AutoStart);
                 m_HasRoutineStarted = true;
                 m_SceneMonitoringStarted = false;
                 StartCoroutine(AutoStartRoutine());
@@ -128,16 +126,16 @@ namespace AIOverhaul
             else if (Mathf.FloorToInt(elapsed) % 5 == 0 && Mathf.FloorToInt(elapsed) != Mathf.FloorToInt(elapsed - Time.deltaTime))
             {
                 // Log every 5 seconds
-                AIOverhaulPlugin.LogInfo($"AutoStart: Waiting for scene... ({elapsed:F0}s / 20s)");
+                AIOverhaulPlugin.LogInfo($"Waiting for scene... ({elapsed:F0}s / 20s)", LogCategory.AutoStart);
             }
         }
 
         IEnumerator AutoStartRoutine()
         {
-            AIOverhaulPlugin.LogInfo("=== AutoStart: Routine Started ===");
+            AIOverhaulPlugin.LogInfo("Routine started", LogCategory.AutoStart);
 
             // Wait for Game instance to be captured by our patch
-            AIOverhaulPlugin.LogInfo("AutoStart: Step 1 - Waiting for Game instance to be captured...");
+            AIOverhaulPlugin.LogInfo("Waiting for Game instance to be captured...", LogCategory.AutoStart);
             Game game = null;
 
             // Wait for the game to be captured (CreateMultiplayer is called during engine init)
@@ -150,44 +148,44 @@ namespace AIOverhaul
 
                 if (i++ == maxWaitSecond)
                 {
-                    AIOverhaulPlugin.LogError("AutoStart: Failed to get the game instance.");
+                    AIOverhaulPlugin.LogError("Failed to get the game instance.", LogCategory.AutoStart);
                     yield break;
                 }
             }
             
-            AIOverhaulPlugin.LogInfo("AutoStart: Game instance found. Waiting 10 sec (for luck!) to start game.");
+            AIOverhaulPlugin.LogInfo("Game instance found. Waiting 10 sec (for luck!) to start game.", LogCategory.AutoStart);
             yield return new WaitForSeconds(10f);
 
             // Create Campaign and assign to game
-            AIOverhaulPlugin.LogInfo($"{k_LogPrefix}: Step 2 - Creating Campaign...");
+            AIOverhaulPlugin.LogInfo("Creating Campaign...", LogCategory.AutoStart);
             Campaign campaign = null;
             try
             {
                 campaign = Campaign.CreateSinglePlayerCampaign(MapNames.Europe, PeriodNames.Early);
                 if (campaign == null)
                 {
-                    AIOverhaulPlugin.LogError($"{k_LogPrefix}: FAILED - Campaign.CreateSinglePlayerCampaign returned null");
+                    AIOverhaulPlugin.LogError("Campaign.CreateSinglePlayerCampaign returned null", LogCategory.AutoStart);
                     yield break;
                 }
-                AIOverhaulPlugin.LogInfo($"{k_LogPrefix}: SUCCESS - Campaign created (ID: {campaign.id})");
+                AIOverhaulPlugin.LogInfo($"Campaign created (ID: {campaign.id})", LogCategory.AutoStart);
 
                 // Assign campaign to game
                 game.campaign = campaign;
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.LogError($"{k_LogPrefix}: FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
+                AIOverhaulPlugin.LogError($"Exception: {ex.Message}\n{ex.StackTrace}", LogCategory.AutoStart);
                 yield break;
             }
 
             // Configure Game Variables (Before Start)
             // This triggers internal game logic (like Shattered Map creation) automatically during start
-            AIOverhaulPlugin.LogInfo($"{k_LogPrefix}: Step 3 - Configuring Game Variables...");
+            AIOverhaulPlugin.LogInfo("Configuring Game Variables...", LogCategory.AutoStart);
             try
             {
                 // Set Shattered Map configuration
                 string shatteredVal = $"{m_Provinces}_shattered";
-                AIOverhaulPlugin.LogInfo($"{k_LogPrefix}: Setting options on campaignData...");
+                AIOverhaulPlugin.LogInfo("Setting options on campaignData...", LogCategory.AutoStart);
                 var data = game.campaign.campaignData;
                 
                 data.Set(CampaignVarNames.KingdomSize, new Value(shatteredVal));
@@ -206,58 +204,48 @@ namespace AIOverhaul
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.LogError($"{k_LogPrefix}: Step 3 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
+                AIOverhaulPlugin.LogError($"Configuring Game Variables failed: {ex.Message}\n{ex.StackTrace}", LogCategory.AutoStart);
             }
 
             // STEP 4: Start the game
-            AIOverhaulPlugin.LogInfo($"{k_LogPrefix}: Step 4 - Calling game.StartGame()...");
+            AIOverhaulPlugin.LogInfo("Calling game.StartGame()...", LogCategory.AutoStart);
             try
             {
                 game.StartGame(true, MapNames.Europe);
-                AIOverhaulPlugin.LogInfo($"{k_LogPrefix}: Step 4 - SUCCESS - StartGame called (State: {game.state})");
+                AIOverhaulPlugin.LogInfo($"StartGame called (State: {game.state})", LogCategory.AutoStart);
             }
             catch (Exception ex)
             {
-                AIOverhaulPlugin.LogError($"{k_LogPrefix}: Step 4 - FAILED - Exception: {ex.Message}\n{ex.StackTrace}");
+                AIOverhaulPlugin.LogError($"StartGame failed: {ex.Message}\n{ex.StackTrace}", LogCategory.AutoStart);
                 yield break;
             }
 
             // Wait for map to load
-            AIOverhaulPlugin.LogInfo($"{k_LogPrefix}: Step 5 - Waiting 15s for map to load...");
+            AIOverhaulPlugin.LogInfo("Waiting for map to load...", LogCategory.AutoStart);
             yield return new WaitForSeconds(10f);
-            AIOverhaulPlugin.LogInfo($"{k_LogPrefix}: Step 5 - Map load complete (State: {game.state})");
+            AIOverhaulPlugin.LogInfo($"Map load complete (State: {game.state})", LogCategory.AutoStart);
 
             // Enable Spectator & Speed
-            AIOverhaulPlugin.LogInfo($"{k_LogPrefix}: Step 6 - Enabling Spectator Mode and Speed...");
+            AIOverhaulPlugin.LogInfo("Enabling Spectator Mode and Speed...", LogCategory.AutoStart);
             AIOverhaulPlugin.ToggleSpectatorMode();
             m_SpectatorEnabled = true;
             game.SetSpeed(100f);
 
-            AIOverhaulPlugin.LogInfo($"{k_LogPrefix}: Step 7 - AutoStart Complete. Ready to play.");
+            AIOverhaulPlugin.LogInfo("Complete. Ready to play.", LogCategory.AutoStart);
         }
 
         float m_LastLoggedHour = -1f;
-        float m_GameStartTime = -1f;
         float m_StartingGameHours = -1f;
 
-        // Target game duration: 5 game hours
+        // Target game duration: 5 game hours (in-game time)
         const float k_TargetGameHours = 5f;
-        // Real-time safety limit: 5 minutes
-        const float k_RealTimeLimit = 300f;
 
         void MonitorGameProgress()
         {
             var game = AIOverhaulPlugin.CurrentGame;
             if (game == null) return;
 
-            // Initialize tracking on first call
-            if (m_GameStartTime < 0)
-            {
-                m_GameStartTime = Time.realtimeSinceStartup;
-            }
-
-
-            // Calculate hours elapsed using session_time
+            // Calculate hours elapsed using session_time (in-game time)
             float gameHours = game.session_time.hours;
             
             // Capture starting hours on first valid reading
@@ -266,7 +254,7 @@ namespace AIOverhaul
                 m_StartingGameHours = gameHours;
                 int hStart = Mathf.FloorToInt(gameHours);
                 int mStart = Mathf.FloorToInt((gameHours - hStart) * 60);
-                AIOverhaulPlugin.LogInfo($"{k_LogPrefix}: Game time tracking started. Current time: {hStart}h {mStart}m");
+                AIOverhaulPlugin.LogInfo($"Game time tracking started. Current time: {hStart}h {mStart}m", LogCategory.AutoStart);
                 return;
             }
 
@@ -282,28 +270,15 @@ namespace AIOverhaul
                 int hTotal = Mathf.FloorToInt(gameHours);
                 int mTotal = Mathf.FloorToInt((gameHours - hTotal) * 60);
 
-                AIOverhaulPlugin.LogInfo($"{k_LogPrefix}: Progress - Played {hPlayed}h {mPlayed}m / Target {k_TargetGameHours:F0}h (Total Game Time: {hTotal}h {mTotal}m)");
+                AIOverhaulPlugin.LogInfo($"Progress - Played {hPlayed}h {mPlayed}m / Target {k_TargetGameHours:F0}h (Total Game Time: {hTotal}h {mTotal}m)", LogCategory.AutoStart);
             }
 
-            // Check if target hours reached
+            // Check if target game hours reached
             if (hoursPlayed >= k_TargetGameHours)
             {
                 int hPlayed = Mathf.FloorToInt(hoursPlayed);
                 int mPlayed = Mathf.FloorToInt((hoursPlayed - hPlayed) * 60);
-                AIOverhaulPlugin.LogInfo($"{k_LogPrefix}: Target reached - {hPlayed}h {mPlayed}m played. Quitting...");
-                Application.Quit();
-                return;
-            }
-
-            // Real-time safety limit
-            float realTimeElapsed = Time.realtimeSinceStartup - m_GameStartTime;
-            if (realTimeElapsed >= k_RealTimeLimit)
-            {
-                // Re-calculate hoursPlayed for the log message since it might not be in scope if we didn't just calculate it
-                float currentHoursPlayed = (game.session_time.hours) - m_StartingGameHours;
-                int hPlayed = Mathf.FloorToInt(currentHoursPlayed);
-                int mPlayed = Mathf.FloorToInt((currentHoursPlayed - hPlayed) * 60);
-                AIOverhaulPlugin.LogInfo($"{k_LogPrefix}: Real-time limit reached ({realTimeElapsed:F0}s). Played: {hPlayed}h {mPlayed}m. Quitting...");
+                AIOverhaulPlugin.LogInfo($"Target reached - {hPlayed}h {mPlayed}m of game time played. Quitting...", LogCategory.AutoStart);
                 Application.Quit();
             }
         }

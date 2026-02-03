@@ -17,7 +17,8 @@ namespace AIOverhaul
         Tradition,    // Tradition selection and adoption
         RoyalFamily,  // Heirs, succession, family management
         Governor,     // Governor assignments
-        Spectator     // F9 spectator mode toggles
+        Spectator,    // F9 spectator mode toggles
+        AutoStart     // Auto-start game feature
     }
 
     /// <summary>
