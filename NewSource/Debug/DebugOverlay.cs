@@ -35,6 +35,7 @@ namespace AIOverhaul
         Rect m_WindowRect = new Rect(20, 150, 800, 800);
         Vector2 m_ScrollPosition;
         bool m_IsVisible;
+        Texture2D m_BackgroundTexture;
 
         // Data Storage
         public struct ExpenseRecord
@@ -124,24 +125,33 @@ namespace AIOverhaul
         {
             if (!m_IsVisible) return;
 
+            // Draw semi-opaque background
+            if (m_BackgroundTexture == null)
+            {
+                m_BackgroundTexture = new Texture2D(1, 1);
+                m_BackgroundTexture.SetPixel(0, 0, new Color(0f, 0f, 0f, 0.75f));
+                m_BackgroundTexture.Apply();
+            }
+            GUI.DrawTexture(m_WindowRect, m_BackgroundTexture);
+
             // Use GUILayout.Area for a non-interactive, transparent overlay
-            GUILayout.BeginArea(m_WindowRect);
-            
+            GUILayout.BeginArea(new Rect(m_WindowRect.x + 10, m_WindowRect.y + 10, m_WindowRect.width - 20, m_WindowRect.height - 20));
+
             // Define Custom Style for larger text and compact spacing
             GUIStyle style = new GUIStyle(GUI.skin.label);
-            style.fontSize = 18; // Increased from 16
+            style.fontSize = 18;
             style.richText = true;
             style.wordWrap = true;
-            style.margin = new RectOffset(0, 0, 0, 0); // Zero margins for tight stacking
+            style.margin = new RectOffset(0, 0, 0, 0);
             style.padding = new RectOffset(0, 0, 0, 0);
-            
+
             // Diagnostics Input
             if (Event.current.type == EventType.KeyDown)
             {
                 if (Event.current.keyCode == KeyCode.R)
                 {
                     Logic.Kingdom k = GetPlayerKingdom();
-                    if (k != null) 
+                    if (k != null)
                     {
                         k.RecalculateNeighbors();
                         AIOverhaulPlugin.LogInfo("Forced Neighbor Recalculation via Debug Overlay");
