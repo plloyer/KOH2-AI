@@ -88,12 +88,12 @@ Reference files are located in `.claude/skills/koh2-feature/references/`:
 
 | System | Reference File | Read Before Modifying |
 |--------|----------------|----------------------|
-| **Eval System** | `references/AI_EVAL_SYSTEM.md` | Spending, building priority, expense evaluation (`Patches/Spending/`) |
+| **Spending System** | `references/AI_SPENDING_SYSTEM.md` | Expense flow, eval system, queue selection, SpendExpense (`Patches/Spending/`) |
 | **Military AI** | `references/ARMY_MANAGEMENT_GUIDE.md` | Army assignment, ThinkArmy, ThinkFight, threat levels (`Patches/Military/`) |
 | **Diplomacy** | `references/LAND_DIPLOMACY_SYSTEM.md` | Land offers/demands, realm cost, diplomatic AI (`Patches/Diplomacy/`) |
 | **Game Concepts** | `references/GAME_CONCEPTS.md` | Core entities (Kingdom, Realm, Castle), AI architecture overview |
 
-**Critical:** The eval system has a naming collision - `BuildOption.eval` (higher = better) vs `Expense.eval` (lower = better). Read `references/AI_EVAL_SYSTEM.md` before touching any eval-related code.
+**Critical:** The eval system has a naming collision - `BuildOption.eval` (higher = better) vs `Expense.eval` (lower = better). Read the "Dual Eval System" section in `references/AI_SPENDING_SYSTEM.md` before touching any eval-related code.
 
 # WORKFLOW - FOLLOW EXACTLY
 

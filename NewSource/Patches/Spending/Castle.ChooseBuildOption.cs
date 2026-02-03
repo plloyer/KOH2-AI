@@ -21,7 +21,7 @@ namespace AIOverhaul
             if (kingdom == null || kingdom.is_player) return;
 
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"{k_LogPrefix} {kingdom.Name} ({castle.name}) Choosing Build/Upgrade from {options.Count} options:");
+            sb.Append($"{k_LogPrefix} {kingdom.Name} ({castle.name}) Choosing Build/Upgrade from {options.Count} options:");
             
             var sortedOptions = new List<Castle.BuildOption>(options);
             sortedOptions.Sort((a, b) => b.eval.CompareTo(a.eval));
@@ -31,11 +31,11 @@ namespace AIOverhaul
             {
                 if (count++ > 10) 
                 {
-                    sb.AppendLine("    ... (more options truncated)");
+                    sb.Append("    ... (more options truncated)");
                     break;
                 }
                 // opt.def.Name causes error. using opt.def.ToString() or opt.def
-                sb.AppendLine($"    [{opt.eval:F1}] {opt.def} (Priority: {opt.priority})");
+                sb.Append($"    [{opt.eval:F1}] {opt.def} (Priority: {opt.priority})");
             }
 
             AIOverhaulPlugin.LogDebug(sb.ToString(), LogCategory.Economy, kingdom);
