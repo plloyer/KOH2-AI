@@ -126,7 +126,7 @@ namespace AIOverhaul
         /// </summary>
         static void Log(string message, LogCategory category = LogCategory.General, Logic.Kingdom kingdom = null, LogLevel level = LogLevel.Log)
         {
-            string levelTag = level == LogLevel.Diagnostic ? "[DIAG]" : "";
+            string levelTag = level == LogLevel.Diagnostic ? "[Debug]" : "";
             string formattedMessage = $"{k_LogPrefix}{levelTag}[{kingdom?.Name}][{category}]{message}";
 
             // Call the appropriate Logger method based on log level

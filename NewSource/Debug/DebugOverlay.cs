@@ -436,7 +436,7 @@ namespace AIOverhaul
         
         void DrawRealmSettlements(Logic.Kingdom k, GUIStyle style)
         {
-            GUILayout.Label("<b>--- Province Settlements ---</b>", style);
+            GUILayout.Label("<b>--- Province Settlements & Build Options ---</b>", style);
 
             if (k.realms == null) return;
 
@@ -481,8 +481,58 @@ namespace AIOverhaul
                     sb.Append($"<color={k_ColorGrey}>Empty</color>");
 
                 GUILayout.Label(sb.ToString(), style);
+
+                // Show build options for this castle
+                DrawCastleBuildOptions(r.castle, style);
             }
             GUILayout.Space(5);
+        }
+
+        void DrawCastleBuildOptions(Castle castle, GUIStyle style)
+        {
+            if (castle == null) return;
+
+            // Use last_build_options for player (snapshot), or current build_options
+            var buildOptions = Castle.last_build_options.Count > 0 ? Castle.last_build_options : Castle.build_options;
+
+            // Filter options for this castle
+            var castleOptions = new List<Castle.BuildOption>();
+            foreach (var opt in buildOptions)
+            {
+                if (opt.castle == castle && opt.def != null)
+                {
+                    castleOptions.Add(opt);
+                }
+            }
+
+            if (castleOptions.Count == 0)
+            {
+                GUILayout.Label($"  <color={k_ColorGrey}>No build options</color>", style);
+                return;
+            }
+
+            // Sort by eval descending
+            castleOptions.Sort((a, b) => b.eval.CompareTo(a.eval));
+
+            // Show top 5 options
+            StringBuilder sb = new StringBuilder();
+            sb.Append("  Options: ");
+            int shown = 0;
+            foreach (var opt in castleOptions)
+            {
+                if (shown >= 5) break;
+
+                string priorityTag = opt.priority == KingdomAI.Expense.Priority.Urgent ? "<color=red>!</color>" : "";
+                string evalColor = opt.eval >= 100000 ? k_ColorGreen : (opt.eval >= 1000 ? k_ColorYellow : k_ColorWhite);
+
+                sb.Append($"{priorityTag}<color={evalColor}>{opt.def.id}({opt.eval:F0})</color> ");
+                shown++;
+            }
+
+            if (castleOptions.Count > 5)
+                sb.Append($"<color={k_ColorGrey}>+{castleOptions.Count - 5} more</color>");
+
+            GUILayout.Label(sb.ToString(), style);
         }
     }
 }
