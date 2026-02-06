@@ -10,28 +10,17 @@ namespace AIOverhaul.Patches.Diplomacy
     {
         public static bool Prefix(Offers __instance, Offer offer)
         {
+            var receiver = offer.to as Logic.Kingdom;   // Kingdom being claimed from (loses territory)
+            var claimant = offer.from as Logic.Kingdom;  // Kingdom making the claim (gains territory)
+            
             // Only care about Inheritance Claims
+            if (receiver == null || !receiver.IsAuthority() || !AIOverhaulPlugin.IsEnhancedAI(receiver)) return true;
             if (!(offer is PrincessClaimInheritanceOffer)) return true;
 
-            // Check if receiver is a Kingdom
-            var receiver = offer.to as Logic.Kingdom;
-            if (receiver == null) return true;
-
-            // Only act if this is an Enhanced AI (which covers Spectator player and regular AI)
-            if (AIOverhaulPlugin.IsEnhancedAI(receiver))
-            {
-                // Verify Authority (Host-side only)
-                if (!receiver.IsAuthority()) return true;
-
-                AIOverhaulPlugin.LogDebug($"Auto-Accepting Inheritance Claim for {receiver.Name} (AI Controlled)", LogCategory.Diplomacy, receiver);
-                
-                offer.Accept();
-
-                // Prevent adding to the offers list (since we just accepted it)
-                return false;
-            }
-
-            return true;
+            // When another kingdom claims from us → auto refuse
+            AIOverhaulPlugin.LogDebug($"Auto-Declining Inheritance Claim: {claimant?.Name} claims from {receiver.Name} — refusing", LogCategory.Diplomacy, receiver);
+            offer.Decline();
+            return false;
         }
     }
 }

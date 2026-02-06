@@ -90,7 +90,7 @@ namespace AIOverhaul
             float score = TraverseAPI.GetWarScore(war, side);
             if (score >= GameBalance.WarScoreRejectPeace)
             {
-                AIOverhaulPlugin.LogInfo($"[Peace] Rejecting peace from {sender.Name} - winning (score: {score:F1})", LogCategory.Diplomacy, receiver);
+                AIOverhaulPlugin.LogDebug($"[Peace] Rejecting peace from {sender.Name} - winning (score: {score:F1})", LogCategory.Diplomacy, receiver);
                 result = DiplomacyConstants.Decline;
                 return false;
             }
@@ -98,7 +98,7 @@ namespace AIOverhaul
             // Check 2: Are we currently sieging an enemy castle?
             if (receiver.IsSiegingEnemyCastle())
             {
-                AIOverhaulPlugin.LogInfo($"[Peace] Rejecting peace from {sender.Name} - currently sieging", LogCategory.Diplomacy, receiver);
+                AIOverhaulPlugin.LogDebug($"[Peace] Rejecting peace from {sender.Name} - currently sieging", LogCategory.Diplomacy, receiver);
                 result = DiplomacyConstants.Decline;
                 return false;
             }
