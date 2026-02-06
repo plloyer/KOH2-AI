@@ -371,7 +371,7 @@ namespace AIOverhaul
                 }
             }
 
-            if (Input.GetKeyDown(KeyCode.F7))
+            if (Input.GetKeyDown(KeyCode.F6))
             {
                 if (s_UltraSpeedActive)
                 {
