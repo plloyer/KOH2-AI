@@ -16,7 +16,7 @@ namespace AIOverhaul
             if (expense == null) return;
 
             string details = FormatExpenseOption(expense);
-            AIOverhaulPlugin.LogDebug($"[OPTION] {details}", LogCategory.Spending, __instance.kingdom);
+            AIOverhaulPlugin.LogDebug($"[AddExpense] {details}", LogCategory.Spending, __instance.kingdom);
         }
 
         static string FormatExpenseOption(KingdomAI.Expense expense)

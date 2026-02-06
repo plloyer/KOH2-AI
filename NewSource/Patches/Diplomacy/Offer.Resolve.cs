@@ -30,6 +30,9 @@ namespace AIOverhaul
                 if (kingdom.ai == null || !kingdom.ai.Enabled(KingdomAI.EnableFlags.Diplomacy)) return true;
 
                 // 5. Execute AI Logic (Bypassing is_player check)
+                // Capture offer description before answering (answering invalidates the offer)
+                string offerDesc = __instance.ToString();
+
                 Offer counterOffer;
                 string answer = __instance.DecideAIAnswer(out counterOffer);
 
@@ -46,7 +49,7 @@ namespace AIOverhaul
                     __instance.Answer(finalAnswer);
                 }
 
-                AIOverhaulPlugin.LogDebug($"[Spectator] Auto-answered offer {__instance} with '{answer}'", LogCategory.Diplomacy, kingdom);
+                AIOverhaulPlugin.LogDebug($"[Spectator] Auto-answered offer {offerDesc} with '{answer}'", LogCategory.Diplomacy, kingdom);
 
                 __result = true; // Signal that resolution occurred
                 return false;    // Skip original method

@@ -8,7 +8,7 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(SpyPlot), "ValidateTarget")]
     public class SpyPlot_ValidateTarget
     {
-        const float k_MinIncomeToSpy = 150f;
+        const float k_MinIncomeToSpy = 300f;
         
         static bool Prefix(SpyPlot __instance, Object target, ref bool __result)
         {
