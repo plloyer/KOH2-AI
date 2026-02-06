@@ -11,13 +11,23 @@ namespace AIOverhaul
     [HarmonyPatch(new[] { typeof(KingdomAI.Expense.Type), typeof(BaseObject), typeof(Object), typeof(KingdomAI.Expense.Category), typeof(KingdomAI.Expense.Priority), typeof(List<Value>) })]
     public class KingdomAI_ConsiderExpense
     {
-        const float k_MinIncomeToHireSpy = 300f;
+        const float k_MinIncomeForEspionage = 300f;
         const string k_LogPrefix = "[KingdomAI_ConsiderExpense]";
         
-        static bool Prefix(KingdomAI __instance, KingdomAI.Expense.Type type, BaseObject defParam)
+        static bool Prefix(KingdomAI __instance, KingdomAI.Expense.Type type, BaseObject defParam, KingdomAI.Expense.Category category)
         {
             if (__instance == null || __instance.kingdom == null) return true;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+
+            if (category == KingdomAI.Expense.Category.Espionage)
+            {
+                float income = __instance.kingdom.income[ResourceType.Gold];
+                if (income < k_MinIncomeForEspionage)
+                {
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocking espionage expense: Income {income:F1} < {k_MinIncomeForEspionage}", LogCategory.Knights, __instance.kingdom);
+                    return false;
+                }
+            }
 
             if (type == KingdomAI.Expense.Type.HireChacacter)
                 return ConsiderHireCharacter(__instance, defParam as CharacterClass.Def);
@@ -35,9 +45,9 @@ namespace AIOverhaul
                 {
                     // Restriction: Must have at least 300 gold income
                     float income = kingdomAI.kingdom.income[ResourceType.Gold];
-                    if (income < k_MinIncomeToHireSpy)
+                    if (income < k_MinIncomeForEspionage)
                     {
-                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocking Spy hiring: Income {income:F1} < {k_MinIncomeToHireSpy}", LogCategory.Knights, kingdomAI.kingdom);
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocking Spy hiring: Income {income:F1} < {k_MinIncomeForEspionage}", LogCategory.Knights, kingdomAI.kingdom);
                         return false; // Skip execution (don't consider this expense)
                     }
 
