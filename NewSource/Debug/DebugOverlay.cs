@@ -32,7 +32,7 @@ namespace AIOverhaul
 
 
         // Configuration
-        Rect m_WindowRect = new Rect(20, 150, 800, 800);
+        Rect m_WindowRect = new Rect(20, 150, 700, 800);
         Vector2 m_ScrollPosition;
         bool m_IsVisible;
         Texture2D m_BackgroundTexture;
@@ -85,11 +85,7 @@ namespace AIOverhaul
             m_IsVisible = isSpectatorMode;
 
             if (m_IsVisible && !wasVisible)
-            {
-                // Reset to default position if toggled on
-                m_WindowRect = new Rect(50, 150, 800, 800);
                 AIOverhaulPlugin.LogInfo("Overlay toggled ON via Event.");
-            }
         }
 
         void OnEvaluationStart(KingdomAI kingdomAI)
