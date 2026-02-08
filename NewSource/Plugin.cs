@@ -150,9 +150,6 @@ namespace AIOverhaul
         public static bool IsEnhancedAI(Logic.Kingdom k)
         {
             if (k == null) return false;
-            
-            // Allow if strictly enhanced OR if it's the player in spectator mode
-            if (k.is_player && SpectatorMode) return true;
 
             return EnhancedKingdomIds.Contains(k.id);
         }
@@ -302,30 +299,28 @@ namespace AIOverhaul
         {
             SpectatorMode = !SpectatorMode;
 
-            // Notify listeners
+            // Notify listeners (controls debug overlay visibility)
             OnSpectatorModeChanged?.Invoke(SpectatorMode);
 
-            // Find player kingdom and add/remove from Enhanced AI
-            if (CurrentGame?.kingdoms != null)
+            // Route through the per-kingdom ForcedAIKingdoms mechanism
+            // Use GetLocalPlayerKingdom() to target only THIS machine's player
+            var localKingdom = CurrentGame?.GetLocalPlayerKingdom();
+            if (localKingdom != null)
             {
-                var playerKingdom = CurrentGame.kingdoms.FirstOrDefault(k => k != null && k.is_player);
-                if (playerKingdom != null)
+                if (SpectatorMode)
                 {
-                    if (SpectatorMode)
+                    MultiplayerAICommandHelper.EnableAI(localKingdom.id);
+                    if (!EnhancedKingdomIds.Contains(localKingdom.id))
                     {
-                        // Enable Enhanced AI for player when spectator mode is on
-                        if (!EnhancedKingdomIds.Contains(playerKingdom.id))
-                        {
-                            EnhancedKingdomIds.Add(playerKingdom.id);
-                        }
-                        LogInfo("Spectator Mode ENABLED - Enhanced AI is now controlling kingdom", LogCategory.Spectator, playerKingdom);
+                        EnhancedKingdomIds.Add(localKingdom.id);
                     }
-                    else
-                    {
-                        // Remove player from Enhanced AI when spectator mode is off
-                        EnhancedKingdomIds.Remove(playerKingdom.id);
-                        LogInfo("Spectator Mode DISABLED - Player control restored", LogCategory.Spectator, playerKingdom);
-                    }
+                    LogInfo("Spectator Mode ENABLED - Enhanced AI is now controlling kingdom", LogCategory.Spectator, localKingdom);
+                }
+                else
+                {
+                    MultiplayerAICommandHelper.DisableAI(localKingdom.id);
+                    EnhancedKingdomIds.Remove(localKingdom.id);
+                    LogInfo("Spectator Mode DISABLED - Player control restored", LogCategory.Spectator, localKingdom);
                 }
             }
         }

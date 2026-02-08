@@ -10,8 +10,8 @@ namespace AIOverhaul
     {
         static void Postfix(KingdomAI __instance, KingdomAI.Expense expense)
         {
-            // Only run if Spectator Mode is active
-            if (!AIOverhaulPlugin.SpectatorMode) return;
+            // Only run if AI is forced for this kingdom (spectator mode or /ai_on)
+            if (!MultiplayerAICommandHelper.IsAIForced(__instance.kingdom?.id ?? -1)) return;
             
             // Only for the kingdom being spectated (Player Kingdom)
             if (__instance.kingdom == null || !__instance.kingdom.is_player) return;

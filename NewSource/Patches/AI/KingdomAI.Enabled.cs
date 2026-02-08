@@ -12,13 +12,11 @@ namespace AIOverhaul.Patches.AI
             var kingdom = __instance?.kingdom;
             if (kingdom == null) return true;
 
-            // Scenario 1: Spectator Mode (Local Player)
-            bool isSpectator = AIOverhaulPlugin.SpectatorMode && kingdom.is_player;
+            // Unified check: F9 spectator mode and /ai_on chat commands both route
+            // through ForcedAIKingdoms, so a single check handles both scenarios.
+            bool isForcedAI = MultiplayerAICommandHelper.IsAIForced(kingdom.id);
 
-            // Scenario 2: Multiplayer Forced AI (Host delegates for Client)
-            bool isForcedMP = MultiplayerAICommandHelper.IsAIForced(kingdom.id);
-
-            if (isSpectator || isForcedMP)
+            if (isForcedAI)
             {
                 // CRITICAL: Authority Check
                 // In MP, AI must only run on the Host.

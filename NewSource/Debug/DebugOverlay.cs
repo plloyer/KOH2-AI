@@ -278,15 +278,7 @@ namespace AIOverhaul
 
         Logic.Kingdom GetPlayerKingdom()
         {
-            var game = AIOverhaulPlugin.CurrentGame;
-            if (game != null && game.kingdoms != null)
-            {
-                foreach(var kingdom in game.kingdoms)
-                {
-                    if (kingdom != null && kingdom.is_player) return kingdom;
-                }
-            }
-            return null;
+            return AIOverhaulPlugin.CurrentGame?.GetLocalPlayerKingdom();
         }
 
 

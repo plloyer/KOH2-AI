@@ -14,17 +14,15 @@ namespace AIOverhaul
         {
             try
             {
-                // 1. Run only for spectator mode
-                if (!AIOverhaulPlugin.SpectatorMode ||
-                    __instance.def.outcomes == null || __instance.def.outcomes.options == null || __instance.def.outcomes.options.Count == 0)
+                // 1. Check for degenerate cases
+                if (__instance.def.outcomes == null || __instance.def.outcomes.options == null || __instance.def.outcomes.options.Count == 0)
                     return true; // Let original handle degenerate cases
 
                 // 2. Target Check - Use fully qualified Logic.Kingdom
                 if (!(__instance.to is Logic.Kingdom kingdom)) return true;
 
-                // 3. The Specific Case: Player Kingdom + Spectator Mode
-                // Original code: if (kingdom.is_player ...) return false;
-                if (!kingdom.is_player) return true; // Not player? Let original logic run.
+                // 3. Only auto-resolve for player kingdoms with forced AI (spectator mode or /ai_on)
+                if (!kingdom.is_player || !MultiplayerAICommandHelper.IsAIForced(kingdom.id)) return true;
 
                 // 4. Ensure AI is actually enabled for Diplomacy
                 if (kingdom.ai == null || !kingdom.ai.Enabled(KingdomAI.EnableFlags.Diplomacy)) return true;
