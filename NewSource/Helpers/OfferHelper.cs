@@ -21,7 +21,7 @@ namespace AIOverhaul
             if (offer == null) return false;
 
             string validation = offer.Validate();
-            if (validation != "ok") return false;
+            if (validation != DiplomacyConstants.ValidationOk) return false;
 
             AIOverhaulPlugin.LogDebug($"TrySendOffer {offerId} to {target.Name}", LogCategory.Diplomacy, ai.kingdom);
             offer.AI = true;

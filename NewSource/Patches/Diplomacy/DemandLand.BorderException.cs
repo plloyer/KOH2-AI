@@ -39,8 +39,6 @@ namespace AIOverhaul
 
         // Validation error string
         const string k_ErrorCultureMismatch = "pop_majoirt_not_from_recieving";
-        const string k_ValidationOk = "ok";
-
         // Helper to safely get value as type (for reference types)
         static T GetSafe<T>(Traverse t) where T : class
         {
@@ -107,7 +105,7 @@ namespace AIOverhaul
                 {
                     if (externalBorderRealms.Contains(realm))
                     {
-                        __result = k_ValidationOk;
+                        __result = DiplomacyConstants.ValidationOk;
                     }
                 }
             }

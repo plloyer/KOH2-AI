@@ -4,6 +4,9 @@ namespace AIOverhaul
 {
     public static class DiplomacyConstants
     {
+        // Validation results
+        public const string ValidationOk = "ok";
+
         // Offer responses (Vanilla Keys)
         public const string Accept = "accept";
         public const string Decline = "decline";
@@ -18,5 +21,6 @@ namespace AIOverhaul
         public const string PeaceOfferTribute = "PeaceOfferTribute";
         public const string OfferVassalage = "OfferVassalage";
         public const string Peace = "Peace";
+        public const string DeclareWar = "DeclareWar";
     }
 }

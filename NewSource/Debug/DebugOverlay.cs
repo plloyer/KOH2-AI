@@ -56,10 +56,6 @@ namespace AIOverhaul
             AIEvaluationEvents.OnMilitaryEvaluationStart += OnEvaluationStart;
         }
 
-        void Start()
-        {
-        }
-
         void OnEnable()
         {
             AIOverhaulPlugin.LogInfo("DebugOverlay Component ENABLED");

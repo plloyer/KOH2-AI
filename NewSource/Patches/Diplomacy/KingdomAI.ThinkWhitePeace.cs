@@ -45,7 +45,7 @@ namespace AIOverhaul
                     {
                         peace.args = new List<Value> { new Value(vassal) };
                         peace.AI = true;
-                        if (peace.Validate() == "ok")
+                        if (peace.Validate() == DiplomacyConstants.ValidationOk)
                         {
                             AIOverhaulPlugin.LogDebug($"SURRENDERING to {k.Name} as vassal!", LogCategory.War, actor);
                             peace.Send();

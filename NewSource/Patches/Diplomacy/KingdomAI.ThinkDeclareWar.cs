@@ -16,11 +16,16 @@ namespace AIOverhaul
         static bool Prefix(KingdomAI __instance, Logic.Kingdom k, ref bool __result)
         {
             if (k == null || !AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+            if (__instance.kingdom.IsAlly(k)) return false;
 
             __result = false;
 
-            if (__instance.kingdom.IsAlly(k)) return false;
-            
+            if (__instance.kingdom.wars != null && __instance.kingdom.wars.Count > 0)
+            {
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocked: Already at war.", LogCategory.Diplomacy, __instance.kingdom);
+                return false;
+            }
+
             if (__instance.kingdom.HasDisorder())
             {
                 AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocked: Has disorder.", LogCategory.Diplomacy,  __instance.kingdom);
@@ -76,8 +81,21 @@ namespace AIOverhaul
                 return false;
             }
 
-            AIOverhaulPlugin.LogDebug($"Declaring war on {k.Name}. Power Ratio: {powerRatio:F2}", LogCategory.Diplomacy, __instance.kingdom);
-            return true;
+            // Directly send DeclareWar offer, bypassing vanilla CheckThreshold
+            Offer cachedOffer = Offer.GetCachedOffer(DiplomacyConstants.DeclareWar, __instance.kingdom, k);
+            cachedOffer.AI = true;
+            string validation = cachedOffer.Validate();
+            if (validation == DiplomacyConstants.ValidationOk)
+            {
+                cachedOffer.Send();
+                __result = true;
+                AIOverhaulPlugin.LogDebug($"Declaring war on {k.Name}. Power Ratio: {powerRatio:F2}", LogCategory.Diplomacy, __instance.kingdom);
+            }
+            else
+            {
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} War on {k.Name} blocked by game validation: {validation}", LogCategory.Diplomacy, __instance.kingdom);
+            }
+            return false;
         }
     }
 }

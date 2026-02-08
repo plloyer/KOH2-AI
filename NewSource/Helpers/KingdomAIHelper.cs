@@ -47,7 +47,7 @@ namespace AIOverhaul
             offer.args = new List<Value> { new Value(war) };
 
             string validation = offer.Validate();
-            if (validation != "ok") return false;
+            if (validation != DiplomacyConstants.ValidationOk) return false;
 
             offer.AI = true;
             offer.Send();
