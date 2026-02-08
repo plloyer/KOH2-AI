@@ -32,12 +32,6 @@ namespace AIOverhaul
                 return false;
             }
 
-            if (!__instance.kingdom.IsStrategicNeighbor(k))
-            {
-                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocked: {k.Name} not a strategic neighbor.", LogCategory.Diplomacy,  __instance.kingdom);
-                return false;
-            }
-
             float ownPower = __instance.kingdom.GetTotalPower();
             float targetPower = k.GetTotalPower();
             float powerRatio = targetPower > 0 ? ownPower / targetPower : 10f;
@@ -46,9 +40,6 @@ namespace AIOverhaul
                 AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocked: {k.Name} too strong. Us ({ownPower}) / Them ({targetPower}). Power Ratio {powerRatio}", LogCategory.Diplomacy,  __instance.kingdom);
                 return false;
             }
-
-            bool targetAtWar = k.wars != null && k.wars.Count > 0;
-            bool commonEnemy = __instance.kingdom.HasCommonEnemyWithAlly(k);
 
             // War Preparation - Require MinArmiesForWar Full Armies
             int fullArmies = 0;

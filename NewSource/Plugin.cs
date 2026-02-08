@@ -387,13 +387,6 @@ namespace AIOverhaul
         }
     }
 
-    // Removed GameClearPatch and GameLoadPatch as target methods do not exist
-    // Initialization is now triggered by EnhancedLoggingPatch in EnhancedPerformanceLogger.cs
-
-    // Removed KingdomDestroyPatch as target method 'Destroy' does not exist.
-    // Defeat logging is handled by EnhancedPerformanceLogger.LogState.
-    // EnhancedKingdomIds cleanup is handled on new game initialization.
-
     // Mortal Enemy System: Detect when someone declares war on an Enhanced AI kingdom
     // "Logic.War" constructor is called when a new war is declared between two kingdoms.
     // Intent: WarDeclarationDetectionPatch
@@ -418,21 +411,8 @@ namespace AIOverhaul
                 return;
             }
 
-            // Only if attacker is a DIRECT neighbor
-            bool isNeighbor = false;
-            if (k2.neighbors != null)
-            {
-                foreach (var neighbor in k2.neighbors)
-                {
-                    if (neighbor is Logic.Kingdom nk && nk == k1)
-                    {
-                        isNeighbor = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!isNeighbor) return;
+            // Only if attacker is a strategic neighbor (direct, near, or sea-connected)
+            if (!k2.IsStrategicNeighbor(k1)) return;
 
             // Record as mortal enemy - the FIRST kingdom to declare war becomes the permanent grudge
             // Store in Kingdom variable for automatic persistence

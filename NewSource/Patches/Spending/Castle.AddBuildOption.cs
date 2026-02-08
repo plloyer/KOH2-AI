@@ -76,14 +76,20 @@ namespace AIOverhaul
 
                 float farmEval = k_HighPriorityEval * (1 + farmCount) * 2;
                 float coastalEval = k_HighPriorityEval * (1 + coastalCount);
+                float sheepEval = k_HighPriorityEval * 5;
+                float cattleEval = k_HighPriorityEval * 5;
 
                 // Buildings
                 EnsureBuildOption(castle, BuildingNames.CropFarming, farmEval, KingdomAI.Expense.Priority.Urgent);
                 EnsureBuildOption(castle, BuildingNames.Harbor, coastalEval, KingdomAI.Expense.Priority.Urgent);
+                EnsureBuildOption(castle, BuildingNames.SheepFarming, sheepEval, KingdomAI.Expense.Priority.Urgent);
+                EnsureBuildOption(castle, BuildingNames.CattleFarming, cattleEval, KingdomAI.Expense.Priority.Urgent);
 
                 // Upgrades (inject if vanilla didn't generate them)
                 EnsureUpgradeOption(castle, BuildingUpgradeNames.CropsRotation, BuildingNames.CropFarming, farmEval, KingdomAI.Expense.Priority.Urgent);
                 EnsureUpgradeOption(castle, BuildingUpgradeNames.Docks_Harbor, BuildingNames.Harbor, coastalEval, KingdomAI.Expense.Priority.Urgent);
+                EnsureUpgradeOption(castle, BuildingUpgradeNames.Butcher_Sheep, BuildingNames.SheepFarming, sheepEval, KingdomAI.Expense.Priority.Urgent);
+                EnsureUpgradeOption(castle, BuildingUpgradeNames.Butcher_Cattle, BuildingNames.CattleFarming, cattleEval, KingdomAI.Expense.Priority.Urgent);
             }
         }
 

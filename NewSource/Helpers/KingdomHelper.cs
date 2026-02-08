@@ -126,13 +126,68 @@ namespace AIOverhaul
         public static bool IsStrategicNeighbor(this Logic.Kingdom a, Logic.Kingdom b)
         {
             if (a == null || b == null) return false;
-            if (a.neighbors == null) return false;
-            foreach (var n in a.neighbors)
+
+            // Direct neighbor check
+            if (a.neighbors != null)
             {
-                if (n is Logic.Kingdom k && k == b) return true;
+                foreach (var n in a.neighbors)
+                {
+                    if (n is Logic.Kingdom k && k == b) return true;
+                }
+            }
+
+            // Near neighbor: kingdom B has a realm within 2 hops (land or sea routes)
+            if (a.realms != null)
+            {
+                foreach (var ourRealm in a.realms)
+                {
+                    if (ourRealm?.logicNeighborsRestricted == null) continue;
+                    foreach (var adjRealm in ourRealm.logicNeighborsRestricted)
+                    {
+                        if (adjRealm?.logicNeighborsRestricted == null) continue;
+                        foreach (var farRealm in adjRealm.logicNeighborsRestricted)
+                        {
+                            if (farRealm != null && farRealm.GetKingdom() == b) return true;
+                        }
+                    }
+                }
             }
 
             return false;
+        }
+
+        public static List<Logic.Kingdom> GetStrategicNeighborKingdoms(this Logic.Kingdom k)
+        {
+            var result = new HashSet<Logic.Kingdom>();
+
+            if (k.neighbors != null)
+            {
+                foreach (var n in k.neighbors)
+                {
+                    if (n is Logic.Kingdom nk && !nk.IsDefeated()) result.Add(nk);
+                }
+            }
+
+            if (k.realms != null)
+            {
+                foreach (var ourRealm in k.realms)
+                {
+                    if (ourRealm?.logicNeighborsRestricted == null) continue;
+                    foreach (var adjRealm in ourRealm.logicNeighborsRestricted)
+                    {
+                        if (adjRealm?.logicNeighborsRestricted == null) continue;
+                        foreach (var farRealm in adjRealm.logicNeighborsRestricted)
+                        {
+                            if (farRealm == null) continue;
+                            var owner = farRealm.GetKingdom();
+                            if (owner != null && owner != k && !owner.IsDefeated())
+                                result.Add(owner);
+                        }
+                    }
+                }
+            }
+
+            return new List<Logic.Kingdom>(result);
         }
 
         public static bool HasCommonEnemyWithAlly(this Logic.Kingdom a, Logic.Kingdom b)
@@ -320,7 +375,10 @@ namespace AIOverhaul
 
         public static Logic.Kingdom SelectExpansionTarget(this Logic.Kingdom k)
         {
-            if (k == null || k.neighbors == null) return null;
+            if (k == null) return null;
+
+            var strategicNeighbors = k.GetStrategicNeighborKingdoms();
+            if (strategicNeighbors.Count == 0) return null;
 
             Logic.Kingdom selectedTarget = null;
             string reason = "";
@@ -328,17 +386,7 @@ namespace AIOverhaul
             Logic.Kingdom mortalEnemy = AIOverhaulPlugin.GetMortalEnemy(k, k.game);
             if (mortalEnemy != null)
             {
-                bool isStillNeighbor = false;
-                foreach (var neighbor in k.neighbors)
-                {
-                    if (neighbor is Logic.Kingdom nk && nk == mortalEnemy)
-                    {
-                        isStillNeighbor = true;
-                        break;
-                    }
-                }
-
-                if (isStillNeighbor)
+                if (strategicNeighbors.Contains(mortalEnemy))
                 {
                     selectedTarget = mortalEnemy;
                     reason = "MORTAL ENEMY";
@@ -347,9 +395,9 @@ namespace AIOverhaul
 
             if (selectedTarget == null)
             {
-                foreach (var neighbor in k.neighbors)
+                foreach (var nk in strategicNeighbors)
                 {
-                    if (neighbor is Logic.Kingdom nk && k.IsEnemy(nk) && !nk.IsDefeated())
+                    if (k.IsEnemy(nk))
                     {
                         selectedTarget = nk;
                         reason = "CURRENT WAR";
@@ -366,29 +414,26 @@ namespace AIOverhaul
                 Logic.Kingdom weakestHostile = null;
                 float minPower = float.MaxValue;
 
-                foreach (var neighbor in k.neighbors)
+                foreach (var neighborKingdom in strategicNeighbors)
                 {
-                    if (neighbor is Logic.Kingdom neighborKingdom)
+                    if (k.IsAlly(neighborKingdom)) continue;
+                    if (k.HasStance(neighborKingdom, RelationUtils.Stance.NonAggression)) continue;
+
+                    float relationship = k.GetRelationship(neighborKingdom);
+                    float power = neighborKingdom.GetTotalPower();
+
+                    if (relationship < lowestRelation)
                     {
-                        if (neighborKingdom.IsDefeated()) continue;
-                        if (k.IsAlly(neighborKingdom)) continue;
+                        lowestRelation = relationship;
+                        worstNeighbor = neighborKingdom;
+                    }
 
-                        float relationship = k.GetRelationship(neighborKingdom);
-                        float power = neighborKingdom.GetTotalPower();
-
-                        if (relationship < lowestRelation)
+                    if (relationship < GameBalance.NeutralRelationThreshold)
+                    {
+                        if (power < minPower)
                         {
-                            lowestRelation = relationship;
-                            worstNeighbor = neighborKingdom;
-                        }
-
-                        if (relationship < GameBalance.NeutralRelationThreshold)
-                        {
-                            if (power < minPower)
-                            {
-                                minPower = power;
-                                weakestHostile = neighborKingdom;
-                            }
+                            minPower = power;
+                            weakestHostile = neighborKingdom;
                         }
                     }
                 }
