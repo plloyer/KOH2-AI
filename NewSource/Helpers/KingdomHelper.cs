@@ -170,7 +170,7 @@ namespace AIOverhaul
 
             if (enemyStrength <= 0) return true; // Enemy has no armies
 
-            return ourStrength >= enemyStrength * GameBalance.SoloAttackStrengthRatio;
+            return ourStrength >= enemyStrength * GameBalance.PowerRatioSoloCapable;
         }
 
         public static float GetTotalArmyStrength(this Logic.Kingdom k)

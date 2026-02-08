@@ -198,63 +198,49 @@ namespace AIOverhaul
                 {
                     DrawKingdomStats(k, style);
                     DrawRealmSettlements(k, style);
-                    DrawBuddySystem(k, style);
+                    DrawMilitaryOverview(k, style);
                     DrawExpenseLog(style);
                 }
             }
         }
 
-        void DrawBuddySystem(Logic.Kingdom k, GUIStyle style)
+        void DrawMilitaryOverview(Logic.Kingdom k, GUIStyle style)
         {
-            GUILayout.Label("<b>--- Buddy System (Military) ---</b>", style);
+            GUILayout.Label("<b>--- Military Overview ---</b>", style);
             if (k.armies == null) return;
 
-            int activeLinks = 0;
             foreach (var army in k.armies)
             {
                 if (army == null || !army.IsValid()) continue;
 
-                // Only show leaders to avoid duplicate lines (Leader->Follower shown once)
-                bool isFollower = BuddySystem.IsFollower(army, k);
-                if (isFollower) continue;
+                string roleLabel = BuddySystem.GetRoleLabel(army, k);
+                string knightName = army.leader?.Name ?? "Unknown";
+                int unitCount = army.units?.Count ?? 0;
+                int str = army.EvalStrength();
+                string status = army.ai_status ?? "none";
 
-                var follower = BuddySystem.GetBuddy(army, k);
-                if (follower == null) continue;
-
-                activeLinks++;
-                string leaderName = army.leader?.Name ?? "Unknown";
-                string followerName = follower.leader?.Name ?? "Unknown";
-
-                // Get Target Info from the leader army
-                string targetInfo = "";
+                // Determine target description
+                string targetDesc = "";
                 var tgtObj = army.GetTarget();
                 var tgtRealm = army.tgt_realm;
 
                 if (tgtObj != null)
-                {
-                    string tName = "Unknown";
-                    if (tgtObj is Castle c) tName = c.name;
-                    else if (tgtObj is Logic.Army a) tName = "Army " + (a.leader?.Name ?? "?");
-                    else if (tgtObj is Logic.Battle b) tName = "Battle";
-                    else tName = tgtObj.ToString();
-
-                    targetInfo = $" [Target: {tName}]";
-                }
+                    targetDesc = MilitaryHelper.DescribeTarget(tgtObj);
                 else if (tgtRealm != null)
-                {
-                    targetInfo = $" [MoveTo: {tgtRealm.name}]";
-                }
+                    targetDesc = tgtRealm.name;
                 else
-                {
-                    targetInfo = " [Idle]";
-                }
+                    targetDesc = "none";
 
-                GUILayout.Label($"{leaderName} + {followerName}{targetInfo}", style);
-            }
+                // Color: green = in battle, yellow = moving, grey = idle
+                string color;
+                if (army.battle != null)
+                    color = k_ColorGreen;
+                else if (army.movement != null && army.movement.IsMoving())
+                    color = k_ColorYellow;
+                else
+                    color = k_ColorGrey;
 
-            if (activeLinks == 0)
-            {
-                GUILayout.Label($"<color={k_ColorGrey}>No active buddy links</color>", style);
+                GUILayout.Label($"<color={color}>[{roleLabel}] {knightName} ({unitCount} units, STR:{str}) — {status} -> {targetDesc}</color>", style);
             }
             GUILayout.Space(5);
         }

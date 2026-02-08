@@ -7,94 +7,99 @@ namespace AIOverhaul
 {
     public static class BuddySystem
     {
-        // Key: Army ID, Value: Buddy Army ID
-        public static Dictionary<int, int> BuddyMap { get; } = new Dictionary<int, int>();
+        public struct BuddyPair
+        {
+            public int LeaderId;
+            public int FollowerId;
+        }
+
+        // Key: Kingdom ID, Value: List of buddy pairs
+        static Dictionary<int, List<BuddyPair>> s_Pairs = new Dictionary<int, List<BuddyPair>>();
 
         // Key: Kingdom ID, Value: Last re-evaluation time (real time seconds)
         static Dictionary<int, float> s_LastReevalTime = new Dictionary<int, float>();
 
-        // Key: Kingdom ID, Value: Strike force army IDs (the two strongest)
-        static Dictionary<int, (int, int)> s_StrikeForceMap = new Dictionary<int, (int, int)>();
-
         public static void ClearCache()
         {
-            BuddyMap.Clear();
+            s_Pairs.Clear();
             s_LastReevalTime.Clear();
-            s_StrikeForceMap.Clear();
         }
 
         /// <summary>
-        /// Re-evaluate all buddy pairs for a kingdom based on strength.
-        /// The two strongest armies become the strike force (buddies).
+        /// Evaluate and form buddy pairs for a kingdom.
+        /// Pairs sorted by knight class level (highest level marshals form first pair).
         /// </summary>
-        public static void ReevaluateBuddies(Logic.Kingdom kingdom)
+        public static void EvaluatePairs(Logic.Kingdom kingdom)
         {
             if (kingdom == null || kingdom.armies == null) return;
 
             int kingdomId = kingdom.id;
             float currentTime = Time.time;
 
-            // Check if re-evaluation is needed
             if (s_LastReevalTime.TryGetValue(kingdomId, out float lastTime))
             {
-                float elapsed = currentTime - lastTime;
-                if (elapsed < GameBalance.BuddyReevalIntervalMinutes * 60f)
-                    return; // Not time yet
+                if (currentTime - lastTime < GameBalance.BuddyReevalIntervalMinutes * 60f)
+                    return;
             }
 
             s_LastReevalTime[kingdomId] = currentTime;
 
-            // Get all valid armies sorted by strength (strongest first)
+            // Get valid, non-mercenary armies sorted by leader class level descending
             var validArmies = kingdom.armies
-                .Where(a => a != null && a.IsValid() && !a.IsHiredMercenary())
-                .OrderByDescending(a => a.EvalStrength())
+                .Where(a => a != null && a.IsValid() && !a.IsHiredMercenary() && a.leader != null)
+                .OrderByDescending(a => a.leader.GetClassLevel())
                 .ToList();
 
-            if (validArmies.Count < GameBalance.MinArmiesForStrikeForce)
-            {
-                // Not enough armies for strike force
-                s_StrikeForceMap.Remove(kingdomId);
-                return;
-            }
+            var pairs = new List<BuddyPair>();
 
-            // Clear old buddy assignments for this kingdom's armies
-            foreach (var army in validArmies)
+            // Form pairs: armies[0]+[1] = pair 1, armies[2]+[3] = pair 2
+            int maxPairs = Math.Min(GameBalance.MaxBuddyPairs, validArmies.Count / 2);
+            for (int i = 0; i < maxPairs; i++)
             {
-                int armyId = army.GetNid();
-                if (BuddyMap.ContainsKey(armyId))
+                int idx = i * 2;
+                if (idx + 1 >= validArmies.Count) break;
+
+                var first = validArmies[idx];
+                var second = validArmies[idx + 1];
+
+                // Leader = higher class level (first is already higher due to sort)
+                var pair = new BuddyPair
                 {
-                    int oldBuddyId = BuddyMap[armyId];
-                    BuddyMap.Remove(armyId);
-                    if (BuddyMap.ContainsKey(oldBuddyId) && BuddyMap[oldBuddyId] == armyId)
-                        BuddyMap.Remove(oldBuddyId);
-                }
+                    LeaderId = first.GetNid(),
+                    FollowerId = second.GetNid()
+                };
+                pairs.Add(pair);
+
+                string leaderName = first.leader?.Name ?? $"Army#{pair.LeaderId}";
+                string followerName = second.leader?.Name ?? $"Army#{pair.FollowerId}";
+                AIOverhaulPlugin.LogDebug($"[Buddy] Pair {i + 1}: {leaderName} (Lv{first.leader.GetClassLevel()}) + {followerName} (Lv{second.leader.GetClassLevel()})", LogCategory.Military, kingdom);
             }
 
-            // Pair the two strongest as the strike force
-            var strongest = validArmies[0];
-            var secondStrongest = validArmies[1];
-
-            int id1 = strongest.GetNid();
-            int id2 = secondStrongest.GetNid();
-
-            BuddyMap[id1] = id2;
-            BuddyMap[id2] = id1;
-            s_StrikeForceMap[kingdomId] = (id1, id2);
-
-            AIOverhaulPlugin.LogDebug($"[Buddy] Strike Force formed: {strongest.leader?.Name ?? $"Army#{id1}"} (Str:{strongest.EvalStrength():F0}) + {secondStrongest.leader?.Name ?? $"Army#{id2}"} (Str:{secondStrongest.EvalStrength():F0})", LogCategory.Military, kingdom);
+            s_Pairs[kingdomId] = pairs;
         }
 
-        /// <summary>
-        /// Check if an army is part of the strike force (two strongest armies)
-        /// </summary>
-        public static bool IsStrikeForce(Logic.Army army, Logic.Kingdom kingdom)
+        public static bool IsLeader(Logic.Army army, Logic.Kingdom kingdom)
         {
             if (army == null || kingdom == null) return false;
+            if (!s_Pairs.TryGetValue(kingdom.id, out var pairs)) return false;
 
-            if (s_StrikeForceMap.TryGetValue(kingdom.id, out var pair))
+            int armyId = army.GetNid();
+            foreach (var pair in pairs)
             {
-                int armyId = army.GetNid();
-                return armyId == pair.Item1 || armyId == pair.Item2;
+                if (pair.LeaderId == armyId) return true;
+            }
+            return false;
+        }
+
+        public static bool IsFollower(Logic.Army army, Logic.Kingdom kingdom)
+        {
+            if (army == null || kingdom == null) return false;
+            if (!s_Pairs.TryGetValue(kingdom.id, out var pairs)) return false;
+
+            int armyId = army.GetNid();
+            foreach (var pair in pairs)
+            {
+                if (pair.FollowerId == armyId) return true;
             }
             return false;
         }
@@ -102,107 +107,78 @@ namespace AIOverhaul
         public static Logic.Army GetBuddy(Logic.Army army, Logic.Kingdom kingdom)
         {
             if (army == null || kingdom == null) return null;
-
-            // Trigger periodic re-evaluation
-            ReevaluateBuddies(kingdom);
+            if (!s_Pairs.TryGetValue(kingdom.id, out var pairs)) return null;
 
             int armyId = army.GetNid();
-
-            // Check existing buddy
-            if (BuddyMap.ContainsKey(armyId))
+            foreach (var pair in pairs)
             {
-                int buddyId = BuddyMap[armyId];
-                var buddy = kingdom.armies.Find(a => a.GetNid() == buddyId);
-
-                // Validate buddy exists and is valid
-                if (buddy != null && buddy.IsValid())
-                {
-                    // For strike force, don't break on distance - they should regroup
-                    if (IsStrikeForce(army, kingdom))
-                    {
-                        return buddy;
-                    }
-
-                    // For non-strike force pairs, use distance hysteresis
-                    float distSq = buddy.position.SqrDist(army.position);
-                    float maxDistSq = GameBalance.BuddyBreakDistance * GameBalance.BuddyBreakDistance;
-
-                    if (distSq <= maxDistSq)
-                    {
-                        return buddy;
-                    }
-                }
-
-                // Buddy died, invalid, or too far (non-strike force)
-                BuddyMap.Remove(armyId);
-                if (BuddyMap.ContainsKey(buddyId) && BuddyMap[buddyId] == armyId)
-                    BuddyMap.Remove(buddyId);
+                if (pair.LeaderId == armyId)
+                    return kingdom.armies?.Find(a => a.GetNid() == pair.FollowerId);
+                if (pair.FollowerId == armyId)
+                    return kingdom.armies?.Find(a => a.GetNid() == pair.LeaderId);
             }
-
             return null;
         }
 
-        public static bool IsFollower(Logic.Army army, Logic.Kingdom kingdom)
+        /// <summary>
+        /// Get the leader of the pair this army belongs to.
+        /// Returns null if army is not in a pair.
+        /// </summary>
+        public static Logic.Army GetLeader(Logic.Army army, Logic.Kingdom kingdom)
         {
-            if (army == null || kingdom == null) return false;
+            if (army == null || kingdom == null) return null;
+            if (!s_Pairs.TryGetValue(kingdom.id, out var pairs)) return null;
 
-            // In strike force: weaker army follows stronger army
-            if (BuddyMap.ContainsKey(army.GetNid()))
+            int armyId = army.GetNid();
+            foreach (var pair in pairs)
             {
-                int buddyId = BuddyMap[army.GetNid()];
-                var buddy = kingdom.armies?.Find(a => a.GetNid() == buddyId);
-
-                if (buddy == null || !buddy.IsValid()) return false;
-
-                // Strongest is the leader, weaker follows
-                return army.EvalStrength() < buddy.EvalStrength();
+                if (pair.FollowerId == armyId)
+                    return kingdom.armies?.Find(a => a.GetNid() == pair.LeaderId);
+                if (pair.LeaderId == armyId)
+                    return army; // army IS the leader
             }
-            return false;
+            return null;
         }
 
         /// <summary>
-        /// Check if a buddy should be sent to help in battle.
-        /// - If enough units (MinBuddyUnitsToHelp): always help
-        /// - If fewer units: only help if it changes battle outcome
+        /// Get pair index: 0 = first pair, 1 = second pair, -1 = not paired
         /// </summary>
-        /// <param name="buddy">The army considering joining</param>
-        /// <param name="friendlyStrength">Current friendly strength in the fight</param>
-        /// <param name="enemyStrength">Current enemy strength in the fight</param>
-        /// <param name="kingdom">Kingdom for logging</param>
-        public static bool ShouldBuddyHelp(Logic.Army buddy, float friendlyStrength, float enemyStrength, Logic.Kingdom kingdom = null)
+        public static int GetPairIndex(Logic.Army army, Logic.Kingdom kingdom)
         {
-            if (buddy == null || buddy.units == null) return false;
+            if (army == null || kingdom == null) return -1;
+            if (!s_Pairs.TryGetValue(kingdom.id, out var pairs)) return -1;
 
-            int unitCount = buddy.units.Count;
-            string buddyName = buddy.leader?.Name ?? $"Army#{buddy.GetNid()}";
-
-            // Enough units: always help
-            if (unitCount >= GameBalance.MinBuddyUnitsToHelp)
+            int armyId = army.GetNid();
+            for (int i = 0; i < pairs.Count; i++)
             {
-                AIOverhaulPlugin.LogDebug($"[Buddy] {buddyName} has {unitCount} units (>={GameBalance.MinBuddyUnitsToHelp}), will help", LogCategory.Military, kingdom);
-                return true;
+                if (pairs[i].LeaderId == armyId || pairs[i].FollowerId == armyId)
+                    return i;
             }
+            return -1;
+        }
 
-            // Fewer units: only help if it changes the outcome
-            if (enemyStrength <= 0) return false;
+        public static bool IsFirstPair(Logic.Army army, Logic.Kingdom kingdom)
+        {
+            return GetPairIndex(army, kingdom) == 0;
+        }
 
-            float buddyStrength = buddy.EvalStrength();
+        /// <summary>
+        /// Get a label for the army's buddy role: L1, F1, L2, F2, or --
+        /// </summary>
+        public static string GetRoleLabel(Logic.Army army, Logic.Kingdom kingdom)
+        {
+            if (army == null || kingdom == null) return "--";
+            if (!s_Pairs.TryGetValue(kingdom.id, out var pairs)) return "--";
 
-            // Calculate win chance without buddy
-            float winChanceWithout = friendlyStrength / (friendlyStrength + enemyStrength);
-
-            // Calculate win chance with buddy
-            float winChanceWith = (friendlyStrength + buddyStrength) / (friendlyStrength + buddyStrength + enemyStrength);
-
-            // Only send if it changes from losing to winning
-            bool wouldLoseWithout = winChanceWithout < GameBalance.MinBattleWinChance;
-            bool wouldWinWith = winChanceWith >= GameBalance.MinBattleWinChance;
-            bool changesOutcome = wouldLoseWithout && wouldWinWith;
-
-            AIOverhaulPlugin.LogDebug($"[Buddy] {buddyName} has {unitCount} units (<{GameBalance.MinBuddyUnitsToHelp}), " +
-                $"WinChance: {winChanceWithout:P0}->{winChanceWith:P0}, ChangesOutcome={changesOutcome}", LogCategory.Military, kingdom);
-
-            return changesOutcome;
+            int armyId = army.GetNid();
+            for (int i = 0; i < pairs.Count; i++)
+            {
+                if (pairs[i].LeaderId == armyId)
+                    return $"L{i + 1}";
+                if (pairs[i].FollowerId == armyId)
+                    return $"F{i + 1}";
+            }
+            return "--";
         }
     }
 }

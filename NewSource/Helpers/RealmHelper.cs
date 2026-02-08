@@ -58,26 +58,15 @@ namespace AIOverhaul
             }
             current = currentGoods.Count;
 
-            // 2. Calculate Potential (Cached per realm)
-            if (GoodsHelper.RealmMaxGoodsCache.TryGetValue(realm.id, out int cachedMax))
+            // 2. Calculate Potential (per realm, no cache - features are static)
+            HashSet<string> potentialGoods = new HashSet<string>();
+            foreach (var def in GoodsHelper.ProductiveBuildings)
             {
-                max = cachedMax;
+                if (!realm.IsPotentiallyBuildable(def)) continue;
+                GoodsHelper.AddGoodsFromList(def.produces, potentialGoods, realm.game);
+                GoodsHelper.AddGoodsFromList(def.produces_completed, potentialGoods, realm.game);
             }
-            else
-            {
-                // Calculate and cache
-                HashSet<string> potentialGoods = new HashSet<string>();
-                foreach (var def in GoodsHelper.ProductiveBuildings)
-                {
-                    // Must be buildable in this realm
-                    if (!realm.IsPotentiallyBuildable(def)) continue;
-
-                    GoodsHelper.AddGoodsFromList(def.produces, potentialGoods, realm.game);
-                    GoodsHelper.AddGoodsFromList(def.produces_completed, potentialGoods, realm.game);
-                }
-                max = potentialGoods.Count;
-                GoodsHelper.RealmMaxGoodsCache[realm.id] = max;
-            }
+            max = potentialGoods.Count;
         }
 
         public static bool HasReligiousSettlement(this Logic.Realm realm)
@@ -160,26 +149,29 @@ namespace AIOverhaul
             }
         }
 
-        public static bool IsPotentiallyBuildable(this Logic.Realm realm, Logic.Building.Def def)
+        public static bool IsPotentiallyBuildable(this Logic.Realm realm, Logic.Building.Def def, int depth = 0)
         {
-            // Check features
+            if (depth > 10) return false; // Guard against circular deps
+
             if (def.requires != null)
             {
                 foreach (var req in def.requires)
                 {
-                    // Ignore Resources (Gold, etc.)
                     if (req.type == GlobalConstants.ReqType_Resource) continue;
-                    if (req.type == GlobalConstants.ReqType_Region && req.key == GlobalConstants.Region_Europe) continue; // Hack: Assume Europe
+                    if (req.type == GlobalConstants.ReqType_Region && req.key == GlobalConstants.Region_Europe) continue;
 
-                    // Ignore other Buildings (assume we can build them)
                     var bDef = realm.game.defs.Find<Logic.Building.Def>(req.key);
-                    if (bDef != null) continue;
+                    if (bDef != null)
+                    {
+                        // Recursively check if parent building is also buildable
+                        if (!realm.IsPotentiallyBuildable(bDef, depth + 1)) return false;
+                        continue;
+                    }
 
-                    // It must be a Feature/Tag
-                    // Check if realm has it
+                    // Feature check
                     if (realm.features == null || !realm.features.Contains(req.key))
                     {
-                        return false; 
+                        return false;
                     }
                 }
             }

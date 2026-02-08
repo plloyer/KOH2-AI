@@ -18,7 +18,11 @@
       "Bash(start Sovereign.exe)",
       "Bash(mkdir:*)",
       "Bash(git restore:*)",
-      "Bash(msbuild:*)"
+      "Bash(msbuild:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(powershell << 'EOF'\n$searchPatterns = @\\(\n  'BuddySystem\\\\.BuddyMap',\n  'BuddySystem\\\\.ReevaluateBuddies',\n  'BuddySystem\\\\.IsStrikeForce',\n  'BuddySystem\\\\.ShouldBuddyHelp',\n  'BuddySystem\\\\.GetBuddy',\n  'RetreatHeal|RetreatHealBuddy|RetreatLowChance|WaitForBuddy|RescueLeaderSiege|JoinLeaderBattle|FollowBuddyForce|FollowBuddyMove|JoinLeaderTerritory|RescueBuddy|AttackSallyOut',\n  'BuddyBreakDistance|BuddyWaitDistance|MinArmiesForStrikeForce|MinBuddyUnitsToHelp|SoloAttackStrengthRatio'\n\\)\n\nforeach \\($pattern in $searchPatterns\\) {\n  $results = Get-ChildItem -Path 'C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\Knights of Honor II\\\\AIOverhaul\\\\NewSource' -Recurse -Filter *.cs | Select-String -Pattern $pattern\n  foreach \\($result in $results\\) {\n    Write-Host \\(\"{0}:{1}:{2}\" -f $result.Path, $result.LineNumber, $result.Line.Trim\\(\\)\\)\n  }\n}\nEOF)",
+      "Bash(dir:*)"
     ]
   }
 }

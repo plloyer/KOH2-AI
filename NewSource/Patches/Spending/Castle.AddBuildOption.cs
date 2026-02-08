@@ -38,7 +38,22 @@ namespace AIOverhaul
                     if (option.def != null && BuildingHelper.IsReligiousBuilding(option.def.id))
                     {
                         Castle.build_options.RemoveAt(i);
-                        //AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Removed {option.def.id} from {castle.name} (No Religious Settlement)", LogCategory.Spending, castle.GetKingdom());
+                    }
+                }
+            }
+            else
+            {
+                // Has religious settlements — boost religious buildings based on count
+                int religiousCount = realm.GetReligiousCount();
+                float multiplier = 1 + religiousCount * GameBalance.ReligionBuildingBoostPerSlot;
+
+                for (int i = 0; i < Castle.build_options.Count; i++)
+                {
+                    var option = Castle.build_options[i];
+                    if (option.def != null && BuildingHelper.IsReligiousBuilding(option.def.id))
+                    {
+                        option.eval *= multiplier;
+                        Castle.build_options[i] = option;
                     }
                 }
             }
@@ -59,52 +74,99 @@ namespace AIOverhaul
 
                 AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Food CRITICAL ({food}), boosting food production in {castle.name}. Farms: {farmCount}, Coastal: {coastalCount}", LogCategory.Spending, kingdom);
 
-                // Boost building options
-                for (int i = 0; i < Castle.build_options.Count; i++)
+                float farmEval = k_HighPriorityEval * (1 + farmCount) * 2;
+                float coastalEval = k_HighPriorityEval * (1 + coastalCount);
+
+                // Buildings
+                EnsureBuildOption(castle, BuildingNames.CropFarming, farmEval, KingdomAI.Expense.Priority.Urgent);
+                EnsureBuildOption(castle, BuildingNames.Harbor, coastalEval, KingdomAI.Expense.Priority.Urgent);
+
+                // Upgrades (inject if vanilla didn't generate them)
+                EnsureUpgradeOption(castle, BuildingUpgradeNames.CropsRotation, BuildingNames.CropFarming, farmEval, KingdomAI.Expense.Priority.Urgent);
+                EnsureUpgradeOption(castle, BuildingUpgradeNames.Docks_Harbor, BuildingNames.Harbor, coastalEval, KingdomAI.Expense.Priority.Urgent);
+            }
+        }
+
+        /// <summary>
+        /// Ensures a building option exists in build_options with at least the given eval/priority.
+        /// If missing and the building is available (not already built), injects it.
+        /// </summary>
+        static bool EnsureBuildOption(Castle castle, string buildingId, float eval, KingdomAI.Expense.Priority priority)
+        {
+            var def = castle.game.defs.Find<Logic.Building.Def>(buildingId);
+            if (def == null) return false;
+            if (castle.HasBuilding(def)) return false;
+
+            // Try to boost existing option first
+            for (int i = 0; i < Castle.build_options.Count; i++)
+            {
+                var opt = Castle.build_options[i];
+                if (opt.def == def)
                 {
-                    var option = Castle.build_options[i];
-                    if (option.def == null) continue;
-
-                    if (option.def.id == BuildingNames.CropFarming)
+                    if (opt.eval < eval || opt.priority < priority)
                     {
-                        // Boost based on Farm count
-                        option.eval = k_HighPriorityEval * (1 + farmCount) * 2; // Prioritize farm over harbor
-                        option.priority = KingdomAI.Expense.Priority.Urgent;
-                        Castle.build_options[i] = option;
-                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTING CropFarming in {castle.name}: eval={option.eval}", LogCategory.Spending, kingdom);
+                        Castle.build_options_sum += eval - opt.eval;
+                        opt.eval = eval;
+                        opt.priority = priority;
+                        Castle.build_options[i] = opt;
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTED {buildingId} in {castle.name}: eval={eval}", LogCategory.Spending, castle.GetKingdom());
                     }
-                    else if (option.def.id == BuildingNames.Harbor)
-                    {
-                        // Boost based on Coastal count
-                        option.eval = k_HighPriorityEval * (1 + coastalCount);
-                        option.priority = KingdomAI.Expense.Priority.Urgent;
-                        Castle.build_options[i] = option;
-                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTING Harbor in {castle.name}: eval={option.eval}", LogCategory.Spending, kingdom);
-                    }
-                }
-
-                // Boost upgrade options (CropsRotation for farms, Docks for harbors)
-                for (int i = 0; i < Castle.upgrade_options.Count; i++)
-                {
-                    var option = Castle.upgrade_options[i];
-                    if (option.def == null) continue;
-
-                    if (option.def.id == BuildingUpgradeNames.CropsRotation)
-                    {
-                        option.eval = k_HighPriorityEval * (1 + farmCount) * 2;
-                        option.priority = KingdomAI.Expense.Priority.Urgent;
-                        Castle.upgrade_options[i] = option;
-                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTING CropsRotation upgrade in {castle.name}: eval={option.eval}", LogCategory.Spending, kingdom);
-                    }
-                    else if (option.def.id == BuildingUpgradeNames.Docks_Harbor)
-                    {
-                        option.eval = k_HighPriorityEval * (1 + coastalCount);
-                        option.priority = KingdomAI.Expense.Priority.Urgent;
-                        Castle.upgrade_options[i] = option;
-                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTING Docks upgrade in {castle.name}: eval={option.eval}", LogCategory.Spending, kingdom);
-                    }
+                    return true;
                 }
             }
+
+            // Not in list — inject it
+            var option = new Castle.BuildOption
+            {
+                castle = castle, def = def, eval = eval, priority = priority
+            };
+            Castle.build_options.Add(option);
+            Castle.build_options_sum += eval;
+            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} INJECTED {buildingId} build option in {castle.name}: eval={eval}", LogCategory.Spending, castle.GetKingdom());
+            return true;
+        }
+
+        /// <summary>
+        /// Ensures an upgrade option exists in upgrade_options with at least the given eval/priority.
+        /// If missing and parent building is built (and upgrade isn't), injects it.
+        /// </summary>
+        static bool EnsureUpgradeOption(Castle castle, string upgradeId, string parentBuildingId, float eval, KingdomAI.Expense.Priority priority)
+        {
+            var def = castle.game.defs.Find<Logic.Building.Def>(upgradeId);
+            if (def == null) return false;
+            if (castle.HasBuilding(def)) return false;
+
+            // Check parent building exists
+            var parentDef = castle.game.defs.Find<Logic.Building.Def>(parentBuildingId);
+            if (parentDef == null || !castle.HasBuilding(parentDef)) return false;
+
+            // Try to boost existing option first
+            for (int i = 0; i < Castle.upgrade_options.Count; i++)
+            {
+                var opt = Castle.upgrade_options[i];
+                if (opt.def == def)
+                {
+                    if (opt.eval < eval || opt.priority < priority)
+                    {
+                        Castle.upgrade_options_sum += eval - opt.eval;
+                        opt.eval = eval;
+                        opt.priority = priority;
+                        Castle.upgrade_options[i] = opt;
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTED {upgradeId} upgrade in {castle.name}: eval={eval}", LogCategory.Spending, castle.GetKingdom());
+                    }
+                    return true;
+                }
+            }
+
+            // Not in list — inject it
+            var option = new Castle.BuildOption
+            {
+                castle = castle, def = def, eval = eval, priority = priority
+            };
+            Castle.upgrade_options.Add(option);
+            Castle.upgrade_options_sum += eval;
+            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} INJECTED {upgradeId} upgrade in {castle.name}: eval={eval}", LogCategory.Spending, castle.GetKingdom());
+            return true;
         }
 
         static void ApplyVillageMilitiaLogic(Castle castle)

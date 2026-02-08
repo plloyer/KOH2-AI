@@ -12,13 +12,14 @@ namespace AIOverhaul
         public const float HealthRetreatThreshold = 0.7f;
 
 
+        // Military - Attack/Defense Thresholds
+        public const float MinAttackStrengthRatio = 1.1f; // Must be 1.1x stronger to attack
+        public const float SallyOutStrengthRatio = 1.1f; // Must be 1.1x stronger to sally out
+
         // Buddy System
-        public const float BuddyBreakDistance = 600f; // Distance to break buddy link
-        public const float BuddyWaitDistance = 200f; // Max distance to wait for a buddy
+        public const int MaxBuddyPairs = 2; // Max buddy pairs (4 marshals / 2)
+        public const int MinBuddyUnitsToFollow = 4; // Follower needs this many units to follow leader
         public const float BuddyReevalIntervalMinutes = 1f; // Re-evaluate buddies interval (real time)
-        public const int MinArmiesForStrikeForce = 2; // Minimum armies needed to form a strike force
-        public const int MinBuddyUnitsToHelp = 4; // Buddy must have at least this many units to be sent to help
-        public const float SoloAttackStrengthRatio = 1.5f; // Skip buddy system if stronger by this ratio in 1v1 war
 
         // Army Composition - Late Game
         public const int FullArmySize = 8;
