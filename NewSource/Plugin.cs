@@ -172,7 +172,9 @@ namespace AIOverhaul
             EnhancedPerformanceLogger.ClearData(); // Moved here from failed GameClearPatch
 
             // ALWAYS add player kingdoms to enhanced AI list (for spectator mode testing)
-            List<Logic.Kingdom> playerKingdoms = game.kingdoms.Where(k => k != null && k.is_player && !k.IsDefeated()).ToList();
+            List<Logic.Kingdom> playerKingdoms = game.kingdoms
+                .Where(k => k != null && k.is_player && !k.IsDefeated())
+                .ToList();
             foreach (var playerKingdom in playerKingdoms)
             {
                 EnhancedKingdomIds.Add(playerKingdom.id);
@@ -185,7 +187,9 @@ namespace AIOverhaul
             }
 
             // Now select enhanced/baseline from AI kingdoms only
-            List<Logic.Kingdom> aiKingdoms = game.kingdoms.Where(k => k != null && !k.is_player && !k.IsDefeated()).ToList();
+            List<Logic.Kingdom> aiKingdoms = game.kingdoms
+                .Where(k => k != null && !k.is_player && !k.IsDefeated())
+                .ToList();
 
             // Increased to 30% for better statistical validity
             int targetCount = Mathf.Max(1, Mathf.RoundToInt(aiKingdoms.Count * GameBalance.EnhancedAISelectionPercentage));
@@ -295,25 +299,34 @@ namespace AIOverhaul
             return enemy;
         }
         
-        public static void ToggleSpectatorMode()
+        public static void ToggleSpectatorMode(Game game = null)
         {
             SpectatorMode = !SpectatorMode;
-
-            // Notify listeners (controls debug overlay visibility)
             OnSpectatorModeChanged?.Invoke(SpectatorMode);
 
-            // Route through the per-kingdom ForcedAIKingdoms mechanism
-            // Use GetLocalPlayerKingdom() to target only THIS machine's player
-            var localKingdom = CurrentGame?.GetLocalPlayerKingdom();
+            game = game ?? CurrentGame;
+
+            // MP Client: always send via chat to host (local toggle has no effect on client)
+            bool isClient = game?.multiplayer != null
+                            && game.multiplayer.type == Logic.Multiplayer.Type.Client;
+
+            if (isClient && game.multiplayer.chat != null)
+            {
+                string cmd = SpectatorMode ? "!aion" : "!aioff";
+                game.multiplayer.chat.SendInGameChatMessage(Chat.Channel.All, cmd, null);
+                LogInfo($"Sent spectator request to host: {cmd}", LogCategory.Spectator);
+                return;
+            }
+
+            var localKingdom = game?.GetLocalPlayerKingdom();
             if (localKingdom != null)
             {
+                // SP or MP Host: direct toggle
                 if (SpectatorMode)
                 {
                     MultiplayerAICommandHelper.EnableAI(localKingdom.id);
                     if (!EnhancedKingdomIds.Contains(localKingdom.id))
-                    {
                         EnhancedKingdomIds.Add(localKingdom.id);
-                    }
                     LogInfo("Spectator Mode ENABLED - Enhanced AI is now controlling kingdom", LogCategory.Spectator, localKingdom);
                 }
                 else
@@ -322,6 +335,10 @@ namespace AIOverhaul
                     EnhancedKingdomIds.Remove(localKingdom.id);
                     LogInfo("Spectator Mode DISABLED - Player control restored", LogCategory.Spectator, localKingdom);
                 }
+            }
+            else
+            {
+                LogWarning("Cannot toggle spectator mode: no local kingdom and no multiplayer connection", LogCategory.Spectator);
             }
         }
 
@@ -343,7 +360,7 @@ namespace AIOverhaul
             // Detect F9 key press to toggle spectator mode
             if (Input.GetKeyDown(KeyCode.F9))
             {
-                AIOverhaulPlugin.ToggleSpectatorMode();
+                AIOverhaulPlugin.ToggleSpectatorMode(__instance);
             }
 
             // Detect F8 key press to toggle 50x speed

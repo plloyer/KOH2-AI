@@ -274,7 +274,18 @@ namespace AIOverhaul
 
         Logic.Kingdom GetPlayerKingdom()
         {
-            return AIOverhaulPlugin.CurrentGame?.GetLocalPlayerKingdom();
+            var game = AIOverhaulPlugin.CurrentGame;
+            if (game == null) return null;
+
+            // Try standard lookup first (works on host)
+            var k = game.GetLocalPlayerKingdom();
+            if (k != null) return k;
+
+            // Fallback for MP client: use campaign data (THQNORequest.userId)
+            if (game.campaign == null) return null;
+            string kingdomName = CampaignUtils.GetOwnKingdomName(game.campaign);
+            if (string.IsNullOrEmpty(kingdomName)) return null;
+            return game.GetKingdom(kingdomName);
         }
 
 

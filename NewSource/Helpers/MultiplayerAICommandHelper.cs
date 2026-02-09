@@ -50,25 +50,31 @@ namespace AIOverhaul
         /// </summary>
         public static bool HandleChatCommand(Campaign campaign, string senderPlayerId, string message)
         {
-            if (string.IsNullOrEmpty(message) || !message.StartsWith("/")) return false;
+            if (string.IsNullOrEmpty(message)) return false;
 
             string cmd = message.Trim().ToLowerInvariant();
 
-            if (cmd == "/ai_on" || cmd == "/ai_start")
+            // Only process messages starting with / or !
+            if (!cmd.StartsWith("/") && !cmd.StartsWith("!")) return false;
+
+            if (cmd == "/ai_on" || cmd == "/ai_start" || cmd == "!aion")
             {
                 int kingdomId = GetKingdomIdForPlayer(campaign, senderPlayerId);
                 if (kingdomId != -1)
                 {
                     EnableAI(kingdomId);
+                    if (!AIOverhaulPlugin.EnhancedKingdomIds.Contains(kingdomId))
+                        AIOverhaulPlugin.EnhancedKingdomIds.Add(kingdomId);
                     return true;
                 }
             }
-            else if (cmd == "/ai_off" || cmd == "/ai_stop")
+            else if (cmd == "/ai_off" || cmd == "/ai_stop" || cmd == "!aioff")
             {
                 int kingdomId = GetKingdomIdForPlayer(campaign, senderPlayerId);
                 if (kingdomId != -1)
                 {
                     DisableAI(kingdomId);
+                    AIOverhaulPlugin.EnhancedKingdomIds.Remove(kingdomId);
                     return true;
                 }
             }
