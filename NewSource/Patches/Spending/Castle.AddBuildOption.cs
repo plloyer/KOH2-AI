@@ -73,8 +73,9 @@ namespace AIOverhaul
                 int coastalCount = realm.GetCoastalCount();
 
                 bool hasRareGame = realm.features != null && realm.features.Contains(FeatureNames.RareGame);
+                bool hasRivers = realm.features != null && realm.features.Contains(FeatureNames.Rivers);
 
-                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Food CRITICAL ({food}), boosting food production in {castle.name}. Farms: {farmCount}, Coastal: {coastalCount}, RareGame: {hasRareGame}", LogCategory.Spending, kingdom);
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Food CRITICAL ({food}), boosting food production in {castle.name}. Farms: {farmCount}, Coastal: {coastalCount}, RareGame: {hasRareGame}, Rivers: {hasRivers}", LogCategory.Spending, kingdom);
 
                 float farmEval = k_HighPriorityEval * (0.5f + farmCount);
                 float coastalEval = k_HighPriorityEval * (0.5f + coastalCount);
@@ -88,7 +89,8 @@ namespace AIOverhaul
                 EnsureBuildOption(castle, BuildingNames.Harbor, coastalEval, KingdomAI.Expense.Priority.Urgent);
                 EnsureBuildOption(castle, BuildingNames.SheepFarming, sheepEval, KingdomAI.Expense.Priority.Urgent);
                 EnsureBuildOption(castle, BuildingNames.CattleFarming, cattleEval, KingdomAI.Expense.Priority.Urgent);
-                EnsureBuildOption(castle, BuildingNames.Irrigation, irrigationEval, KingdomAI.Expense.Priority.Urgent);
+                if (hasRivers)
+                    EnsureBuildOption(castle, BuildingNames.Irrigation, irrigationEval, KingdomAI.Expense.Priority.Urgent);
                 if (hasRareGame)
                     EnsureBuildOption(castle, BuildingNames.FurTrade, furTradeEval, KingdomAI.Expense.Priority.Urgent);
 

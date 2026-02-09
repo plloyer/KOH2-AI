@@ -30,6 +30,15 @@ namespace AIOverhaul
                 return HandlePeaceOffer(__instance, receiver, sender, ref __result);
             }
 
+            // War support: always accept (OfferSupportInWar covers DemandSupportInWar and AskForProtection)
+            if (__instance.IsOfType(typeof(OfferSupportInWar)))
+            {
+                string supportType = __instance.GetType().Name;
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} AUTO-ACCEPTING {supportType} from {sender.Name}", LogCategory.Diplomacy, receiver);
+                __result = DiplomacyConstants.Accept;
+                return false;
+            }
+
             // Check if the Offer is Trade or Non-Aggression using type checking
             bool isTrade = __instance.IsOfType(typeof(SignTrade));
             bool isNAP = __instance.IsOfType(typeof(SignNonAggression));
