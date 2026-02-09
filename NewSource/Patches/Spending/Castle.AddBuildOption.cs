@@ -72,18 +72,25 @@ namespace AIOverhaul
                 int farmCount = realm.GetFarmCount();
                 int coastalCount = realm.GetCoastalCount();
 
-                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Food CRITICAL ({food}), boosting food production in {castle.name}. Farms: {farmCount}, Coastal: {coastalCount}", LogCategory.Spending, kingdom);
+                bool hasRareGame = realm.features != null && realm.features.Contains(FeatureNames.RareGame);
 
-                float farmEval = k_HighPriorityEval * (1 + farmCount) * 2;
-                float coastalEval = k_HighPriorityEval * (1 + coastalCount);
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Food CRITICAL ({food}), boosting food production in {castle.name}. Farms: {farmCount}, Coastal: {coastalCount}, RareGame: {hasRareGame}", LogCategory.Spending, kingdom);
+
+                float farmEval = k_HighPriorityEval * (0.5f + farmCount);
+                float coastalEval = k_HighPriorityEval * (0.5f + coastalCount);
                 float sheepEval = k_HighPriorityEval * 5;
                 float cattleEval = k_HighPriorityEval * 5;
+                float irrigationEval = k_HighPriorityEval * (1 + farmCount * 3);
+                float furTradeEval = k_HighPriorityEval * 3;
 
                 // Buildings
                 EnsureBuildOption(castle, BuildingNames.CropFarming, farmEval, KingdomAI.Expense.Priority.Urgent);
                 EnsureBuildOption(castle, BuildingNames.Harbor, coastalEval, KingdomAI.Expense.Priority.Urgent);
                 EnsureBuildOption(castle, BuildingNames.SheepFarming, sheepEval, KingdomAI.Expense.Priority.Urgent);
                 EnsureBuildOption(castle, BuildingNames.CattleFarming, cattleEval, KingdomAI.Expense.Priority.Urgent);
+                EnsureBuildOption(castle, BuildingNames.Irrigation, irrigationEval, KingdomAI.Expense.Priority.Urgent);
+                if (hasRareGame)
+                    EnsureBuildOption(castle, BuildingNames.FurTrade, furTradeEval, KingdomAI.Expense.Priority.Urgent);
 
                 // Upgrades (inject if vanilla didn't generate them)
                 EnsureUpgradeOption(castle, BuildingUpgradeNames.CropsRotation, BuildingNames.CropFarming, farmEval, KingdomAI.Expense.Priority.Urgent);
