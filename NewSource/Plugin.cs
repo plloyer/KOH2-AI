@@ -96,6 +96,19 @@ namespace AIOverhaul
 
         public static bool SpectatorMode { get; set; }
 
+        // Manual Expansion Target: Set by Alt+Click in spectator mode
+        public static int ManualExpansionTargetId { get; private set; } = -1;
+
+        public static void SetManualExpansionTarget(int kingdomId)
+        {
+            ManualExpansionTargetId = kingdomId;
+        }
+
+        public static void ClearManualExpansionTarget()
+        {
+            ManualExpansionTargetId = -1;
+        }
+
         /// <summary>
         /// Log an error message
         /// </summary>

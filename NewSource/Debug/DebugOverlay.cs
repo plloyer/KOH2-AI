@@ -366,7 +366,12 @@ namespace AIOverhaul
 
             // Expansion Target
             var expansionTarget = k.SelectExpansionTarget();
-            string expansionDisplay = expansionTarget != null ? $"<color={k_ColorMilitary}>{expansionTarget.Name}</color>" : "None";
+            bool isManual = AIOverhaulPlugin.ManualExpansionTargetId >= 0
+                         && expansionTarget?.id == AIOverhaulPlugin.ManualExpansionTargetId;
+            string manualTag = isManual ? " [MANUAL]" : "";
+            string expansionDisplay = expansionTarget != null
+                ? $"<color={k_ColorMilitary}>{expansionTarget.Name}{manualTag}</color>"
+                : "None";
             GUILayout.Label($"Expansion Target: {expansionDisplay}", style);
 
             // Neighbors - Combined into one label to avoid gaps

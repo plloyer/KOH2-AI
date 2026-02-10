@@ -376,6 +376,19 @@ namespace AIOverhaul
         {
             if (k == null) return null;
 
+            // Manual override from spectator Alt+Click (highest priority)
+            if (k.is_player && AIOverhaulPlugin.ManualExpansionTargetId >= 0)
+            {
+                var manualTarget = k.game.GetKingdom(AIOverhaulPlugin.ManualExpansionTargetId);
+                if (manualTarget != null && !manualTarget.IsDefeated())
+                {
+                    AIOverhaulPlugin.ExpansionTargets[k.id] = manualTarget.id;
+                    return manualTarget;
+                }
+                // Target invalid/defeated — auto-clear
+                AIOverhaulPlugin.ClearManualExpansionTarget();
+            }
+
             var strategicNeighbors = k.GetStrategicNeighborKingdoms();
             if (strategicNeighbors.Count == 0) return null;
 

@@ -78,6 +78,14 @@ namespace AIOverhaul
                 TryPlacePing();
             }
 
+            // Detect Alt+LClick for expansion target override (spectator mode only)
+            if (AIOverhaulPlugin.SpectatorMode
+                && Input.GetMouseButtonDown(0)
+                && (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)))
+            {
+                TrySetExpansionTarget();
+            }
+
             // Lazy minimap camera discovery
             TryFindMinimapCamera(now);
         }
@@ -99,6 +107,51 @@ namespace AIOverhaul
             {
                 PingNetworkHelper.SendPing(hitPos, localKingdom);
             }
+        }
+
+        void TrySetExpansionTarget()
+        {
+            var game = AIOverhaulPlugin.CurrentGame;
+            if (game == null) return;
+
+            Logic.Kingdom localKingdom = GetLocalKingdom();
+            if (localKingdom == null) return;
+
+            Vector3 hitPos;
+            if (!RaycastMousePosition(out hitPos)) return;
+
+            // Convert Unity world position to game map point (Unity Z = game Y)
+            var mapPoint = new Logic.Point(hitPos.x, hitPos.z);
+
+            // Find realm at clicked position
+            Logic.Realm realm = game.GetRealm(mapPoint);
+            if (realm == null)
+            {
+                int nearbyId = game.GetNearbyRealm(mapPoint);
+                if (nearbyId > 0)
+                    realm = game.GetRealm(nearbyId);
+            }
+            if (realm == null) return;
+
+            Logic.Kingdom owner = realm.GetKingdom();
+            if (owner == null) return;
+
+            // Toggle off: clicking own territory or same target clears override
+            if (owner == localKingdom || owner.id == AIOverhaulPlugin.ManualExpansionTargetId)
+            {
+                AIOverhaulPlugin.ClearManualExpansionTarget();
+                AIOverhaulPlugin.LogInfo($"Manual expansion target CLEARED", LogCategory.Spectator, localKingdom);
+                return;
+            }
+
+            // Set manual expansion target
+            AIOverhaulPlugin.SetManualExpansionTarget(owner.id);
+            AIOverhaulPlugin.ExpansionTargets[localKingdom.id] = owner.id;
+            AIOverhaulPlugin.LogInfo($"Manual expansion target SET: {owner.Name}", LogCategory.Spectator, localKingdom);
+
+            // Visual feedback: place a ping at the clicked position
+            Color color = ExtractKingdomColor(localKingdom);
+            AddPing(hitPos, color, $"TARGET: {owner.Name}");
         }
 
         bool RaycastMousePosition(out Vector3 hitPos)
