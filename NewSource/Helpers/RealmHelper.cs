@@ -12,59 +12,49 @@ namespace AIOverhaul
             max = 0;
             if (realm == null || realm.game == null) return;
 
-            GoodsHelper.EnsureCache(realm.game);
+            // 1. Current goods — use the game's own tracking
+            current = realm.goods_produced?.Count ?? 0;
 
-            // 1. Calculate Current (Dynamic, must check every frame)
-            HashSet<string> currentGoods = new HashSet<string>();
-            if (realm.castle != null)
-            {
-                // Iterate Buildings
-                if (realm.castle.buildings != null)
-                {
-                    foreach (var b in realm.castle.buildings)
-                    {
-                        if (b == null || b.def == null) continue;
-                        // Check produces
-                        if (b.IsBuilt() && b.IsFullyFunctional())
-                        {
-                            GoodsHelper.AddGoodsFromList(b.def.produces, currentGoods, realm.game);
-                        }
-                        // Check produces_completed
-                        if (b.IsBuilt() && b.CalcCompleted())
-                        {
-                            GoodsHelper.AddGoodsFromList(b.def.produces_completed, currentGoods, realm.game);
-                        }
-                    }
-                }
-
-                // Iterate Upgrades
-                if (realm.castle.upgrades != null)
-                {
-                    foreach (var u in realm.castle.upgrades)
-                    {
-                        if (u == null || u.def == null) continue;
-                        // Upgrades must be built and functional
-                        if (u.IsBuilt() && u.IsFullyFunctional())
-                        {
-                            GoodsHelper.AddGoodsFromList(u.def.produces, currentGoods, realm.game);
-                            
-                            if (u.CalcCompleted())
-                            {
-                                GoodsHelper.AddGoodsFromList(u.def.produces_completed, currentGoods, realm.game);
-                            }
-                        }
-                    }
-                }
-            }
-            current = currentGoods.Count;
-
-            // 2. Calculate Potential (per realm, no cache - features are static)
+            // 2. Max goods — district-aware potential
             HashSet<string> potentialGoods = new HashSet<string>();
-            foreach (var def in GoodsHelper.ProductiveBuildings)
+            var castle = realm.castle;
+            if (castle != null)
             {
-                if (!realm.IsPotentiallyBuildable(def)) continue;
-                GoodsHelper.AddGoodsFromList(def.produces, potentialGoods, realm.game);
-                GoodsHelper.AddGoodsFromList(def.produces_completed, potentialGoods, realm.game);
+                var game = realm.game;
+
+                // Helper: collect goods from a building def and its upgrade tree
+                void CollectGoods(Logic.Building.Def bdef)
+                {
+                    if (bdef == null || !realm.IsPotentiallyBuildable(bdef)) return;
+                    GoodsHelper.AddGoodsFromList(bdef.produces, potentialGoods, game);
+                    GoodsHelper.AddGoodsFromList(bdef.produces_completed, potentialGoods, game);
+                    // Recurse into upgrade district
+                    if (bdef.upgrades?.buildings != null)
+                    {
+                        foreach (var uInfo in bdef.upgrades.buildings)
+                            CollectGoods(uInfo?.def);
+                    }
+                }
+
+                // Common district (always available)
+                var common = Logic.District.Def.GetCommon(game);
+                if (common?.buildings != null)
+                    foreach (var bi in common.buildings)
+                        CollectGoods(bi?.def);
+
+                // PF district (province-feature buildings)
+                var pf = Logic.District.Def.GetPF(game);
+                if (pf?.buildings != null)
+                    foreach (var bi in pf.buildings)
+                        CollectGoods(bi?.def);
+
+                // Settlement-gated districts
+                var districts = castle.GetBuildableDistricts();
+                if (districts != null)
+                    foreach (var d in districts)
+                        if (d?.buildings != null)
+                            foreach (var bi in d.buildings)
+                                CollectGoods(bi?.def);
             }
             max = potentialGoods.Count;
         }
