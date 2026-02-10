@@ -113,9 +113,22 @@ namespace AIOverhaul
             m_ConsideredExpenses.Clear();
         }
 
+        bool IsClient()
+        {
+            var game = AIOverhaulPlugin.CurrentGame;
+            return game?.multiplayer != null
+                && game.multiplayer.type == Logic.Multiplayer.Type.Client;
+        }
+
         void OnGUI()
         {
             if (!m_IsVisible) return;
+
+            // Adjust window size for client (less content)
+            if (IsClient())
+                m_WindowRect = new Rect(20, 150, 500, 400);
+            else
+                m_WindowRect = new Rect(20, 150, 700, 800);
 
             // Draw semi-opaque background
             if (m_BackgroundTexture == null)
@@ -191,7 +204,8 @@ namespace AIOverhaul
                     DrawKingdomStats(k, style);
                     DrawRealmSettlements(k, style);
                     DrawMilitaryOverview(k, style);
-                    DrawExpenseLog(style);
+                    if (!IsClient())
+                        DrawExpenseLog(style);
                 }
             }
         }
@@ -309,33 +323,36 @@ namespace AIOverhaul
             GUILayout.Label($"Food: <color={k_ColorFood}>{food:F0} / {foodIncome:F0}</color>", style);
             GUILayout.Label($"Gold: <color={k_ColorEconomy}>{gold:F0}</color> (+{goldIncome:F0}/s) | Books: <color={k_ColorReligion}>{books:F0}</color> | Merchants: <color={k_ColorEconomy}>{merchants}</color> | TA: <color={k_ColorEconomy}>{tradeAgreements}</color>", style);
             
-            // Build Options stats
-            int buildCount = Castle.last_build_options.Count;
-            int upgradeCount = Castle.last_upgrade_options.Count;
-            GUILayout.Label($"Build Options: <color=white>{buildCount}</color> | Upgrade Options: <color=white>{upgradeCount}</color>", style);
-
-            if (buildCount > 0)
+            // Build Options stats (host-only, not synced to clients)
+            if (!IsClient())
             {
-                string topBuilds = "Top Builds: ";
-                for (int i = 0; i < Math.Min(buildCount, 3); i++)
-                {
-                    var opt = Castle.last_build_options[i];
-                    string castleName = opt.castle?.name ?? "?";
-                    topBuilds += $"{opt.def.id}@{castleName}({opt.eval:F0}) ";
-                }
-                GUILayout.Label(topBuilds, style);
-            }
+                int buildCount = Castle.last_build_options.Count;
+                int upgradeCount = Castle.last_upgrade_options.Count;
+                GUILayout.Label($"Build Options: <color=white>{buildCount}</color> | Upgrade Options: <color=white>{upgradeCount}</color>", style);
 
-            if (upgradeCount > 0)
-            {
-                string topUpgrades = "Top Upgrades: ";
-                for (int i = 0; i < Math.Min(upgradeCount, 3); i++)
+                if (buildCount > 0)
                 {
-                    var opt = Castle.last_upgrade_options[i];
-                    string castleName = opt.castle?.name ?? "?";
-                    topUpgrades += $"{opt.def.id}@{castleName}({opt.eval:F0}) ";
+                    string topBuilds = "Top Builds: ";
+                    for (int i = 0; i < Math.Min(buildCount, 3); i++)
+                    {
+                        var opt = Castle.last_build_options[i];
+                        string castleName = opt.castle?.name ?? "?";
+                        topBuilds += $"{opt.def.id}@{castleName}({opt.eval:F0}) ";
+                    }
+                    GUILayout.Label(topBuilds, style);
                 }
-                GUILayout.Label(topUpgrades, style);
+
+                if (upgradeCount > 0)
+                {
+                    string topUpgrades = "Top Upgrades: ";
+                    for (int i = 0; i < Math.Min(upgradeCount, 3); i++)
+                    {
+                        var opt = Castle.last_upgrade_options[i];
+                        string castleName = opt.castle?.name ?? "?";
+                        topUpgrades += $"{opt.def.id}@{castleName}({opt.eval:F0}) ";
+                    }
+                    GUILayout.Label(topUpgrades, style);
+                }
             }
             GUILayout.Space(5);
         }
@@ -473,8 +490,9 @@ namespace AIOverhaul
 
                 GUILayout.Label(sb.ToString(), style);
 
-                // Show build options for this castle
-                DrawCastleBuildOptions(r.castle, style);
+                // Show build options for this castle (host-only)
+                if (!IsClient())
+                    DrawCastleBuildOptions(r.castle, style);
             }
             GUILayout.Space(5);
         }

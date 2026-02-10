@@ -1,6 +1,7 @@
 using System;
 using HarmonyLib;
 using Logic;
+using UnityEngine;
 
 namespace AIOverhaul
 {
@@ -9,6 +10,16 @@ namespace AIOverhaul
     {
         public static bool Prefix(Chat __instance, Campaign campaign, string playerId, string message)
         {
+            // Check if this is a ping message — intercept before chat commands
+            Vector3 pingPos;
+            string senderName;
+            if (PingNetworkHelper.TryDecode(message, out pingPos, out senderName))
+            {
+                if (PingSystem.Instance != null)
+                    PingSystem.Instance.ReceiveNetworkPing(pingPos, senderName);
+                return false; // Swallow — don't show in chat
+            }
+
             // Check if this is a command
             if (MultiplayerAICommandHelper.HandleChatCommand(campaign, playerId, message))
             {

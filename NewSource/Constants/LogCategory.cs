@@ -18,7 +18,8 @@ namespace AIOverhaul
         RoyalFamily,  // Heirs, succession, family management
         Governor,     // Governor assignments
         Spectator,    // F9 spectator mode toggles
-        AutoStart     // Auto-start game feature
+        AutoStart,    // Auto-start game feature
+        Ping          // Multiplayer ping system
     }
 
     /// <summary>

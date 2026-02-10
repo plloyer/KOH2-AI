@@ -30,6 +30,11 @@ namespace AIOverhaul
         public static Game CurrentGame => s_CurrentGame;
         static Game s_CurrentGame;
 
+        public static void SetCurrentGame(Game game)
+        {
+            if (game != null) s_CurrentGame = game;
+        }
+
         void Awake()
         {
             Instance = this;
@@ -47,6 +52,12 @@ namespace AIOverhaul
             DontDestroyOnLoad(autoStartGO);
             autoStartGO.hideFlags = HideFlags.HideAndDontSave;
             autoStartGO.AddComponent<AutoStarter>();
+
+            // Initialize PingSystem for multiplayer map pings (Ctrl+Click)
+            var pingGO = new GameObject("AI_PingSystem");
+            DontDestroyOnLoad(pingGO);
+            pingGO.hideFlags = HideFlags.HideAndDontSave;
+            pingGO.AddComponent<PingSystem>();
 
             // Listen to all Unity logs to capture game errors/warnings into BepInEx log
             Application.logMessageReceived += OnUnityLogMessage;
@@ -357,6 +368,10 @@ namespace AIOverhaul
 
         static void Postfix(Game __instance)
         {
+            // Ensure CurrentGame is set on both host and client (KingdomAI only runs on host)
+            if (AIOverhaulPlugin.CurrentGame == null && __instance.kingdoms != null)
+                AIOverhaulPlugin.SetCurrentGame(__instance);
+
             // Detect F9 key press to toggle spectator mode
             if (Input.GetKeyDown(KeyCode.F9))
             {

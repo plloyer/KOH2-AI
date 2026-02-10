@@ -69,6 +69,14 @@
           <HintPath Condition="Exists('..\Sovereign_Data\Managed\UnityEngine.IMGUIModule.dll')">..\Sovereign_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
           <HintPath Condition="!Exists('..\Sovereign_Data\Managed\UnityEngine.IMGUIModule.dll')">lib\UnityEngine.IMGUIModule.dll</HintPath>
         </Reference>
+        <Reference Include="UnityEngine.PhysicsModule">
+          <HintPath Condition="Exists('..\Sovereign_Data\Managed\UnityEngine.PhysicsModule.dll')">..\Sovereign_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+          <HintPath Condition="!Exists('..\Sovereign_Data\Managed\UnityEngine.PhysicsModule.dll')">lib\UnityEngine.PhysicsModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.TextRenderingModule">
+          <HintPath Condition="Exists('..\Sovereign_Data\Managed\UnityEngine.TextRenderingModule.dll')">..\Sovereign_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+          <HintPath Condition="!Exists('..\Sovereign_Data\Managed\UnityEngine.TextRenderingModule.dll')">lib\UnityEngine.TextRenderingModule.dll</HintPath>
+        </Reference>
     </ItemGroup>
     <ItemGroup>
         <Compile Include="NewSource\**\*.cs" />
