@@ -17,6 +17,15 @@ namespace AIOverhaul
             Logic.Kingdom actor = __instance.kingdom;
             float score = actor.GetAverageWarScore();
 
+            // EMERGENCY: Realm being assaulted — seek peace immediately
+            Logic.Kingdom assaultAttacker = actor.FindAssaultAttacker();
+            if (assaultAttacker != null && actor.IsEnemy(assaultAttacker))
+            {
+                AIOverhaulPlugin.LogDebug($"EMERGENCY: Realm under assault by {assaultAttacker.Name}! Seeking peace.", LogCategory.Diplomacy, actor);
+                __result = __instance.RunDiplomacyWithTarget(assaultAttacker);
+                return false;
+            }
+
             // If we have disorder and are at war, seek peace immediately
             if (actor.HasDisorder() && actor.wars.Count > 0)
             {

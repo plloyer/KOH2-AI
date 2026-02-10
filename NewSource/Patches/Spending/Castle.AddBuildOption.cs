@@ -75,7 +75,7 @@ namespace AIOverhaul
                 bool hasRareGame = realm.features != null && realm.features.Contains(FeatureNames.RareGame);
                 bool hasRivers = realm.features != null && realm.features.Contains(FeatureNames.Rivers);
 
-                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Food CRITICAL ({food}), boosting food production in {castle.name}. Farms: {farmCount}, Coastal: {coastalCount}, RareGame: {hasRareGame}, Rivers: {hasRivers}", LogCategory.Spending, kingdom);
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Food CRITICAL ({food}), boosting food production in {castle.name}.", LogCategory.Spending, kingdom);
 
                 float farmEval = k_HighPriorityEval * (0.5f + farmCount);
                 float coastalEval = k_HighPriorityEval * (0.5f + coastalCount);

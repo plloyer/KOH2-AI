@@ -575,6 +575,21 @@ namespace AIOverhaul
             }
         }
 
+        public static Logic.Kingdom FindAssaultAttacker(this Logic.Kingdom k)
+        {
+            if (k?.realms == null) return null;
+            foreach (var realm in k.realms)
+            {
+                if (realm?.castle?.battle == null) continue;
+                if (realm.castle.battle.type != Logic.Battle.Type.Assault) continue;
+                if (realm.castle.battle.attacker_kingdom == null || realm.castle.battle.attacker_kingdom == k) continue;
+                // Only trigger if we're losing the assault (estimation < 0.5 = attacker favored)
+                if (realm.castle.battle.simulation != null && realm.castle.battle.simulation.estimation < 0.5f)
+                    return realm.castle.battle.attacker_kingdom;
+            }
+            return null;
+        }
+
         public static bool IsDesperate(this Logic.Kingdom k)
         {
             if (k == null || k.realms == null) return false;
