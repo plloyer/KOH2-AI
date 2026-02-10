@@ -60,19 +60,18 @@ namespace AIOverhaul
 
         public static bool HasBuildingUpgrade(this Logic.Kingdom k, string upgradeId)
         {
-            if (k?.realms == null) return false;
+            if (k?.game == null) return false;
+            var def = k.game.defs.Find<Logic.Building.Def>(upgradeId);
+            return def != null && k.HasBuildingUpgrade(def);
+        }
 
-            foreach (var realm in k.realms)
-            {
-                if (realm?.castle?.buildings == null) continue;
-
-                foreach (var building in realm.castle.buildings)
-                {
-                    if (building?.def?.id == upgradeId)
-                        return true;
-                }
-            }
-            return false;
+        public static bool CanBuildUpgrade(this Logic.Kingdom k, Castle castle, string upgradeId)
+        {
+            if (k?.game == null || castle == null) return false;
+            var def = k.game.defs.Find<Logic.Building.Def>(upgradeId);
+            if (def == null) return false;
+            if (k.HasBuildingUpgrade(def)) return false;
+            return castle.CanBuildBuilding(def, ignore_cost: true) == Castle.StructureBuildAvailability.Available;
         }
 
         public static float GetTotalPower(this Logic.Kingdom k)

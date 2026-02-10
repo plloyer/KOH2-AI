@@ -95,93 +95,11 @@ namespace AIOverhaul
                     EnsureBuildOption(castle, BuildingNames.FurTrade, furTradeEval, KingdomAI.Expense.Priority.Urgent);
 
                 // Upgrades (inject if vanilla didn't generate them)
-                EnsureUpgradeOption(castle, BuildingUpgradeNames.CropsRotation, BuildingNames.CropFarming, farmEval, KingdomAI.Expense.Priority.Urgent);
-                EnsureUpgradeOption(castle, BuildingUpgradeNames.Docks_Harbor, BuildingNames.Harbor, coastalEval, KingdomAI.Expense.Priority.Urgent);
-                EnsureUpgradeOption(castle, BuildingUpgradeNames.Butcher_Sheep, BuildingNames.SheepFarming, sheepEval, KingdomAI.Expense.Priority.Urgent);
-                EnsureUpgradeOption(castle, BuildingUpgradeNames.Butcher_Cattle, BuildingNames.CattleFarming, cattleEval, KingdomAI.Expense.Priority.Urgent);
+                EnsureUpgradeOption(kingdom, castle, BuildingUpgradeNames.CropsRotation, BuildingNames.CropFarming, farmEval, KingdomAI.Expense.Priority.Urgent);
+                EnsureUpgradeOption(kingdom, castle, BuildingUpgradeNames.Docks_Harbor, BuildingNames.Harbor, coastalEval, KingdomAI.Expense.Priority.Urgent);
+                EnsureUpgradeOption(kingdom, castle, BuildingUpgradeNames.Butcher_Sheep, BuildingNames.SheepFarming, sheepEval, KingdomAI.Expense.Priority.Urgent);
+                EnsureUpgradeOption(kingdom, castle, BuildingUpgradeNames.Butcher_Cattle, BuildingNames.CattleFarming, cattleEval, KingdomAI.Expense.Priority.Urgent);
             }
-        }
-
-        /// <summary>
-        /// Ensures a building option exists in build_options with at least the given eval/priority.
-        /// If missing and the building is available (not already built), injects it.
-        /// </summary>
-        static bool EnsureBuildOption(Castle castle, string buildingId, float eval, KingdomAI.Expense.Priority priority)
-        {
-            var def = castle.game.defs.Find<Logic.Building.Def>(buildingId);
-            if (def == null) return false;
-            if (castle.HasBuilding(def)) return false;
-
-            // Try to boost existing option first
-            for (int i = 0; i < Castle.build_options.Count; i++)
-            {
-                var opt = Castle.build_options[i];
-                if (opt.def == def)
-                {
-                    if (opt.eval < eval || opt.priority < priority)
-                    {
-                        Castle.build_options_sum += eval - opt.eval;
-                        opt.eval = eval;
-                        opt.priority = priority;
-                        Castle.build_options[i] = opt;
-                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTED {buildingId} in {castle.name}: eval={eval}", LogCategory.Spending, castle.GetKingdom());
-                    }
-                    return true;
-                }
-            }
-
-            // Not in list — inject it
-            var option = new Castle.BuildOption
-            {
-                castle = castle, def = def, eval = eval, priority = priority
-            };
-            Castle.build_options.Add(option);
-            Castle.build_options_sum += eval;
-            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} INJECTED {buildingId} build option in {castle.name}: eval={eval}", LogCategory.Spending, castle.GetKingdom());
-            return true;
-        }
-
-        /// <summary>
-        /// Ensures an upgrade option exists in upgrade_options with at least the given eval/priority.
-        /// If missing and parent building is built (and upgrade isn't), injects it.
-        /// </summary>
-        static bool EnsureUpgradeOption(Castle castle, string upgradeId, string parentBuildingId, float eval, KingdomAI.Expense.Priority priority)
-        {
-            var def = castle.game.defs.Find<Logic.Building.Def>(upgradeId);
-            if (def == null) return false;
-            if (castle.HasBuilding(def)) return false;
-
-            // Check parent building exists
-            var parentDef = castle.game.defs.Find<Logic.Building.Def>(parentBuildingId);
-            if (parentDef == null || !castle.HasBuilding(parentDef)) return false;
-
-            // Try to boost existing option first
-            for (int i = 0; i < Castle.upgrade_options.Count; i++)
-            {
-                var opt = Castle.upgrade_options[i];
-                if (opt.def == def)
-                {
-                    if (opt.eval < eval || opt.priority < priority)
-                    {
-                        Castle.upgrade_options_sum += eval - opt.eval;
-                        opt.eval = eval;
-                        opt.priority = priority;
-                        Castle.upgrade_options[i] = opt;
-                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTED {upgradeId} upgrade in {castle.name}: eval={eval}", LogCategory.Spending, castle.GetKingdom());
-                    }
-                    return true;
-                }
-            }
-
-            // Not in list — inject it
-            var option = new Castle.BuildOption
-            {
-                castle = castle, def = def, eval = eval, priority = priority
-            };
-            Castle.upgrade_options.Add(option);
-            Castle.upgrade_options_sum += eval;
-            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} INJECTED {upgradeId} upgrade in {castle.name}: eval={eval}", LogCategory.Spending, castle.GetKingdom());
-            return true;
         }
 
         static void ApplyVillageMilitiaLogic(Castle castle)
@@ -268,7 +186,8 @@ namespace AIOverhaul
         {
             var kingdom = castle.GetKingdom();
             if (kingdom == null) return;
-
+            if (kingdom.GetBuildingCount(BuildingNames.Barracks) > 0) return;
+            
             var keep = castle.GetRealm().GetKeepCount();
             MultiplyBuildOption(BuildingNames.Barracks, 1 + (keep * GameBalance.BarracksSlotBoostPerSlot));
         }
@@ -297,6 +216,90 @@ namespace AIOverhaul
                     Castle.build_options[i] = option;
                 }
             }
+        }
+
+        /// <summary>
+        /// Ensures a building option exists in build_options with at least the given eval/priority.
+        /// If missing and the building is available (not already built), injects it.
+        /// </summary>
+        static bool EnsureBuildOption(Castle castle, string buildingId, float eval, KingdomAI.Expense.Priority priority)
+        {
+            var def = castle.game.defs.Find<Logic.Building.Def>(buildingId);
+            if (def == null) return false;
+            if (castle.HasBuilding(def)) return false;
+
+            // Try to boost existing option first
+            for (int i = 0; i < Castle.build_options.Count; i++)
+            {
+                var opt = Castle.build_options[i];
+                if (opt.def == def && opt.castle == castle)
+                {
+                    if (opt.eval < eval || opt.priority < priority)
+                    {
+                        Castle.build_options_sum += eval - opt.eval;
+                        opt.eval = eval;
+                        opt.priority = priority;
+                        Castle.build_options[i] = opt;
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTED {buildingId} in {castle.name}: eval={eval}", LogCategory.Spending, castle.GetKingdom());
+                    }
+                    return true;
+                }
+            }
+
+            // Not in list — verify the province can actually build it before injecting
+            if (castle.CanBuildBuilding(def, ignore_cost: true) != Castle.StructureBuildAvailability.Available)
+                return false;
+
+            var option = new Castle.BuildOption
+            {
+                castle = castle, def = def, eval = eval, priority = priority
+            };
+            Castle.build_options.Add(option);
+            Castle.build_options_sum += eval;
+            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} INJECTED {buildingId} build option in {castle.name}: eval={eval}", LogCategory.Spending, castle.GetKingdom());
+            return true;
+        }
+
+        /// <summary>
+        /// Ensures an upgrade option exists in upgrade_options with at least the given eval/priority.
+        /// If missing and parent building is built (and upgrade isn't), injects it.
+        /// </summary>
+        static bool EnsureUpgradeOption(Logic.Kingdom kingdom, Castle castle, string upgradeId, string parentBuildingId, float eval, KingdomAI.Expense.Priority priority)
+        {
+            var def = castle.game.defs.Find<Logic.Building.Def>(upgradeId);
+            if (def == null) return false;
+            if (!kingdom.CanBuildUpgrade(castle, upgradeId)) return false;
+
+            // Check parent building exists
+            var parentDef = castle.game.defs.Find<Logic.Building.Def>(parentBuildingId);
+            if (parentDef == null || !castle.HasBuilding(parentDef)) return false;
+
+            // Try to boost existing option first
+            for (int i = 0; i < Castle.upgrade_options.Count; i++)
+            {
+                var opt = Castle.upgrade_options[i];
+                if (opt.def == def)
+                {
+                    if (opt.eval < eval || opt.priority < priority)
+                    {
+                        Castle.upgrade_options_sum += eval - opt.eval;
+                        opt.eval = eval;
+                        opt.priority = priority;
+                        Castle.upgrade_options[i] = opt;
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTED {upgradeId} upgrade in {castle.name}: eval={eval}", LogCategory.Spending, castle.GetKingdom());
+                    }
+                    return true;
+                }
+            }
+
+            var option = new Castle.BuildOption
+            {
+                castle = castle, def = def, eval = eval, priority = priority
+            };
+            Castle.upgrade_options.Add(option);
+            Castle.upgrade_options_sum += eval;
+            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} INJECTED {upgradeId} upgrade in {castle.name}: eval={eval}", LogCategory.Spending, castle.GetKingdom());
+            return true;
         }
     }
 }
