@@ -52,6 +52,8 @@ namespace AIOverhaul
         {
             if (leader == null) return false;
 
+            if (leader.ai_status == AIStatusNames.SiegeRecall) return true;
+
             // In battle
             if (leader.battle != null) return true;
 

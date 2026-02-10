@@ -15,6 +15,7 @@ namespace AIOverhaul
         // Military - Attack/Defense Thresholds
         public const float MinAttackStrengthRatio = 1.1f; // Must be 1.1x stronger to attack
         public const float SallyOutStrengthRatio = 1.1f; // Must be 1.1x stronger to sally out
+        public const float SiegeRecallStrengthRatio = 1.0f; // Recalled force + defenders must match enemy to justify recall
 
         // Buddy System
         public const int MaxBuddyPairs = 2; // Max buddy pairs (4 marshals / 2)

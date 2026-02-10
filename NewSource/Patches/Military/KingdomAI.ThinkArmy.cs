@@ -14,9 +14,78 @@ namespace AIOverhaul
             if (army == null || __instance == null || __instance.kingdom == null) return;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return;
             if (army.battle != null || army.IsHiredMercenary()) return;
+            if (army.IsFleeing()) return;
 
             var kingdom = __instance.kingdom;
             var realmIn = army.realm_in;
+
+            // --- SIEGE DEFENSE RECALL ---
+            // Recall offensive armies to defend own realms under siege
+            if (!BuddySystem.IsFollower(army, kingdom))
+            {
+                Logic.Realm bestSiegedRealm = null;
+                float bestEnemyStr = 0f;
+
+                foreach (var realm in kingdom.realms)
+                {
+                    if (realm?.castle?.battle == null) continue;
+                    var battle = realm.castle.battle;
+                    if (battle.type != Logic.Battle.Type.Siege) continue;
+
+                    // Make sure the attacker is an enemy (not our own siege during rebellion)
+                    var attacker = battle.attacker;
+                    if (attacker == null || !kingdom.IsEnemy(attacker.kingdom_id)) continue;
+
+                    float enemyStr = attacker.EvalStrength();
+                    float currentDefense = MilitaryHelper.GetRealmOwnStrength(realm, kingdom);
+
+                    // Skip if existing defenders can already handle it
+                    if (MilitaryHelper.IsStrongerThan(currentDefense, enemyStr, GameBalance.MinAttackStrengthRatio))
+                        continue;
+
+                    // Pick the most urgent siege (strongest enemy)
+                    if (enemyStr > bestEnemyStr)
+                    {
+                        bestEnemyStr = enemyStr;
+                        bestSiegedRealm = realm;
+                    }
+                }
+
+                if (bestSiegedRealm != null)
+                {
+                    string armyName = MilitaryHelper.DescribeArmy(army);
+
+                    // Skip if already in or heading to the besieged realm
+                    if (army.realm_in == bestSiegedRealm || army.tgt_realm == bestSiegedRealm)
+                    {
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName} already heading to defend siege at {bestSiegedRealm.name}", LogCategory.Military, kingdom);
+                    }
+                    else
+                    {
+                        float currentDefense = MilitaryHelper.GetRealmOwnStrength(bestSiegedRealm, kingdom);
+                        float armyStr = army.EvalStrength();
+
+                        // Include buddy strength if buddy exists and is not in battle
+                        float buddyStr = 0f;
+                        var buddy = BuddySystem.GetBuddy(army, kingdom);
+                        if (buddy != null && buddy.IsValid() && buddy.battle == null)
+                            buddyStr = buddy.EvalStrength();
+
+                        float projected = currentDefense + armyStr + buddyStr;
+
+                        if (MilitaryHelper.IsStrongerThan(projected, bestEnemyStr, GameBalance.SiegeRecallStrengthRatio))
+                        {
+                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} RECALLING {armyName} to defend siege at {bestSiegedRealm.name} (projected:{projected:F0} vs enemy:{bestEnemyStr:F0}, current defense:{currentDefense:F0})", LogCategory.Military, kingdom);
+                            TraverseAPI.SendArmy(__instance, army, bestSiegedRealm.castle, AIStatusNames.SiegeRecall);
+                            return;
+                        }
+                        else
+                        {
+                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName} cannot relieve siege at {bestSiegedRealm.name} (projected:{projected:F0} vs enemy:{bestEnemyStr:F0})", LogCategory.Military, kingdom);
+                        }
+                    }
+                }
+            }
 
             // --- RETREAT FROM STRONGER ENEMIES WHILE PLUNDERING ---
             if (realmIn != null && MilitaryHelper.IsEnemyTerritory(realmIn, kingdom))
