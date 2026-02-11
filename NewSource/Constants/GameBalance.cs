@@ -63,6 +63,7 @@ namespace AIOverhaul
         public const int AllianceScoreUnfriendlyNeighbor = 3; // Ally is unfriendly neighbor (shared border concern)
 
         // Economy - Resource Thresholds
+        public const float MinBooksForFirstSkillUpgrade = 200f;
         public const float MinBooksForFirstTradition = 400f;
 
         // Kingdom Selection

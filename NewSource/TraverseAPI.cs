@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using HarmonyLib;
 using Logic;
 
@@ -16,6 +17,7 @@ namespace AIOverhaul
         const string k_MethodSend = "Send";
         const string k_MethodFindNearestOwnCastle = "FindNearestOwnCastle";
         const string k_MethodThinkProposeOfferThread = "ThinkProposeOfferThread";
+        const string k_MethodConsiderExpense = "ConsiderExpense";
 
         public static bool SendArmy(this KingdomAI ai, Logic.Army army, MapObject target, string aiStatus, Logic.Battle battleViewBattle = null)
         {
@@ -46,6 +48,26 @@ namespace AIOverhaul
         public static IEnumerator ThinkProposeOfferThread(this KingdomAI ai, Logic.Kingdom target, string offerRelChangeType)
         {
             return (IEnumerator)Traverse.Create(ai).Method(k_MethodThinkProposeOfferThread, target, offerRelChangeType).GetValue();
+        }
+
+        public static void ConsiderExpense(KingdomAI ai, KingdomAI.Expense.Type type, BaseObject defParam, Logic.Object objectParam, KingdomAI.Expense.Category category, KingdomAI.Expense.Priority priority = KingdomAI.Expense.Priority.Normal, List<Value> args = null)
+        {
+            try
+            {
+                var method = AccessTools.Method(typeof(KingdomAI), k_MethodConsiderExpense,
+                    new[] { typeof(KingdomAI.Expense.Type), typeof(BaseObject), typeof(Logic.Object), typeof(KingdomAI.Expense.Category), typeof(KingdomAI.Expense.Priority), typeof(List<Value>) });
+                if (method != null)
+                {
+                    method.Invoke(ai, new object[] { type, defParam, objectParam, category, priority, args });
+                    return;
+                }
+
+                AIOverhaulPlugin.LogError($"Could not find method {k_MethodConsiderExpense}");
+            }
+            catch (Exception ex)
+            {
+                AIOverhaulPlugin.LogError($"Could not invoke method {k_MethodConsiderExpense}: {ex.Message}");
+            }
         }
     }
 }
