@@ -95,8 +95,8 @@ namespace AIOverhaul
             }
 
             // Check 1: Are we winning by a good margin?
-            int side = TraverseAPI.GetWarSide(war, receiver);
-            float score = TraverseAPI.GetWarScore(war, side);
+            int side = war.GetSide(receiver);
+            float score = war.GetSideScore(side);
             if (score >= GameBalance.WarScoreRejectPeace)
             {
                 AIOverhaulPlugin.LogDebug($"[Peace] Rejecting peace from {sender.Name} - winning (score: {score:F1})", LogCategory.Diplomacy, receiver);

@@ -20,7 +20,7 @@ namespace AIOverhaul
         // Buddy System
         public const int MaxBuddyPairs = 2; // Max buddy pairs (4 marshals / 2)
         public const int MinBuddyUnitsToFollow = 4; // Follower needs this many units to follow leader
-        public const float BuddyReevalIntervalMinutes = 1f; // Re-evaluate buddies interval (real time)
+        public const float BuddyReevalIntervalMinutes = 0.5f; // Re-evaluate buddies interval (real time)
 
         // Army Composition - Late Game
         public const int FullArmySize = 8;

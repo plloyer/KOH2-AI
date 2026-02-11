@@ -74,8 +74,8 @@ namespace AIOverhaul
                     float worst = 0;
                     foreach (var war in actor.wars)
                     {
-                        int side = TraverseAPI.GetWarSide(war, actor);
-                        float s = TraverseAPI.GetWarScore(war, side);
+                        int side = war.GetSide(actor);
+                        float s = war.GetSideScore(side);
                         if (s < worst)
                         {
                             worst = s;

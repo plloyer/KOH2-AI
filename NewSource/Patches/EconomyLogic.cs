@@ -26,47 +26,6 @@ namespace AIOverhaul
     //     }
     // }
 
-    // "ThinkUpgradeSkill" decides whether to upgrade an existing skill to the next rank.
-    // [HarmonyPatch(typeof(Logic.Character), "ThinkUpgradeSkill")]
-    // public static class Character_ThinkUpgradeSkill
-    // {
-    //     [HarmonyPrefix]
-    //     public static bool Prefix(Logic.Character __instance, bool for_free, ref bool __result)
-    //     {
-    //         if (__instance.IsKing() && AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom()))
-    //         {
-    //             var skillsRef = TraverseAPI.GetSkills(__instance);
-    //             if (skillsRef != null)
-    //             {
-    //                 var writingSkill = skillsRef.Find(s => s != null && s.def != null && s.def.id == SkillNames.Writing + "Skill");
-    //                 if (writingSkill != null && __instance.CanAddSkillRank(writingSkill))
-    //                 {
-    //                     if (!for_free)
-    //                     {
-    //                         var kingdom = __instance.GetKingdom();
-    //                         if (kingdom != null)
-    //                         {
-    //                             var upgradeCost = writingSkill.def.GetUpgardeCost(__instance);
-    //                             if (!kingdom.resources.CanAfford(upgradeCost, 1f)) return false;
-    //
-    //                             var expenseCategory = TraverseAPI.GetExpenseCategory(__instance);
-    //                             Logic.Kingdom.in_AI_spend = true;
-    //                             kingdom.SubResources(expenseCategory, upgradeCost);
-    //                             Logic.Kingdom.in_AI_spend = false;
-    //                         }
-    //                     }
-    //
-    //                     __instance.AddSkillRank(writingSkill);
-    //                     __result = true;
-    //                     return false;
-    //                 }
-    //             }
-    //         }
-    //
-    //         return true;
-    //     }
-    // }
-
     // "ConsiderHireMerchant" checks if a Merchant should be hired.
     // Intent: Bypass the "Trade Disagreement" limit for the first 2 merchants.
     // [HarmonyPatch(typeof(Logic.KingdomAI), "ConsiderHireMerchant")]

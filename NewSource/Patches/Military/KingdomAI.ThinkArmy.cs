@@ -36,8 +36,29 @@ namespace AIOverhaul
                     var attacker = battle.attacker;
                     if (attacker == null || !kingdom.IsEnemy(attacker.kingdom_id)) continue;
 
-                    float enemyStr = attacker.EvalStrength();
-                    float currentDefense = MilitaryHelper.GetRealmOwnStrength(realm, kingdom);
+                    // Only count top 2 armies per side (battle cap is 2v2)
+                    float eTop1 = 0f, eTop2 = 0f;
+                    float dTop1 = 0f, dTop2 = 0f;
+                    if (realm.armies != null)
+                    {
+                        foreach (var a in realm.armies)
+                        {
+                            if (a == null) continue;
+                            float s = a.EvalStrength();
+                            if (kingdom.IsEnemy(a.kingdom_id))
+                            {
+                                if (s > eTop1) { eTop2 = eTop1; eTop1 = s; }
+                                else if (s > eTop2) { eTop2 = s; }
+                            }
+                            else if (a.kingdom_id == kingdom.id)
+                            {
+                                if (s > dTop1) { dTop2 = dTop1; dTop1 = s; }
+                                else if (s > dTop2) { dTop2 = s; }
+                            }
+                        }
+                    }
+                    float enemyStr = eTop1 + eTop2;
+                    float currentDefense = dTop1 + dTop2;
 
                     // Skip if existing defenders can already handle it
                     if (MilitaryHelper.IsStrongerThan(currentDefense, enemyStr, GameBalance.MinAttackStrengthRatio))
@@ -62,20 +83,40 @@ namespace AIOverhaul
                     }
                     else
                     {
-                        float currentDefense = MilitaryHelper.GetRealmOwnStrength(bestSiegedRealm, kingdom);
-                        float armyStr = army.EvalStrength();
+                        // Projected defense = top 2 of (existing defenders + recalled army + buddy)
+                        float pTop1 = 0f, pTop2 = 0f;
 
-                        // Include buddy strength if buddy exists and is not in battle
-                        float buddyStr = 0f;
+                        // Existing own armies in the besieged realm
+                        if (bestSiegedRealm.armies != null)
+                        {
+                            foreach (var a in bestSiegedRealm.armies)
+                            {
+                                if (a == null || a.kingdom_id != kingdom.id) continue;
+                                float s = a.EvalStrength();
+                                if (s > pTop1) { pTop2 = pTop1; pTop1 = s; }
+                                else if (s > pTop2) { pTop2 = s; }
+                            }
+                        }
+
+                        // Add recalled army
+                        float armyStr = army.EvalStrength();
+                        if (armyStr > pTop1) { pTop2 = pTop1; pTop1 = armyStr; }
+                        else if (armyStr > pTop2) { pTop2 = armyStr; }
+
+                        // Add buddy if available
                         var buddy = BuddySystem.GetBuddy(army, kingdom);
                         if (buddy != null && buddy.IsValid() && buddy.battle == null)
-                            buddyStr = buddy.EvalStrength();
+                        {
+                            float bStr = buddy.EvalStrength();
+                            if (bStr > pTop1) { pTop2 = pTop1; pTop1 = bStr; }
+                            else if (bStr > pTop2) { pTop2 = bStr; }
+                        }
 
-                        float projected = currentDefense + armyStr + buddyStr;
+                        float projected = pTop1 + pTop2;
 
                         if (MilitaryHelper.IsStrongerThan(projected, bestEnemyStr, GameBalance.SiegeRecallStrengthRatio))
                         {
-                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} RECALLING {armyName} to defend siege at {bestSiegedRealm.name} (projected:{projected:F0} vs enemy:{bestEnemyStr:F0}, current defense:{currentDefense:F0})", LogCategory.Military, kingdom);
+                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} RECALLING {armyName} to defend siege at {bestSiegedRealm.name} (top2 projected:{projected:F0} vs enemy:{bestEnemyStr:F0})", LogCategory.Military, kingdom);
                             TraverseAPI.SendArmy(__instance, army, bestSiegedRealm.castle, AIStatusNames.SiegeRecall);
                             return;
                         }
