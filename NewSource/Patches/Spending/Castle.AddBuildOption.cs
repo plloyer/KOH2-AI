@@ -46,7 +46,8 @@ namespace AIOverhaul
         {
             var realm = castle.GetRealm();
             int religiousCount = realm.GetReligiousCount();
-            if (religiousCount == 0)
+            const int minReligiousDistrictCount = 2;
+            if (religiousCount < minReligiousDistrictCount)
             {
                 // If not, remove Religious Buildings from options
                 for (int i = Castle.build_options.Count - 1; i >= 0; i--)
@@ -60,7 +61,7 @@ namespace AIOverhaul
             }
             else
             {
-                float multiplier = 1 + (religiousCount - 1) * GameBalance.ReligionBuildingBoostPerSlot;
+                float multiplier = 1 + (religiousCount - minReligiousDistrictCount) * GameBalance.ReligionBuildingBoostPerSlot;
 
                 for (int i = 0; i < Castle.build_options.Count; i++)
                 {
