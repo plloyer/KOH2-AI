@@ -45,15 +45,7 @@ namespace AIOverhaul
             // This creates focused expansion direction with secure flanks
             Logic.Kingdom expansionTarget = actor.SelectExpansionTarget();
 
-            // Offer non-aggression pacts to all neighbors EXCEPT the expansion target
-            Logic.Kingdom napTarget = actor.FindNonAggressionTarget(expansionTarget);
-            if (napTarget != null)
-            {
-                __result = __instance.RunNonAggressionProposal(napTarget);
-                return false;
-            }
-
-            // Proactively seek trade agreements when below minimum
+            // Proactively seek trade agreements when below minimum (prioritize over NAPs for early commerce)
             int tradeCount = actor.GetTradeAgreementCount();
             if (tradeCount < GameBalance.MinTradeAgreements)
             {
@@ -64,6 +56,14 @@ namespace AIOverhaul
                     __result = __instance.RunTradeAgreementProposal(tradeTarget);
                     return false;
                 }
+            }
+
+            // Offer non-aggression pacts to all neighbors EXCEPT the expansion target
+            Logic.Kingdom napTarget = actor.FindNonAggressionTarget(expansionTarget);
+            if (napTarget != null)
+            {
+                __result = __instance.RunNonAggressionProposal(napTarget);
+                return false;
             }
 
             // Defensive pact formation when facing threats
