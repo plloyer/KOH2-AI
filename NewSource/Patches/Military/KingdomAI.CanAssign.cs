@@ -19,7 +19,7 @@ namespace AIOverhaul
             // They must only follow their Leader.
             if (BuddySystem.IsFollower(army, __instance.kingdom))
             {
-                // AIOverhaulPlugin.LogDebug($"[CanAssign] Blocking Follower {army.GetNid()} from independent assignment.", LogCategory.Military, __instance.kingdom);
+                AIOverhaulPlugin.LogDebug($"[CanAssign] Blocking Follower {MilitaryHelper.DescribeArmy(army)} from independent assignment.", LogCategory.Military, __instance.kingdom);
                 __result = false;
                 return false;
             }

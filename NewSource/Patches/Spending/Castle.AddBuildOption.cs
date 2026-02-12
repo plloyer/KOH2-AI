@@ -131,10 +131,7 @@ namespace AIOverhaul
             if (villageCount < GameBalance.MinVillagesForMilitia) return false;
 
             if (EnsureBuildOption(castle, BuildingNames.VillageMilitia, k_HighPriorityEval, KingdomAI.Expense.Priority.Urgent))
-            {
-                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTING VillageMilitia in {castle.name} ({villageCount} villages)", LogCategory.Spending, castle.GetKingdom());
                 return true;
-            }
 
             return false;
         }

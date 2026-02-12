@@ -13,10 +13,15 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(KingdomAI), "ThinkPlunder")]
     public class KingdomAI_ThinkPlunder
     {
+        const string k_LogPrefix = "[ThinkPlunder]";
+
         static bool Prefix(KingdomAI __instance, Logic.Army army, ref bool __result)
         {
             if (__instance == null || __instance.kingdom == null) return true;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+
+            var kingdom = __instance.kingdom;
+            string armyName = MilitaryHelper.DescribeArmy(army);
 
             // TODO Move this in ThinkArmy?
             // Find any enemy realm in disorder within 2 provinces of our territory
@@ -28,7 +33,7 @@ namespace AIOverhaul
             //     __result = true;
             //     return false;
             // }
-            
+
             Logic.Settlement target = FindNearestSettlementInRealm(army);
             if (target == null)
             {
@@ -37,15 +42,18 @@ namespace AIOverhaul
                 var castleKingdom = castle?.GetKingdom();
                 if (castle != null && castle.battle == null && castleKingdom != null && castleKingdom.IsEnemy(__instance.kingdom.id))
                 {
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: no plunderable settlements, attacking castle {castle.name}", LogCategory.Military, kingdom);
                     TraverseAPI.SendArmy(__instance, army, castle, AIStatusNames.AttackRealm);
                     __result = true;
                     return false;
                 }
 
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: no targets found in {army.realm_in?.name}", LogCategory.Military, kingdom);
                 __result = false;
                 return false;
             }
 
+            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: plundering {target.def?.id ?? "settlement"} in {army.realm_in?.name}", LogCategory.Military, kingdom);
             TraverseAPI.SendArmy(__instance, army, target, AIStatusNames.Plunder);
             __result = true;
             return false;

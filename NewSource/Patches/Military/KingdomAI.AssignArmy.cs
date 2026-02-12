@@ -29,7 +29,7 @@ namespace AIOverhaul
 
                 if (readyArmies < requiredArmies)
                 {
-                    //AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocking offensive assignment to {threat.realm?.name}: waiting for {requiredArmies} full armies (have {readyArmies})", LogCategory.Military, __instance.kingdom);
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocking offensive assignment to {threat.realm?.name}: waiting for {requiredArmies} full armies (have {readyArmies})", LogCategory.Military, __instance.kingdom);
                     __result = false;
                     return false;
                 }
@@ -92,7 +92,7 @@ namespace AIOverhaul
                         if (!buddyInThreat)
                         {
                             // FORCE ASSIGN BUDDY
-                            // AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Leader {army.GetNid()} dragging Buddy {buddy.GetNid()} to {threat.realm.name}", LogCategory.Military);
+                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Leader {MilitaryHelper.DescribeArmy(army)} dragging Buddy {MilitaryHelper.DescribeArmy(buddy)} to {threat.realm.name}", LogCategory.Military, __instance.kingdom);
                             
                             // Remove from old threat if any
                             if (buddy.tgt_realm != null)

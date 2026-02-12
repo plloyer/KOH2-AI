@@ -25,12 +25,14 @@ namespace AIOverhaul
                     // Leader heading to fight — follower must follow, not fight alone
                     if (MilitaryHelper.IsLeaderHeadingToFight(leader, kingdom))
                     {
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {MilitaryHelper.DescribeArmy(army)}: follower blocked from fighting (leader {MilitaryHelper.DescribeArmy(leader)} heading to fight)", LogCategory.Military, kingdom);
                         __result = false;
                         return false;
                     }
                     // Leader idle — block offensive ops in enemy territory, allow defense in own territory
                     if (MilitaryHelper.IsEnemyTerritory(realmIn, kingdom))
                     {
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {MilitaryHelper.DescribeArmy(army)}: follower blocked from offensive in enemy territory (leader idle)", LogCategory.Military, kingdom);
                         __result = false;
                         return false;
                     }
@@ -122,6 +124,7 @@ namespace AIOverhaul
                     Castle castle = realmIn.castle;
                     if (castle != null && (castle.army == null || castle.army == army))
                     {
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: retreating into castle {castle.name}", LogCategory.Military, kingdom);
                         TraverseAPI.SendArmy(__instance, army, castle, AIStatusNames.EnemiesTooStrong);
                         __result = true;
                         return false;
@@ -131,6 +134,7 @@ namespace AIOverhaul
                 // Battle exists with our ally -> reinforce desperately
                 if (closestBattle != null)
                 {
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: desperately reinforcing battle in {realmIn.name}", LogCategory.Military, kingdom);
                     TraverseAPI.SendArmy(__instance, army, closestBattle, AIStatusNames.ReinforceDesperate);
                     __result = true;
                     return false;
@@ -139,6 +143,7 @@ namespace AIOverhaul
                 // In enemy territory -> stop, wait
                 if (MilitaryHelper.IsEnemyTerritory(realmIn, kingdom))
                 {
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: stopping in enemy territory, waiting for battle", LogCategory.Military, kingdom);
                     army.Stop();
                     army.SetAIStatus(AIStatusNames.WaitForBattle);
                     __result = false;
@@ -181,6 +186,10 @@ namespace AIOverhaul
                         TraverseAPI.SendArmy(__instance, army, castle, AIStatusNames.AttackCastle);
                         __result = true;
                         return false;
+                    }
+                    else
+                    {
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: castle {castle.name} too strong to siege (own:{ownTotal:F0} vs defense:{castleDefense:F0})", LogCategory.Military, kingdom);
                     }
                 }
             }
