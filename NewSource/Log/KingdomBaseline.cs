@@ -24,6 +24,16 @@ namespace AIOverhaul
         public int InitialVassals { get; set; }
         public int InitialAllies { get; set; }
 
+        // Extended resource initial state
+        public float InitialGoldIncome { get; set; }
+        public float InitialFood { get; set; }
+        public float InitialFoodIncome { get; set; }
+        public float InitialBooksMax { get; set; }
+        public float InitialLevy { get; set; }
+        public float InitialLevyMax { get; set; }
+        public float InitialPiety { get; set; }
+        public float InitialPietyMax { get; set; }
+
         // Geographic/situational factors
         public int NeighborCount { get; set; }
         public float NeighborAvgStrength { get; set; }
@@ -52,9 +62,18 @@ namespace AIOverhaul
                 InitialTotalStrength = k.GetTotalPower(),
                 InitialWars = k.wars?.Count ?? 0,
                 InitialTraditions = k.traditions?.Count ?? 0,
-                InitialBooks = k.books?.Count ?? 0,
+                InitialBooks = (int)k.GetBooks(),
                 InitialVassals = k.vassalStates?.Count ?? 0,
                 InitialAllies = k.allies?.Count ?? 0,
+
+                InitialGoldIncome = k.GetGoldIncome(),
+                InitialFood = k.GetFood(),
+                InitialFoodIncome = k.GetFoodIncome(),
+                InitialBooksMax = k.GetBooksMax(),
+                InitialLevy = k.GetLevy(),
+                InitialLevyMax = k.GetLevyMax(),
+                InitialPiety = k.GetPiety(),
+                InitialPietyMax = k.GetPietyMax(),
 
                 NeighborCount = k.neighbors?.Count ?? 0,
                 NeighborAvgStrength = CalculateNeighborAvgStrength(k),
@@ -120,7 +139,8 @@ namespace AIOverhaul
         {
             return "KingdomId,KingdomName,RecordedAt,GameYear,InitialRealms,InitialGold,InitialArmies,InitialTotalStrength," +
                    "InitialWars,InitialTraditions,InitialBooks,InitialVassals,InitialAllies," +
-                   "NeighborCount,NeighborAvgStrength,IsIsland,Religion,IsDefeated,DefeatedAt,SurvivalYears";
+                   "NeighborCount,NeighborAvgStrength,IsIsland,Religion,IsDefeated,DefeatedAt,SurvivalYears," +
+                   "InitialGoldIncome,InitialFood,InitialFoodIncome,InitialBooksMax,InitialLevy,InitialLevyMax,InitialPiety,InitialPietyMax";
         }
 
         public string ToCsvLine()
@@ -129,7 +149,8 @@ namespace AIOverhaul
                    $"{InitialRealms},{InitialGold:F0},{InitialArmies},{InitialTotalStrength:F0}," +
                    $"{InitialWars},{InitialTraditions},{InitialBooks},{InitialVassals},{InitialAllies}," +
                    $"{NeighborCount},{NeighborAvgStrength:F0},{IsIsland},{CsvHelper.Escape(Religion)}," +
-                   $"{IsDefeated},{(DefeatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "")},{(SurvivalYears?.ToString("F1") ?? "")}";
+                   $"{IsDefeated},{(DefeatedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "")},{(SurvivalYears?.ToString("F1") ?? "")}," +
+                   $"{InitialGoldIncome:F0},{InitialFood:F0},{InitialFoodIncome:F0},{InitialBooksMax:F0},{InitialLevy:F0},{InitialLevyMax:F0},{InitialPiety:F0},{InitialPietyMax:F0}";
         }
     }
 }

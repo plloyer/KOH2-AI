@@ -18,9 +18,10 @@ namespace AIOverhaul
     /// </summary>
     public static class EnhancedPerformanceLogger
     {
-        static string s_PerformanceLogPath = IOPath.Combine(Paths.ConfigPath, "AI_Performance_Enhanced.csv");
-        static string s_BaselineLogPath = IOPath.Combine(Paths.ConfigPath, "AI_Baseline_Initial.csv");
-        static string s_AggregateLogPath = IOPath.Combine(Paths.ConfigPath, "AI_Aggregate_Stats.csv");
+        static string s_AnalyticsDir = IOPath.Combine(Paths.BepInExRootPath, "AI_Analytics");
+        static string s_PerformanceLogPath = IOPath.Combine(s_AnalyticsDir, "AI_Performance_Enhanced.csv");
+        static string s_BaselineLogPath = IOPath.Combine(s_AnalyticsDir, "AI_Baseline_Initial.csv");
+        static string s_AggregateLogPath = IOPath.Combine(s_AnalyticsDir, "AI_Aggregate_Stats.csv");
 
         static Dictionary<int, KingdomBaseline> s_KingdomBaselines = new Dictionary<int, KingdomBaseline>();
         static int s_LogCounter;
@@ -35,6 +36,8 @@ namespace AIOverhaul
         {
             try
             {
+                Directory.CreateDirectory(s_AnalyticsDir);
+
                 // Performance log
                 if (!File.Exists(s_PerformanceLogPath))
                 {
@@ -48,7 +51,9 @@ namespace AIOverhaul
                                    // Additional indicators
                                    "KingWritingSkill,KingClass,YearsElapsed," +
                                    // Status
-                                   "IsDefeated,SurvivalYears\n";
+                                   "IsDefeated,SurvivalYears," +
+                                   // Extended resource tracking
+                                   "GoldIncome,FoodAmount,FoodIncome,BooksIncome,BooksMax,LevyCurrent,LevyIncome,LevyMax,PietyCurrent,PietyIncome,PietyMax\n";
                     File.WriteAllText(s_PerformanceLogPath, header);
                 }
 
@@ -69,7 +74,10 @@ namespace AIOverhaul
                                    "EnhancedAvgGold,BaselineAvgGold,GoldRatio," +
                                    "EnhancedAvgBooks,BaselineAvgBooks,BooksRatio," +
                                    "EnhancedDefeated,BaselineDefeated," +
-                                   "EnhancedSurvivalRate,BaselineSurvivalRate\n";
+                                   "EnhancedSurvivalRate,BaselineSurvivalRate," +
+                                   "EnhancedAvgGoldIncome,BaselineAvgGoldIncome,GoldIncomeRatio," +
+                                   "EnhancedAvgLevy,BaselineAvgLevy,LevyRatio," +
+                                   "EnhancedAvgPiety,BaselineAvgPiety,PietyRatio\n";
                     File.WriteAllText(s_AggregateLogPath, header);
                 }
             }
@@ -142,7 +150,7 @@ namespace AIOverhaul
                 float currentStrength = k.GetTotalPower();
                 int currentWars = k.wars?.Count ?? 0;
                 int currentTraditions = k.traditions?.Count ?? 0;
-                int currentBooks = k.books?.Count ?? 0;
+                int currentBooks = (int)k.GetBooks();
                 int currentVassals = k.vassalStates?.Count ?? 0;
                 int currentAllies = k.allies?.Count ?? 0;
 
@@ -167,12 +175,26 @@ namespace AIOverhaul
                 int kingWritingSkill = k.royalFamily?.Sovereign?.GetSkillRank(SkillNames.Writing) ?? 0;
                 string kingClass = k.royalFamily?.Sovereign?.class_name ?? "None";
 
+                // Extended resource metrics
+                float goldIncome = k.GetGoldIncome();
+                float foodAmount = k.GetFood();
+                float foodIncome = k.GetFoodIncome();
+                float booksIncome = k.GetBooksIncome();
+                float booksMax = k.GetBooksMax();
+                float levyCurrent = k.GetLevy();
+                float levyIncome = k.GetLevyIncome();
+                float levyMax = k.GetLevyMax();
+                float pietyCurrent = k.GetPiety();
+                float pietyIncome = k.GetPietyIncome();
+                float pietyMax = k.GetPietyMax();
+
                 string line = $"{timestamp},{currentYear:F1},{CsvHelper.Escape(k.Name)},{aiType}," +
                              $"{currentRealms},{currentGold:F0},{currentArmies},{currentStrength:F0},{currentWars},{currentTraditions},{currentBooks},{currentVassals},{currentAllies}," +
                              $"{realmsGrowthRate:F2},{goldGrowthRate:F0},{strengthGrowthRate:F0},{traditionsGrowthRate:F2},{booksGrowthRate:F2}," +
                              $"{realmsRatio:F2},{strengthRatio:F2},{goldPerRealm:F0},{strengthPerRealm:F0}," +
                              $"{kingWritingSkill},{CsvHelper.Escape(kingClass)},{yearsElapsed:F1}," +
-                             "False,";
+                             $"False,," +
+                             $"{goldIncome:F0},{foodAmount:F0},{foodIncome:F0},{booksIncome:F1},{booksMax:F0},{levyCurrent:F0},{levyIncome:F1},{levyMax:F0},{pietyCurrent:F0},{pietyIncome:F1},{pietyMax:F0}";
 
                 lines.Add(line);
             }
@@ -221,7 +243,8 @@ namespace AIOverhaul
                                  "0,0,0,0,0," + // Growth rates zero
                                  "0,0,0,0," + // Ratios zero
                                  $"0,None,{baseline.SurvivalYears:F1}," +
-                                 $"True,{baseline.SurvivalYears:F1}";
+                                 $"True,{baseline.SurvivalYears:F1}," +
+                                 "0,0,0,0,0,0,0,0,0,0,0"; // Extended resource columns zero
 
                     try
                     {
@@ -254,14 +277,26 @@ namespace AIOverhaul
             float enhancedAvgGold = enhanced.Count > 0 ? enhanced.Average(k => k.resources?[ResourceType.Gold] ?? 0) : 0;
             float baselineAvgGold = baseline.Count > 0 ? baseline.Average(k => k.resources?[ResourceType.Gold] ?? 0) : 0;
 
-            float enhancedAvgBooks = enhanced.Count > 0 ? enhanced.Select(k => (float)(k.books?.Count ?? 0)).Average() : 0;
-            float baselineAvgBooks = baseline.Count > 0 ? (float)baseline.Average(k => k.books?.Count ?? 0) : 0;
+            float enhancedAvgBooks = enhanced.Count > 0 ? enhanced.Average(k => k.GetBooks()) : 0;
+            float baselineAvgBooks = baseline.Count > 0 ? baseline.Average(k => k.GetBooks()) : 0;
+
+            float enhancedAvgGoldIncome = enhanced.Count > 0 ? enhanced.Average(k => k.GetGoldIncome()) : 0;
+            float baselineAvgGoldIncome = baseline.Count > 0 ? baseline.Average(k => k.GetGoldIncome()) : 0;
+
+            float enhancedAvgLevy = enhanced.Count > 0 ? enhanced.Average(k => k.GetLevy()) : 0;
+            float baselineAvgLevy = baseline.Count > 0 ? baseline.Average(k => k.GetLevy()) : 0;
+
+            float enhancedAvgPiety = enhanced.Count > 0 ? enhanced.Average(k => k.GetPiety()) : 0;
+            float baselineAvgPiety = baseline.Count > 0 ? baseline.Average(k => k.GetPiety()) : 0;
 
             // Calculate ratios (avoid division by zero)
             float realmsRatio = baselineAvgRealms > 0 ? enhancedAvgRealms / baselineAvgRealms : 0;
             float strengthRatio = baselineAvgStrength > 0 ? enhancedAvgStrength / baselineAvgStrength : 0;
             float goldRatio = baselineAvgGold > 0 ? enhancedAvgGold / baselineAvgGold : 0;
             float booksRatio = baselineAvgBooks > 0 ? enhancedAvgBooks / baselineAvgBooks : 0;
+            float goldIncomeRatio = baselineAvgGoldIncome > 0 ? enhancedAvgGoldIncome / baselineAvgGoldIncome : 0;
+            float levyRatio = baselineAvgLevy > 0 ? enhancedAvgLevy / baselineAvgLevy : 0;
+            float pietyRatio = baselineAvgPiety > 0 ? enhancedAvgPiety / baselineAvgPiety : 0;
 
             // Count defeated
             int enhancedDefeated = s_KingdomBaselines.Values.Count(kb => kb.IsDefeated && AIOverhaulPlugin.EnhancedKingdomIds.Contains(kb.KingdomId));
@@ -288,7 +323,10 @@ namespace AIOverhaul
                          $"{enhancedAvgGold:F0},{baselineAvgGold:F0},{goldRatio:F2}," +
                          $"{enhancedAvgBooks:F1},{baselineAvgBooks:F1},{booksRatio:F2}," +
                          $"{enhancedDefeated},{baselineDefeated}," +
-                         $"{enhancedSurvivalRate:F2},{baselineSurvivalRate:F2}";
+                         $"{enhancedSurvivalRate:F2},{baselineSurvivalRate:F2}," +
+                         $"{enhancedAvgGoldIncome:F0},{baselineAvgGoldIncome:F0},{goldIncomeRatio:F2}," +
+                         $"{enhancedAvgLevy:F0},{baselineAvgLevy:F0},{levyRatio:F2}," +
+                         $"{enhancedAvgPiety:F0},{baselineAvgPiety:F0},{pietyRatio:F2}";
 
             try
             {

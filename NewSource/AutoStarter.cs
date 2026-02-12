@@ -25,6 +25,7 @@ namespace AIOverhaul
         bool m_SpectatorEnabled;
 
         bool m_SceneMonitoringStarted;
+        string m_WebhookUrl;
 
         /// <summary>
         /// Called by GameCreateMultiplayerPatch to provide the Game instance
@@ -71,11 +72,21 @@ namespace AIOverhaul
                     int.TryParse(args[i + 1], out m_Difficulty);
                     AIOverhaulPlugin.LogInfo($"Detected -difficulty {m_Difficulty}", LogCategory.AutoStart);
                 }
+                if (args[i] == "-hours" && i + 1 < args.Length)
+                {
+                    float.TryParse(args[i + 1], out m_TargetGameHours);
+                    AIOverhaulPlugin.LogInfo($"Detected -hours {m_TargetGameHours}", LogCategory.AutoStart);
+                }
+                if (args[i] == "-webhook" && i + 1 < args.Length)
+                {
+                    m_WebhookUrl = args[i + 1];
+                    AIOverhaulPlugin.LogInfo("Detected -webhook <url>", LogCategory.AutoStart);
+                }
             }
 
             if (m_HasStarted)
             {
-                AIOverhaulPlugin.LogInfo($"Enabled with provinces={m_Provinces}, difficulty={m_Difficulty}", LogCategory.AutoStart);
+                AIOverhaulPlugin.LogInfo($"Enabled with provinces={m_Provinces}, difficulty={m_Difficulty}, Target {m_TargetGameHours}h", LogCategory.AutoStart);
                 AIOverhaulPlugin.LogInfo("Will monitor for scene load before starting...", LogCategory.AutoStart);
                 // DON'T start coroutine immediately - wait for Update() to detect scene is ready
                 m_SceneMonitoringStarted = true;
@@ -234,11 +245,29 @@ namespace AIOverhaul
             AIOverhaulPlugin.LogInfo("Complete. Ready to play.", LogCategory.AutoStart);
         }
 
+        void SendWebhook(string message)
+        {
+            if (string.IsNullOrEmpty(m_WebhookUrl)) return;
+            try
+            {
+                using (var client = new System.Net.WebClient())
+                {
+                    client.Headers[System.Net.HttpRequestHeader.ContentType] = "application/json";
+                    string json = "{\"content\":\"" + message.Replace("\"", "\\\"") + "\"}";
+                    client.UploadString(m_WebhookUrl, json);
+                }
+                AIOverhaulPlugin.LogInfo("Webhook notification sent", LogCategory.AutoStart);
+            }
+            catch (Exception ex)
+            {
+                AIOverhaulPlugin.LogError($"Webhook failed: {ex.Message}", LogCategory.AutoStart);
+            }
+        }
+
         float m_LastLoggedHour = -1f;
         float m_StartingGameHours = -1f;
 
-        // Target game duration: 5 game hours (in-game time)
-        const float k_TargetGameHours = 5f;
+        float m_TargetGameHours = 10f;
 
         void MonitorGameProgress()
         {
@@ -270,15 +299,16 @@ namespace AIOverhaul
                 int hTotal = Mathf.FloorToInt(gameHours);
                 int mTotal = Mathf.FloorToInt((gameHours - hTotal) * 60);
 
-                AIOverhaulPlugin.LogInfo($"Progress - Played {hPlayed}h {mPlayed}m / Target {k_TargetGameHours:F0}h (Total Game Time: {hTotal}h {mTotal}m)", LogCategory.AutoStart);
+                AIOverhaulPlugin.LogInfo($"Progress - Played {hPlayed}h {mPlayed}m / Target {m_TargetGameHours:F0}h (Total Game Time: {hTotal}h {mTotal}m)", LogCategory.AutoStart);
             }
 
             // Check if target game hours reached
-            if (hoursPlayed >= k_TargetGameHours)
+            if (hoursPlayed >= m_TargetGameHours)
             {
                 int hPlayed = Mathf.FloorToInt(hoursPlayed);
                 int mPlayed = Mathf.FloorToInt((hoursPlayed - hPlayed) * 60);
                 AIOverhaulPlugin.LogInfo($"Target reached - {hPlayed}h {mPlayed}m of game time played. Quitting...", LogCategory.AutoStart);
+                SendWebhook($"KoH2 AutoStart test complete — {hPlayed}h {mPlayed}m of game time played.");
                 Application.Quit();
             }
         }

@@ -32,7 +32,14 @@ namespace AIOverhaul
 
         public static void SetCurrentGame(Game game)
         {
-            if (game != null) s_CurrentGame = game;
+            if (game == null) return;
+            if (game != s_CurrentGame)
+            {
+                // New game instance — reset A/B split so InitializeEnhancedKingdoms re-runs
+                EnhancedKingdomIds.Clear();
+                BaselineKingdomIds.Clear();
+            }
+            s_CurrentGame = game;
         }
 
         void Awake()
@@ -187,8 +194,7 @@ namespace AIOverhaul
         public static void InitializeEnhancedKingdoms(Game game)
         {
             if (game == null || game.kingdoms == null) return;
-            if (game == s_CurrentGame) return;
-            s_CurrentGame = game;
+            if (EnhancedKingdomIds.Count > 0 || BaselineKingdomIds.Count > 0) return;
 
             EnhancedKingdomIds.Clear();
             BaselineKingdomIds.Clear();
@@ -237,7 +243,15 @@ namespace AIOverhaul
                 EnhancedPerformanceLogger.RecordBaseline(k, "Baseline", game);
             }
 
-            Log($"New game session detected. Selected {EnhancedKingdomIds.Count} enhanced and {BaselineKingdomIds.Count} baseline kingdoms out of {aiKingdoms.Count} total AI kingdoms.");
+            // Log game configuration for diagnostics
+            int totalKingdoms = game.kingdoms.Count(k => k != null && !k.IsDefeated());
+            int kingdomSize = game.rules?.GetKingdomSize() ?? -1;
+            int aiDifficulty = game.rules?.ai_difficulty ?? -1;
+            string[] diffNames = { "Easy", "Normal", "Hard", "Very Hard" };
+            string diffName = aiDifficulty >= 0 && aiDifficulty < diffNames.Length ? diffNames[aiDifficulty] : $"{aiDifficulty}";
+            Log($"[Session Config] Kingdoms: {totalKingdoms} (players: {playerKingdoms.Count}, AI: {aiKingdoms.Count}) | " +
+                $"Provinces/kingdom: {kingdomSize} | Difficulty: {diffName} ({aiDifficulty})");
+            Log($"[A/B Split] Enhanced: {EnhancedKingdomIds.Count} | Baseline: {BaselineKingdomIds.Count} | Untracked: {aiKingdoms.Count - enhanced.Count - baseline.Count}");
 
             if (enhanced.Count > 0)
                 Log($"-----> Enhanced ({enhanced.Count}): {string.Join(", ", enhanced.Select(k => k.Name))}");

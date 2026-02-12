@@ -83,7 +83,7 @@ namespace AIOverhaul
         // Building Priority Multipliers
         // CRITICAL: Higher eval = higher priority. Multiply eval by these values (eval *= multiplier) to increase priority.
         public const float ReligionBuildingBoostPerSlot = 0.2f; // Bonus per religion slot
-        public const float BarracksSlotBoostPerSlot = 1f; // Bonus per castle district slot for barracks placement
+        public const float BarracksSlotBoostPerSlot = 10f; // Bonus per castle district slot for barracks placement
         public const float HighPriorityBuildingMultiplier = 100.0f;
 
         // Time Conversion

@@ -23,6 +23,22 @@ namespace AIOverhaul
 
         public static float GetFoodIncome(this Logic.Kingdom k) => k?.income?.Get(ResourceType.Food) ?? 0f;
 
+        public static float GetBooksIncome(this Logic.Kingdom k) => k?.income?.Get(ResourceType.Books) ?? 0f;
+
+        public static float GetBooksMax(this Logic.Kingdom k) => k?.GetStat(Stats.ks_max_books) ?? 0f;
+
+        public static float GetLevy(this Logic.Kingdom k) => k?.resources?.Get(ResourceType.Levy) ?? 0f;
+
+        public static float GetLevyIncome(this Logic.Kingdom k) => k?.income?.Get(ResourceType.Levy) ?? 0f;
+
+        public static float GetLevyMax(this Logic.Kingdom k) => k?.GetStat(Stats.ks_max_levy) ?? 0f;
+
+        public static float GetPiety(this Logic.Kingdom k) => k?.resources?.Get(ResourceType.Piety) ?? 0f;
+
+        public static float GetPietyIncome(this Logic.Kingdom k) => k?.income?.Get(ResourceType.Piety) ?? 0f;
+
+        public static float GetPietyMax(this Logic.Kingdom k) => k?.GetStat(Stats.ks_max_piety) ?? 0f;
+
         // Validation Helpers
         public static bool IsValidKingdom(this Logic.Kingdom k) => k != null && !k.IsDefeated();
 

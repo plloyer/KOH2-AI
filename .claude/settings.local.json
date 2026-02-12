@@ -26,7 +26,17 @@
       "Bash(git rm:*)",
       "Bash(if exist nul echo EXISTS else echo GONE)",
       "Bash(done)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(python:*)",
+      "Bash(where:*)",
+      "Bash(python3:*)",
+      "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" --version)",
+      "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" -c \"import ast; ast.parse\\(open\\(r''C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\Knights of Honor II\\\\AIOverhaul\\\\Scripts\\\\analyze_performance.py''\\).read\\(\\)\\); print\\(''Syntax OK''\\)\")",
+      "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" -c \"import matplotlib; print\\(f''matplotlib {matplotlib.__version__}''\\)\")",
+      "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" \"C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\Knights of Honor II\\\\AIOverhaul\\\\Scripts\\\\analyze_performance.py\")",
+      "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" -c:*)",
+      "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" \"C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\Knights of Honor II\\\\AIOverhaul\\\\Scripts\\\\analyze_performance.py\" --no-graph)",
+      "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\":*)"
     ]
   }
 }
