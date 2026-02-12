@@ -11,6 +11,7 @@ namespace AIOverhaul
     class KingdomAI_ConsiderExpense
     {
         const float k_MinIncomeForEspionage = 300f;
+        const float k_MinIncomeForDiplomat = 200f;
         const string k_LogPrefix = "[ConsiderExpense]";
 
         static bool Prefix(KingdomAI __instance, KingdomAI.Expense.Type type, BaseObject defParam, KingdomAI.Expense.Category category)
@@ -104,9 +105,19 @@ namespace AIOverhaul
                 }
 
                 case CharacterClassNames.Diplomat:
+                {
                     if (kingdomAI.kingdom.CountDiplomats() >= 1)
                         return false;
+
+                    float income = kingdomAI.kingdom.income[ResourceType.Gold];
+                    if (income < k_MinIncomeForDiplomat)
+                    {
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocking Diplomat hiring: Income {income:F1} < {k_MinIncomeForDiplomat}", LogCategory.Knights, kingdomAI.kingdom);
+                        return false;
+                    }
+
                     break;
+                }
             }
 
             return true;
