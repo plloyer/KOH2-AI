@@ -11,12 +11,28 @@ namespace AIOverhaul
         const string k_LogPrefix = "[Character_ChooseNewSkill] ";
         public static void Postfix(Logic.Character __instance, ref Skill.Def __result, List<Skill.Def> skills)
         {
-            if (__instance == null || skills == null || skills.Count == 0 || !__instance.IsKing()) return;
+            if (__instance == null || skills == null || skills.Count == 0) return;
             var kingdom = __instance.GetKingdom();
             if (!AIOverhaulPlugin.IsEnhancedAI(kingdom)) return;
 
+            // Block Leadership — it's a terrible skill
+            if (__result != null && __result.Is(SkillNames.Leadership))
+            {
+                // Pick anything else
+                foreach (var skill in skills)
+                {
+                    if (!skill.Is(SkillNames.Leadership))
+                    {
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocked Leadership, picking {skill.id} instead", LogCategory.Governor, kingdom);
+                        __result = skill;
+                        break;
+                    }
+                }
+            }
+
+            if (!__instance.IsKing()) return;
             if (kingdom.GetBooks() < GameBalance.MinBooksForFirstSkillUpgrade) return; // Not enough books
-            
+
             // Prioritize Writing then Learning for Tradition unlocking
             if (TryPickSkill(skills, SkillNames.Writing, kingdom, ref __result)) return;
             if (TryPickSkill(skills, SkillNames.Learning, kingdom, ref __result)) return;

@@ -53,6 +53,19 @@ namespace AIOverhaul
                 return false;
             }
 
+            // Proactively seek trade agreements when below minimum
+            int tradeCount = actor.GetTradeAgreementCount();
+            if (tradeCount < GameBalance.MinTradeAgreements)
+            {
+                Logic.Kingdom tradeTarget = actor.FindTradeAgreementTarget(expansionTarget);
+                if (tradeTarget != null)
+                {
+                    AIOverhaulPlugin.LogDebug($"Seeking trade agreement with {tradeTarget.Name} (current: {tradeCount}/{GameBalance.MinTradeAgreements})", LogCategory.Diplomacy, actor);
+                    __result = __instance.RunTradeAgreementProposal(tradeTarget);
+                    return false;
+                }
+            }
+
             // Defensive pact formation when facing threats
             if (actor.ShouldSeekDefensivePact())
             {

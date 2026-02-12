@@ -16,11 +16,25 @@ namespace AIOverhaul
 
             var kingdom = __instance.kingdom;
 
-            // Followers don't independently decide to fight
+            // Followers: block offensive fighting, allow defensive when leader is idle
             if (BuddySystem.IsFollower(army, kingdom))
             {
-                __result = false;
-                return false;
+                var leader = BuddySystem.GetLeader(army, kingdom);
+                if (leader != null && leader.IsValid())
+                {
+                    // Leader heading to fight — follower must follow, not fight alone
+                    if (MilitaryHelper.IsLeaderHeadingToFight(leader, kingdom))
+                    {
+                        __result = false;
+                        return false;
+                    }
+                    // Leader idle — block offensive ops in enemy territory, allow defense in own territory
+                    if (MilitaryHelper.IsEnemyTerritory(realmIn, kingdom))
+                    {
+                        __result = false;
+                        return false;
+                    }
+                }
             }
 
             // Scan realm: mirror vanilla structure

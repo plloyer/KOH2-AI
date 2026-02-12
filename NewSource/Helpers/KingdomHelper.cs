@@ -519,6 +519,32 @@ namespace AIOverhaul
             return bestTarget;
         }
 
+        public static Logic.Kingdom FindTradeAgreementTarget(this Logic.Kingdom k, Logic.Kingdom expansionTarget)
+        {
+            if (k?.game?.kingdoms == null) return null;
+
+            Logic.Kingdom bestTarget = null;
+            bool bestIsNeighbor = false;
+
+            foreach (var other in k.game.kingdoms)
+            {
+                if (other == null || other == k || other.IsDefeated()) continue;
+                if (k.IsEnemy(other)) continue;
+                if (other == expansionTarget) continue;
+                if (k.IsMortalEnemy(other)) continue;
+                if (k.HasTradeAgreement(other)) continue;
+
+                bool isNeighbor = k.IsStrategicNeighbor(other);
+                if (bestTarget == null || (isNeighbor && !bestIsNeighbor))
+                {
+                    bestTarget = other;
+                    bestIsNeighbor = isNeighbor;
+                }
+            }
+
+            return bestTarget;
+        }
+
         public static bool IsMortalEnemy(this Logic.Kingdom kingdom, Logic.Kingdom potentialEnemy)
         {
             if (kingdom == null || potentialEnemy == null) return false;

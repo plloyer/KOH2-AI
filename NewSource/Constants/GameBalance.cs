@@ -66,6 +66,12 @@ namespace AIOverhaul
         public const float MinBooksForFirstSkillUpgrade = 200f;
         public const float MinBooksForFirstTradition = 400f;
 
+        // Economy - Early Game Build Order
+        public const int MinMerchantsBeforeTradition = 2; // Hire this many merchants before saving for first tradition
+        public const float MinCommerceForExtraMerchant = 30f; // Hire extra merchant when total commerce reaches this threshold
+        public const int MinTradeAgreements = 3; // Proactively seek trade agreements when below this count
+        public const int MinVillagesForMilitia = 2; // Realm needs this many villages to warrant VillageMilitia
+
         // Kingdom Selection
         public const float EnhancedAISelectionPercentage = 0.30f;
 
@@ -78,15 +84,11 @@ namespace AIOverhaul
         // CRITICAL: Higher eval = higher priority. Multiply eval by these values (eval *= multiplier) to increase priority.
         public const float ReligionBuildingBoostPerSlot = 0.2f; // Bonus per religion slot
         public const float BarracksSlotBoostPerSlot = 1f; // Bonus per castle district slot for barracks placement
-        public const float BarracksPriorityMultiplier = 100.0f; // Very high priority on first barracks
         public const float HighPriorityBuildingMultiplier = 100.0f;
 
         // Time Conversion
         public const float HoursPerDay = 24f;
         public const float DaysPerYear = 365f;
-
-        // Logging
-        public const int AggregateLogInterval = 50; // Log interval (cycles)
 
         // Speed Control
         public const float HighSpeed = 20f; // F7 high speed toggle

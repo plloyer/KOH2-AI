@@ -10,26 +10,43 @@ namespace AIOverhaul
     public class Castle_AddBuildOptions
     {
         const float k_HighPriorityEval = 100000f;
-        const int k_MinVillagesForMilitia = 2;
         const string k_LogPrefix = "[AddBuildOptions]";
 
         static void Postfix(Castle __instance)
         {
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom())) return;
-            
-            ApplySwordsmithLogic(__instance);
-            ApplyFletcherLogic(__instance);
-            ApplyReligiousSettlementConstraint(__instance);
-            ApplyVillageMilitiaLogic(__instance);
+
+            if (ApplyVillageMilitiaLogic(__instance)) return;
+            if (ApplyBarracksLogic(__instance)) return;
+            if (ApplySwordsmithLogic(__instance)) return;
+            if (ApplyFletcherLogic(__instance)) return;
             ApplyFoodSecurityLogic(__instance);
-            ApplyBarracksLogic(__instance);
+            ApplyCropFarmingConstraint(__instance);
+            ApplyReligiousSettlementConstraint(__instance);
+            ApplyVillageMilitiaTrainingGroundLogic(__instance);
+        }
+
+        static void ApplyCropFarmingConstraint(Castle castle)
+        {
+            var realm = castle.GetRealm();
+            if (realm.GetFarmCount() > 0) return;
+
+            float food = KingdomHelper.GetFood(castle.GetKingdom());
+            if (food <= 0) return;
+
+            for (int i = Castle.build_options.Count - 1; i >= 0; i--)
+            {
+                var option = Castle.build_options[i];
+                if (option.def != null && option.def.id == BuildingNames.CropFarming)
+                    Castle.build_options.RemoveAt(i);
+            }
         }
 
         static void ApplyReligiousSettlementConstraint(Castle castle)
         {
             var realm = castle.GetRealm();
-            // Check if Province has Monastery/Mosque/Shrine
-            if (!realm.HasReligiousSettlement())
+            int religiousCount = realm.GetReligiousCount();
+            if (religiousCount == 0)
             {
                 // If not, remove Religious Buildings from options
                 for (int i = Castle.build_options.Count - 1; i >= 0; i--)
@@ -43,9 +60,7 @@ namespace AIOverhaul
             }
             else
             {
-                // Has religious settlements — boost religious buildings based on count
-                int religiousCount = realm.GetReligiousCount();
-                float multiplier = 1 + religiousCount * GameBalance.ReligionBuildingBoostPerSlot;
+                float multiplier = 1 + (religiousCount - 1) * GameBalance.ReligionBuildingBoostPerSlot;
 
                 for (int i = 0; i < Castle.build_options.Count; i++)
                 {
@@ -62,7 +77,6 @@ namespace AIOverhaul
         static void ApplyFoodSecurityLogic(Castle castle)
         {
             var kingdom = castle.GetKingdom();
-            if (kingdom == null) return;
 
             float food = KingdomHelper.GetFood(kingdom);
 
@@ -74,6 +88,7 @@ namespace AIOverhaul
 
                 bool hasRareGame = realm.features != null && realm.features.Contains(FeatureNames.RareGame);
                 bool hasRivers = realm.features != null && realm.features.Contains(FeatureNames.Rivers);
+                bool hasVines = realm.features != null && realm.features.Contains(FeatureNames.Vines);
 
                 AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Food CRITICAL ({food}), boosting food production in {castle.name}.", LogCategory.Spending, kingdom);
 
@@ -83,6 +98,7 @@ namespace AIOverhaul
                 float cattleEval = k_HighPriorityEval * 5;
                 float irrigationEval = k_HighPriorityEval * (1 + farmCount * 3);
                 float furTradeEval = k_HighPriorityEval * 3;
+                float viticultureEval = k_HighPriorityEval * 3;
 
                 // Buildings
                 EnsureBuildOption(castle, BuildingNames.CropFarming, farmEval, KingdomAI.Expense.Priority.Urgent);
@@ -93,103 +109,90 @@ namespace AIOverhaul
                     EnsureBuildOption(castle, BuildingNames.Irrigation, irrigationEval, KingdomAI.Expense.Priority.Urgent);
                 if (hasRareGame)
                     EnsureBuildOption(castle, BuildingNames.FurTrade, furTradeEval, KingdomAI.Expense.Priority.Urgent);
+                if (hasVines)
+                    EnsureBuildOption(castle, BuildingNames.Viticulture, viticultureEval, KingdomAI.Expense.Priority.Urgent);
 
                 // Upgrades (inject if vanilla didn't generate them)
                 EnsureUpgradeOption(kingdom, castle, BuildingUpgradeNames.CropsRotation, BuildingNames.CropFarming, farmEval, KingdomAI.Expense.Priority.Urgent);
                 EnsureUpgradeOption(kingdom, castle, BuildingUpgradeNames.Docks_Harbor, BuildingNames.Harbor, coastalEval, KingdomAI.Expense.Priority.Urgent);
                 EnsureUpgradeOption(kingdom, castle, BuildingUpgradeNames.Butcher_Sheep, BuildingNames.SheepFarming, sheepEval, KingdomAI.Expense.Priority.Urgent);
                 EnsureUpgradeOption(kingdom, castle, BuildingUpgradeNames.Butcher_Cattle, BuildingNames.CattleFarming, cattleEval, KingdomAI.Expense.Priority.Urgent);
+                if (hasVines)
+                    EnsureUpgradeOption(kingdom, castle, BuildingUpgradeNames.SunDryingGrapes, BuildingNames.Viticulture, viticultureEval, KingdomAI.Expense.Priority.Urgent);
             }
         }
+        
+        static bool ApplyVillageMilitiaLogic(Castle castle)
+        {
+            var realm = castle.GetRealm();
+            if (realm == null) return false;
 
-        static void ApplyVillageMilitiaLogic(Castle castle)
+            int villageCount = realm.GetVillageCount();
+            if (villageCount < GameBalance.MinVillagesForMilitia) return false;
+
+            if (EnsureBuildOption(castle, BuildingNames.VillageMilitia, k_HighPriorityEval, KingdomAI.Expense.Priority.Urgent))
+            {
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTING VillageMilitia in {castle.name} ({villageCount} villages)", LogCategory.Spending, castle.GetKingdom());
+                return true;
+            }
+
+            return false;
+        }
+
+        static void ApplyVillageMilitiaTrainingGroundLogic(Castle castle)
         {
             var kingdom = castle.GetKingdom();
             if (kingdom == null) return;
-
+            
             // If we already have Village Militia, boost TrainingGrounds upgrade
             if (kingdom.HasBuilding(BuildingNames.VillageMilitia))
             {
                 if (!kingdom.HasBuildingUpgrade(BuildingUpgradeNames.TrainingGrounds))
-                {
-                    MultiplyUpgradeOption(BuildingUpgradeNames.TrainingGrounds, GameBalance.HighPriorityBuildingMultiplier);
-                }
+                    EnsureUpgradeOption(kingdom, castle, BuildingUpgradeNames.TrainingGrounds, BuildingNames.VillageMilitia, GameBalance.HighPriorityBuildingMultiplier, KingdomAI.Expense.Priority.Urgent);
                 return;
             }
-
-            // Find the best castle for Village Militia (Most villages, >= 2)
-            Castle bestCastle = null;
-            int maxVillages = -1;
-
-            if (kingdom.realms != null)
-            {
-                foreach (var r in kingdom.realms)
-                {
-                    if (r == null || r.castle == null) continue;
-
-                    int vCount = r.GetVillageCount();
-                    if (vCount >= k_MinVillagesForMilitia)
-                    {
-                        if (vCount > maxVillages)
-                        {
-                            maxVillages = vCount;
-                            bestCastle = r.castle;
-                        }
-                    }
-                }
-            }
-
-            // If no suitable castle found, do nothing
-            if (bestCastle == null) return;
-
-            // If THIS is the best castle, boost the option
-            if (castle == bestCastle)
-            {
-                for (int i = 0; i < Castle.build_options.Count; i++)
-                {
-                    var option = Castle.build_options[i];
-                    if (option.castle == castle && option.def != null && option.def.id == BuildingNames.VillageMilitia)
-                    {
-                        option.eval = k_HighPriorityEval;
-                        option.priority = KingdomAI.Expense.Priority.Urgent;
-                        Castle.build_options[i] = option;
-
-                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTING VillageMilitia in {castle.name} (Best location with {maxVillages} villages)", LogCategory.Spending, kingdom);
-                        return;
-                    }
-                }
-            }
         }
 
-        static void ApplySwordsmithLogic(Castle castle)
+        static bool ApplySwordsmithLogic(Castle castle)
         {
             var kingdom = castle.GetKingdom();
-            if (kingdom == null) return;
+            if (kingdom == null) return false;
 
             if (!kingdom.HasBuildingUpgrade(BuildingUpgradeNames.Swordsmith))
+            {
                 MultiplyUpgradeOption(BuildingUpgradeNames.Swordsmith, GameBalance.HighPriorityBuildingMultiplier);
+                return true;
+            }
+
+            return false;
         }
 
-        static void ApplyFletcherLogic(Castle castle)
+        static bool ApplyFletcherLogic(Castle castle)
         {
             var kingdom = castle.GetKingdom();
-            if (kingdom == null) return;
+            if (kingdom == null) return false;
 
             bool hasSwordsmith = kingdom.HasBuildingUpgrade(BuildingUpgradeNames.Swordsmith);
             bool hasFletcher = kingdom.HasBuildingUpgrade(BuildingUpgradeNames.Fletcher_Barracks);
 
             if (hasSwordsmith && !hasFletcher)
+            {
                 MultiplyUpgradeOption(BuildingUpgradeNames.Fletcher, GameBalance.HighPriorityBuildingMultiplier);
+                return true;
+            }
+
+            return false;
         }
 
-        static void ApplyBarracksLogic(Castle castle)
+        static bool ApplyBarracksLogic(Castle castle)
         {
             var kingdom = castle.GetKingdom();
-            if (kingdom == null) return;
-            if (kingdom.GetBuildingCount(BuildingNames.Barracks) > 0) return;
-            
+            if (kingdom == null) return false;
+            if (kingdom.GetBuildingCount(BuildingNames.Barracks) > 0) return false;
+
             var keep = castle.GetRealm().GetKeepCount();
             MultiplyBuildOption(BuildingNames.Barracks, 1 + (keep * GameBalance.BarracksSlotBoostPerSlot));
+            return true;
         }
 
         static void MultiplyUpgradeOption(string upgradeName, float multiplier)
