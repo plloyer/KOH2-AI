@@ -61,7 +61,7 @@ namespace AIOverhaul
             }
             else
             {
-                float multiplier = 1 + (religiousCount - minReligiousDistrictCount) * GameBalance.ReligionBuildingBoostPerSlot;
+                float multiplier = 1 + (religiousCount - minReligiousDistrictCount) * GameBalance.BoostPerDistrict;
 
                 for (int i = 0; i < Castle.build_options.Count; i++)
                 {
@@ -131,7 +131,7 @@ namespace AIOverhaul
             int villageCount = realm.GetVillageCount();
             if (villageCount < GameBalance.MinVillagesForMilitia) return false;
 
-            if (EnsureBuildOption(castle, BuildingNames.VillageMilitia, k_HighPriorityEval, KingdomAI.Expense.Priority.Urgent))
+            if (EnsureBuildOption(castle, BuildingNames.VillageMilitia, k_HighPriorityEval + (villageCount * GameBalance.BoostPerDistrict), KingdomAI.Expense.Priority.Urgent))
                 return true;
 
             return false;
@@ -189,7 +189,7 @@ namespace AIOverhaul
             if (kingdom.GetBuildingCount(BuildingNames.Barracks) > 0) return false;
 
             var keep = castle.GetRealm().GetKeepCount();
-            MultiplyBuildOption(BuildingNames.Barracks, 1 + (keep * GameBalance.BarracksSlotBoostPerSlot));
+            EnsureBuildOption(castle, BuildingNames.Barracks, k_HighPriorityEval + (keep * GameBalance.BoostPerDistrict), KingdomAI.Expense.Priority.Urgent);
             return true;
         }
 

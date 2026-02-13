@@ -68,6 +68,7 @@ namespace AIOverhaul
 
         // Economy - Early Game Build Order
         public const int MinMerchantsBeforeTradition = 2; // Hire this many merchants before saving for first tradition
+        public const float CommercePerMerchant = 10f; // Commerce capacity required per merchant
         public const float MinCommerceForExtraMerchant = 30f; // Hire extra merchant when total commerce reaches this threshold
         public const int MinTradeAgreements = 3; // Proactively seek trade agreements when below this count
         public const int MinVillagesForMilitia = 2; // Realm needs this many villages to warrant VillageMilitia
@@ -82,8 +83,7 @@ namespace AIOverhaul
 
         // Building Priority Multipliers
         // CRITICAL: Higher eval = higher priority. Multiply eval by these values (eval *= multiplier) to increase priority.
-        public const float ReligionBuildingBoostPerSlot = 10f; // Bonus per religion slot
-        public const float BarracksSlotBoostPerSlot = 10f; // Bonus per castle district slot for barracks placement
+        public const float BoostPerDistrict = 10f; // Bonus per castle/farm/religious/sea district
         public const float HighPriorityBuildingMultiplier = 100.0f;
 
         // Time Conversion

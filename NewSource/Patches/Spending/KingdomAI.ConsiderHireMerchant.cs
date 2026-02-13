@@ -29,17 +29,20 @@ namespace AIOverhaul
                 return false;
             }
 
-            // Hire an extra merchant when commerce capacity justifies it
+            // Hire extra merchants when commerce capacity justifies it
             float maxCommerce = kingdom.GetMaxCommerce();
-            if (maxCommerce >= GameBalance.MinCommerceForExtraMerchant && currentMerchants == GameBalance.MinMerchantsBeforeTradition)
+            int maxMerchants = (int)(maxCommerce / GameBalance.CommercePerMerchant);
+            if (currentMerchants < maxMerchants)
             {
-                AIOverhaulPlugin.LogDebug($"Extra merchant: {maxCommerce:F0} total commerce >= {GameBalance.MinCommerceForExtraMerchant}", LogCategory.Economy, kingdom);
+                AIOverhaulPlugin.LogDebug($"Extra merchant: {maxCommerce:F0} commerce supports {maxMerchants} merchants (current: {currentMerchants})", LogCategory.Economy, kingdom);
                 TraverseAPI.ConsiderExpense(__instance, KingdomAI.Expense.Type.HireChacacter, merchantDef, null, merchantDef.ai_category);
                 __result = true;
                 return false;
             }
 
-            return true;
+            // Block vanilla — its Ceiling(maxCommerce/10) overestimates capacity (e.g. ceil(34/10)=4 but only 3 fit)
+            __result = false;
+            return false;
         }
 
         // Replicates vanilla BlockSlotForPapalCleric() using public APIs.
