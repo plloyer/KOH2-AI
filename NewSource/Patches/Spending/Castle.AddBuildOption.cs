@@ -9,7 +9,7 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Castle), "AddBuildOptions", typeof(bool), typeof(Resource))]
     public class Castle_AddBuildOptions
     {
-        const float k_HighPriorityEval = 100000f;
+        const float k_HighPriorityEval = 1000f;
         const string k_LogPrefix = "[AddBuildOptions]";
 
         static void Postfix(Castle __instance)
@@ -158,7 +158,7 @@ namespace AIOverhaul
 
             if (!kingdom.HasBuildingUpgrade(BuildingUpgradeNames.Swordsmith))
             {
-                MultiplyUpgradeOption(BuildingUpgradeNames.Swordsmith, GameBalance.HighPriorityBuildingMultiplier);
+                EnsureUpgradeOption(kingdom, castle, BuildingUpgradeNames.Swordsmith, BuildingNames.Barracks, GameBalance.HighPriorityBuildingMultiplier,  KingdomAI.Expense.Priority.Urgent);
                 return true;
             }
 
@@ -175,7 +175,7 @@ namespace AIOverhaul
 
             if (hasSwordsmith && !hasFletcher)
             {
-                MultiplyUpgradeOption(BuildingUpgradeNames.Fletcher, GameBalance.HighPriorityBuildingMultiplier);
+                EnsureUpgradeOption(kingdom, castle, BuildingUpgradeNames.Fletcher, BuildingNames.Barracks, GameBalance.HighPriorityBuildingMultiplier,  KingdomAI.Expense.Priority.Urgent);
                 return true;
             }
 
@@ -189,38 +189,13 @@ namespace AIOverhaul
             if (kingdom.GetBuildingCount(BuildingNames.Barracks) > 0) return false;
 
             var keep = castle.GetRealm().GetKeepCount();
-            EnsureBuildOption(castle, BuildingNames.Barracks, k_HighPriorityEval + (keep * GameBalance.BoostPerDistrict), KingdomAI.Expense.Priority.Urgent);
+            float eval = k_HighPriorityEval * (1 + keep * GameBalance.BoostPerDistrict);
+            EnsureBuildOption(castle, BuildingNames.Barracks, eval, KingdomAI.Expense.Priority.Urgent);
             return true;
         }
 
-        static void MultiplyUpgradeOption(string upgradeName, float multiplier)
-        {
-            for (int i = 0; i < Castle.upgrade_options.Count; i++)
-            {
-                var option = Castle.upgrade_options[i];
-                if (option.def?.id == upgradeName)
-                {
-                    option.eval *= multiplier;
-                    Castle.upgrade_options[i] = option;
-                }
-            }
-        }
-
-        static void MultiplyBuildOption(string buildingName, float multiplier)
-        {
-            for (int i = 0; i < Castle.build_options.Count; i++)
-            {
-                var option = Castle.build_options[i];
-                if (option.def?.id == buildingName)
-                {
-                    option.eval *= multiplier;
-                    Castle.build_options[i] = option;
-                }
-            }
-        }
-
         /// <summary>
-        /// Ensures a building option exists in build_options with at least the given eval/priority.
+        /// Ensures a building option exists in build_options with the given eval/priority.
         /// If missing and the building is available (not already built), injects it.
         /// </summary>
         static bool EnsureBuildOption(Castle castle, string buildingId, float eval, KingdomAI.Expense.Priority priority)
@@ -235,14 +210,11 @@ namespace AIOverhaul
                 var opt = Castle.build_options[i];
                 if (opt.def == def && opt.castle == castle)
                 {
-                    if (opt.eval < eval || opt.priority < priority)
-                    {
-                        Castle.build_options_sum += eval - opt.eval;
-                        opt.eval = eval;
-                        opt.priority = priority;
-                        Castle.build_options[i] = opt;
-                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTED {buildingId} in {castle.name}: eval={eval}", LogCategory.Spending, castle.GetKingdom());
-                    }
+                    Castle.build_options_sum += eval - opt.eval;
+                    opt.eval = eval;
+                    opt.priority = priority;
+                    Castle.build_options[i] = opt;
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTED {buildingId} in {castle.name}: eval={eval}", LogCategory.Spending, castle.GetKingdom());
                     return true;
                 }
             }
@@ -262,7 +234,7 @@ namespace AIOverhaul
         }
 
         /// <summary>
-        /// Ensures an upgrade option exists in upgrade_options with at least the given eval/priority.
+        /// Ensures an upgrade option exists in upgrade_options with the given eval/priority.
         /// If missing and parent building is built (and upgrade isn't), injects it.
         /// </summary>
         static bool EnsureUpgradeOption(Logic.Kingdom kingdom, Castle castle, string upgradeId, string parentBuildingId, float eval, KingdomAI.Expense.Priority priority)
@@ -281,14 +253,11 @@ namespace AIOverhaul
                 var opt = Castle.upgrade_options[i];
                 if (opt.def == def)
                 {
-                    if (opt.eval < eval || opt.priority < priority)
-                    {
-                        Castle.upgrade_options_sum += eval - opt.eval;
-                        opt.eval = eval;
-                        opt.priority = priority;
-                        Castle.upgrade_options[i] = opt;
-                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTED {upgradeId} upgrade in {castle.name}: eval={eval}", LogCategory.Spending, castle.GetKingdom());
-                    }
+                    Castle.upgrade_options_sum += eval - opt.eval;
+                    opt.eval = eval;
+                    opt.priority = priority;
+                    Castle.upgrade_options[i] = opt;
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} BOOSTED {upgradeId} upgrade in {castle.name}: eval={eval}", LogCategory.Spending, castle.GetKingdom());
                     return true;
                 }
             }

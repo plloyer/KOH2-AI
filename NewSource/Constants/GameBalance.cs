@@ -83,7 +83,7 @@ namespace AIOverhaul
 
         // Building Priority Multipliers
         // CRITICAL: Higher eval = higher priority. Multiply eval by these values (eval *= multiplier) to increase priority.
-        public const float BoostPerDistrict = 10f; // Bonus per castle/farm/religious/sea district
+        public const float BoostPerDistrict = 1000f; // Bonus per castle/farm/religious/sea district
         public const float HighPriorityBuildingMultiplier = 100.0f;
 
         // Time Conversion
