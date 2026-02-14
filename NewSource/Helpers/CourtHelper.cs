@@ -10,13 +10,27 @@ namespace AIOverhaul
     {
         public static int CountCourtMembers(this Logic.Kingdom kingdom, string classId)
         {
-            if (kingdom?.court == null) return 0;
+            if (kingdom == null) return 0;
             int count = 0;
-            foreach (var character in kingdom.court)
+            bool kingCounted = false;
+            var king = kingdom.GetKing();
+
+            if (kingdom.court != null)
             {
-                if (character != null && character.class_def?.id == classId)
-                    count++;
+                foreach (var character in kingdom.court)
+                {
+                    if (character != null && character.class_def?.id == classId)
+                    {
+                        count++;
+                        if (character == king) kingCounted = true;
+                    }
+                }
             }
+
+            // Ruler may not be in the court array — count them if they match
+            if (!kingCounted && king != null && king.class_def?.id == classId)
+                count++;
+
             return count;
         }
 

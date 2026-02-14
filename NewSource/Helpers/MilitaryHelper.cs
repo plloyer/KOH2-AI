@@ -180,7 +180,7 @@ namespace AIOverhaul
                         if (ourKingdom.IsRealmWithinDistance(realm, maxDistance, out var dist))
                             return realm;
 
-                        AIOverhaulPlugin.LogDebug($"[ThinkPlunder] {enemy.Name}'s realm {realm.name} is in disorder but too far ({dist}>{maxDistance} provinces)", LogCategory.Military, ourKingdom);
+                        //AIOverhaulPlugin.LogDebug($"[ThinkPlunder] {enemy.Name}'s realm {realm.name} is in disorder but too far ({dist}>{maxDistance} provinces)", LogCategory.Military, ourKingdom);
                     }
                 }
             }

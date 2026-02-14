@@ -9,12 +9,15 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(Castle), "EvalHireUnits")]
     public class Castle_EvalHireUnits
     {
-        static void Prefix(Castle __instance, ref bool allow_militia)
+        static void Prefix(Castle __instance, ref bool allow_militia, ref float food)
         {
-            if (AIOverhaulPlugin.IsEnhancedAI(__instance.GetKingdom()))
-            {
-                allow_militia = false;
-            }
+            var kingdom = __instance.GetKingdom();
+            if (kingdom == null || !AIOverhaulPlugin.IsEnhancedAI(kingdom)) return;
+
+            allow_militia = false;
+
+            if (kingdom.IsAtWar())
+                food = float.PositiveInfinity;
         }
     }
 }

@@ -199,6 +199,7 @@ namespace AIOverhaul
             EnhancedKingdomIds.Clear();
             BaselineKingdomIds.Clear();
             MortalEnemies.Clear(); // Reset mortal enemies for new game
+            Castle_ChooseBuildOption.ClearBuildQueues(); // Reset build queues for new game
             EnhancedPerformanceLogger.ClearData(); // Moved here from failed GameClearPatch
 
             // ALWAYS add player kingdoms to enhanced AI list (for spectator mode testing)

@@ -11,7 +11,6 @@ namespace AIOverhaul
         War,          // War declarations, peace, surrenders
         Military,     // Army management, battles, fortifications
         Diplomacy,    // NAPs, alliances, trade agreements
-        Economy,      // Merchants, resources
         Spending,     // About spending gold
         Knights,      // Character hiring (all court members)
         Tradition,    // Tradition selection and adoption
@@ -19,7 +18,6 @@ namespace AIOverhaul
         Governor,     // Governor assignments
         Spectator,    // F9 spectator mode toggles
         AutoStart,    // Auto-start game feature
-        Ping          // Multiplayer ping system
     }
 
     /// <summary>

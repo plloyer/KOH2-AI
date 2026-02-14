@@ -18,23 +18,25 @@ namespace AIOverhaul
             if (merchantDef == null) return true;
             if (IsPapalSlotBlocked(__instance)) return true;
 
-            int currentMerchants = kingdom.GetMerchantsCount();
+            int currentMerchants = kingdom.CountMerchants();
+            float maxCommerce = kingdom.GetMaxCommerce();
+            int maxMerchants = (int)(maxCommerce / GameBalance.CommercePerMerchant);
 
-            // Guarantee a minimum number of merchants early game
-            if (currentMerchants < GameBalance.MinMerchantsBeforeTradition)
+            // Guarantee a minimum number of merchants early game, but respect commerce cap
+            if (currentMerchants < GameBalance.MinMerchantsBeforeTradition && currentMerchants < maxMerchants)
             {
-                AIOverhaulPlugin.LogDebug($"Forcing merchant consideration ({currentMerchants}/{GameBalance.MinMerchantsBeforeTradition}, bypassing trade agreement cap)", LogCategory.Economy, kingdom);
+                AIOverhaulPlugin.LogDebug($"Forcing merchant consideration ({currentMerchants}/{GameBalance.MinMerchantsBeforeTradition}, max:{maxMerchants} from {maxCommerce:F0} commerce)", LogCategory.Spending, kingdom);
                 TraverseAPI.ConsiderExpense(__instance, KingdomAI.Expense.Type.HireChacacter, merchantDef, null, merchantDef.ai_category);
                 __result = true;
                 return false;
             }
 
+            if (kingdom.HasIdleMerchant()) { __result = false; return false; }
+            
             // Hire extra merchants when commerce capacity justifies it
-            float maxCommerce = kingdom.GetMaxCommerce();
-            int maxMerchants = (int)(maxCommerce / GameBalance.CommercePerMerchant);
             if (currentMerchants < maxMerchants)
             {
-                AIOverhaulPlugin.LogDebug($"Extra merchant: {maxCommerce:F0} commerce supports {maxMerchants} merchants (current: {currentMerchants})", LogCategory.Economy, kingdom);
+                AIOverhaulPlugin.LogDebug($"Extra merchant: {maxCommerce:F0} commerce supports {maxMerchants} merchants (current: {currentMerchants})", LogCategory.Spending, kingdom);
                 TraverseAPI.ConsiderExpense(__instance, KingdomAI.Expense.Type.HireChacacter, merchantDef, null, merchantDef.ai_category);
                 __result = true;
                 return false;

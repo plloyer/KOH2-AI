@@ -45,6 +45,8 @@ namespace AIOverhaul
         public static bool IsValidKingdomWithResources(this Logic.Kingdom k) => k != null && k.resources != null;
 
         public static bool IsValidKingdomWithWarsAndResources(this Logic.Kingdom k) => k != null && k.wars != null && k.resources != null && k.traditions != null;
+
+        public static bool IsAtWar(this Logic.Kingdom k) => k?.wars != null && k.wars.Count > 0;
         
         public static bool HasDisorder(this Logic.Kingdom k)
         {
@@ -79,6 +81,31 @@ namespace AIOverhaul
             if (k?.game == null) return false;
             var def = k.game.defs.Find<Logic.Building.Def>(upgradeId);
             return def != null && k.HasBuildingUpgrade(def);
+        }
+
+        public static bool IsBuildingUnderConstruction(this Logic.Kingdom k, string buildingId)
+        {
+            if (k?.realms == null) return false;
+            foreach (var realm in k.realms)
+            {
+                var castle = realm?.castle;
+                if (castle == null) continue;
+                var buildDef = castle.GetCurrentBuildingBuild();
+                if (buildDef != null && buildDef.id == buildingId)
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool IsUpgradeInProgress(this Logic.Kingdom k, string upgradeId)
+        {
+            if (k?.upgrading == null) return false;
+            foreach (var u in k.upgrading)
+            {
+                if (u.def != null && u.def.id == upgradeId)
+                    return true;
+            }
+            return false;
         }
 
         public static bool CanBuildUpgrade(this Logic.Kingdom k, Castle castle, string upgradeId)

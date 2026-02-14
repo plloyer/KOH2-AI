@@ -202,12 +202,40 @@ namespace AIOverhaul
                 else
                 {
                     DrawKingdomStats(k, style);
+                    DrawBuildPhase(k, style);
                     DrawRealmSettlements(k, style);
                     DrawMilitaryOverview(k, style);
                     if (!IsClient())
                         DrawExpenseLog(style);
                 }
             }
+        }
+
+        void DrawBuildPhase(Logic.Kingdom k, GUIStyle style)
+        {
+            if (IsClient()) return;
+            GUILayout.Label("<b>--- Build Queue ---</b>", style);
+            GUILayout.Label(Castle_ChooseBuildOption.GetBuildQueueStatus(k), style);
+
+            var queue = Castle_ChooseBuildOption.GetBuildQueue(k);
+            if (queue != null && queue.Count > 0)
+            {
+                for (int i = 0; i < queue.Count; i++)
+                {
+                    var entry = queue[i];
+                    string color = i == 0 ? k_ColorYellow : k_ColorGrey;
+                    string tag = entry.isUpgrade ? " (upgrade)" : "";
+                    string target = "";
+                    if (entry.realmId >= 0 && k.realms != null)
+                    {
+                        var realm = k.realms.Find(r => r != null && r.id == entry.realmId);
+                        if (realm != null)
+                            target = $" @ {(!string.IsNullOrEmpty(realm.town_name) ? realm.town_name : realm.name)}";
+                    }
+                    GUILayout.Label($"  <color={color}>{i + 1}. {entry.buildingId}{tag}{target}</color>", style);
+                }
+            }
+            GUILayout.Space(5);
         }
 
         void DrawMilitaryOverview(Logic.Kingdom k, GUIStyle style)
@@ -475,7 +503,8 @@ namespace AIOverhaul
                 // Format the output string with color coding
                 StringBuilder sb = new StringBuilder();
                 string realmName = !string.IsNullOrEmpty(r.town_name) ? r.town_name : r.name;
-                sb.Append($"<b>{realmName}</b> [Goods: <color={goodsColor}>{currentGoods}/{maxGoods}</color>]: ");
+                var (specLabel, specColor) = GetSpecLabel(r.ai_specialization);
+                sb.Append($"<b>{realmName}</b> [<color={specColor}>{specLabel}</color>] [Goods: <color={goodsColor}>{currentGoods}/{maxGoods}</color>]: ");
 
                 var parts = new List<string>();
 
@@ -505,9 +534,34 @@ namespace AIOverhaul
             GUILayout.Space(5);
         }
 
+        static (string label, string color) GetSpecLabel(AI.ProvinceSpecialization spec)
+        {
+            switch (spec)
+            {
+                case AI.ProvinceSpecialization.Military:
+                case AI.ProvinceSpecialization.MilitarySpec:
+                    return ("MIL", k_ColorMilitary);
+                case AI.ProvinceSpecialization.Gold:
+                case AI.ProvinceSpecialization.TradeSpec:
+                    return ("TRADE", k_ColorEconomy);
+                case AI.ProvinceSpecialization.Food:
+                case AI.ProvinceSpecialization.FoodSpec:
+                    return ("FOOD", k_ColorFood);
+                case AI.ProvinceSpecialization.Religion:
+                case AI.ProvinceSpecialization.ReligionSpec:
+                    return ("REL", k_ColorReligion);
+                default:
+                    return ("GEN", k_ColorGrey);
+            }
+        }
+
         void DrawCastleBuildOptions(Castle castle, GUIStyle style)
         {
             if (castle == null) return;
+
+            // Smaller style for build options detail
+            GUIStyle smallStyle = new GUIStyle(style);
+            smallStyle.fontSize = 13;
 
             // Use last_build_options for player (snapshot), or current build_options
             var buildOptions = Castle.last_build_options.Count > 0 ? Castle.last_build_options : Castle.build_options;
@@ -524,7 +578,7 @@ namespace AIOverhaul
 
             if (castleOptions.Count == 0)
             {
-                GUILayout.Label($"  <color={k_ColorGrey}>No build options</color>", style);
+                GUILayout.Label($"  <color={k_ColorGrey}>No build options</color>", smallStyle);
                 return;
             }
 
@@ -549,7 +603,7 @@ namespace AIOverhaul
             if (castleOptions.Count > 5)
                 sb.Append($"<color={k_ColorGrey}>+{castleOptions.Count - 5} more</color>");
 
-            GUILayout.Label(sb.ToString(), style);
+            GUILayout.Label(sb.ToString(), smallStyle);
         }
     }
 }

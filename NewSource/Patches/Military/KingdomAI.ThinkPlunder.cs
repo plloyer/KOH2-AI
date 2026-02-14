@@ -21,18 +21,16 @@ namespace AIOverhaul
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
             var kingdom = __instance.kingdom;
-            string armyName = MilitaryHelper.DescribeArmy(army);
 
-            // TODO Move this in ThinkArmy?
-            // Find any enemy realm in disorder within 2 provinces of our territory
-            // var disorderRealm = MilitaryHelper.FindNearbyEnemyRealmInDisorder(__instance.kingdom, GameBalance.DisorderAttackMaxDistance);
-            // if (disorderRealm != null)
-            // {
-            //     var castle = disorderRealm.castle;
-            //     TraverseAPI.SendArmy(__instance, army, castle, AIStatusNames.AttackRealm);
-            //     __result = true;
-            //     return false;
-            // }
+            // Early out if army is in a friendly realm — nothing to plunder
+            var realmKingdom = army.realm_in?.castle?.GetKingdom();
+            if (realmKingdom != null && !realmKingdom.IsEnemy(kingdom.id))
+            {
+                __result = false;
+                return false;
+            }
+
+            string armyName = MilitaryHelper.DescribeArmy(army);
 
             Logic.Settlement target = FindNearestSettlementInRealm(army);
             if (target == null)
