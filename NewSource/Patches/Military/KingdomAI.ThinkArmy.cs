@@ -9,6 +9,26 @@ namespace AIOverhaul
     {
         const string k_LogPrefix = "[ThinkArmy]";
 
+        static bool Prefix(KingdomAI __instance, Logic.Army army)
+        {
+            if (army == null || __instance?.kingdom == null) return true;
+            if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+
+            // Protect refill orders from vanilla override
+            if (army.ai_status != AIStatusNames.Refill || army.GetTarget() == null) return true;
+
+            var kingdom = __instance.kingdom;
+            int unitCount = army.units?.Count ?? 0;
+
+            if (BuddySystem.IsFollower(army, kingdom) && unitCount < GameBalance.MinBuddyUnitsToFollow)
+                return false; // Skip vanilla — keep refilling
+
+            if (BuddySystem.IsLeader(army, kingdom) && (unitCount < GameBalance.MinFullArmyUnits || army.GetArmyHealthPercentage() < GameBalance.HealthRetreatThreshold))
+                return false; // Skip vanilla — keep refilling
+
+            return true;
+        }
+
         static void Postfix(KingdomAI __instance, Logic.Army army)
         {
             if (army == null || __instance == null || __instance.kingdom == null) return;
@@ -198,8 +218,8 @@ namespace AIOverhaul
                     unitCount = army.units?.Count ?? 0;
                     if (unitCount < GameBalance.MinBuddyUnitsToFollow)
                     {
-                        // Go to nearest castle to hire
-                        Castle castle = TraverseAPI.FindNearestOwnCastle(__instance, army, true);
+                        // Go to nearest castle with barracks to hire
+                        Castle castle = MilitaryHelper.FindNearestCastleWithBarracks(army, kingdom) ?? TraverseAPI.FindNearestOwnCastle(__instance, army, true);
                         if (castle != null)
                         {
                             TraverseAPI.SendArmy(__instance, army, castle, AIStatusNames.Refill);
@@ -238,7 +258,7 @@ namespace AIOverhaul
                         return;
                     }
 
-                    Castle castle = TraverseAPI.FindNearestOwnCastle(__instance, army, true);
+                    Castle castle = MilitaryHelper.FindNearestCastleWithBarracks(army, kingdom) ?? TraverseAPI.FindNearestOwnCastle(__instance, army, true);
                     if (castle != null)
                     {
                         TraverseAPI.SendArmy(__instance, army, castle, AIStatusNames.Refill);

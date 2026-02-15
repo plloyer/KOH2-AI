@@ -183,6 +183,29 @@ namespace AIOverhaul
             return target;
         }
 
+        // --- Castle Selection ---
+
+        public static Castle FindNearestCastleWithBarracks(Logic.Army army, Logic.Kingdom kingdom)
+        {
+            if (army == null || kingdom?.realms == null) return null;
+            Castle best = null;
+            float bestDist = float.MaxValue;
+            foreach (var realm in kingdom.realms)
+            {
+                var castle = realm?.castle;
+                if (castle?.buildings == null) continue;
+                bool hasBarracks = false;
+                foreach (var b in castle.buildings)
+                {
+                    if (b?.def?.id == BuildingNames.Barracks) { hasBarracks = true; break; }
+                }
+                if (!hasBarracks) continue;
+                float dist = castle.position.SqrDist(army.position);
+                if (dist < bestDist) { bestDist = dist; best = castle; }
+            }
+            return best;
+        }
+
         // --- Existing Helpers (kept) ---
 
         public static bool HasTwoReadyArmies(Logic.Kingdom kingdom)

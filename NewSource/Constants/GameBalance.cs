@@ -71,6 +71,7 @@ namespace AIOverhaul
         // Economy - Resource Thresholds
         public const float MinBooksForFirstSkillUpgrade = 200f;
         public const float MinBooksForFirstTradition = 400f;
+        public const float MinBooksForGovernorSkills = 450f;
 
         // Economy - Early Game Build Order
         public const int MinMerchantsBeforeTradition = 2; // Hire this many merchants before saving for first tradition

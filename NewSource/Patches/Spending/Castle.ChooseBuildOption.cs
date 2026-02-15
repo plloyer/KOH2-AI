@@ -485,6 +485,31 @@ namespace AIOverhaul
         {
             ApplyFoodUpgrades(options, kingdom);
             ApplyGoodsUpgrades(options, kingdom);
+
+            // Scribe Office: high priority once MarketSquare is built
+            if (kingdom.realms != null)
+            {
+                foreach (var realm in kingdom.realms)
+                {
+                    var castle = realm?.castle;
+                    if (!IsCastleEligible(castle)) continue;
+                    EnsureUpgradeOption(options, kingdom, castle, BuildingUpgradeNames.ScribesOffice, BuildingNames.MarketSquare, k_HighPriorityEval * 2, KingdomAI.Expense.Priority.High);
+                }
+            }
+
+            // Aqueduct: high priority when barracks realm has no workers left for hiring
+            if (kingdom.realms != null)
+            {
+                foreach (var realm in kingdom.realms)
+                {
+                    var castle = realm?.castle;
+                    if (!IsCastleEligible(castle)) continue;
+                    var barracksDef = castle.game.defs.Find<Logic.Building.Def>(BuildingNames.Barracks);
+                    if (barracksDef == null || !castle.HasBuilding(barracksDef)) continue;
+                    if (castle.population != null && castle.population.workers <= 1)
+                        EnsureUpgradeOption(options, kingdom, castle, BuildingUpgradeNames.Aqueduct, BuildingNames.Housings, k_HighPriorityEval * 2, KingdomAI.Expense.Priority.High);
+                }
+            }
         }
 
         static void ApplyFoodUpgrades(List<Castle.BuildOption> options, Logic.Kingdom kingdom)

@@ -159,7 +159,16 @@ namespace AIOverhaul
         {
             string levelTag = level == LogLevel.Diagnostic ? "[Debug]" : "";
             string kingdomTag = string.IsNullOrEmpty(kingdom?.Name) ? "" : $"[{kingdom.Name}]";
-            string formattedMessage = $"{k_LogPrefix}{levelTag}{kingdomTag}[{category}]{message}";
+            string timeTag = "";
+            if (s_CurrentGame != null)
+            {
+                float totalHours = s_CurrentGame.session_time.hours;
+                int h = (int)totalHours;
+                int m = (int)((totalHours - h) * 60f);
+                int s = (int)((totalHours * 3600f) % 60f);
+                timeTag = $"[T:{h}:{m:D2}:{s:D2}]";
+            }
+            string formattedMessage = $"{timeTag}{k_LogPrefix}{levelTag}{kingdomTag}[{category}]{message}";
 
             // Call the appropriate Logger method based on log level
             switch (level)
