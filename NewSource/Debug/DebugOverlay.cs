@@ -354,7 +354,8 @@ namespace AIOverhaul
             float levy = k.resources[ResourceType.Levy];
             float maxLevy = k.GetStat(Stats.ks_max_levy);
             string levyColor = (maxLevy > 0f && levy >= maxLevy) ? "red" : "green";
-            GUILayout.Label($"Gold: <color={k_ColorEconomy}>{gold:F0}</color> (+{goldIncome:F0}/s) | Books: <color={k_ColorReligion}>{books:F0}</color> | Merchants: <color={k_ColorEconomy}>{merchants}</color> | TA: <color={k_ColorEconomy}>{tradeAgreements}</color> | Commerce: <color={k_ColorEconomy}>{commerce:F0}/{maxCommerce:F0}</color> | Levy: <color={levyColor}>{levy:F0}/{maxLevy:F0}</color>", style);
+            GUILayout.Label($"Gold: <color={k_ColorEconomy}>{gold:F0}</color> (+{goldIncome:F0}/s) | Books: <color={k_ColorReligion}>{books:F0}</color> | Commerce: <color={k_ColorEconomy}>{commerce:F0}/{maxCommerce:F0}</color> | Levy: <color={levyColor}>{levy:F0}/{maxLevy:F0}</color>", style);
+            GUILayout.Label($"Merchants: <color={k_ColorEconomy}>{merchants}</color> | TA: <color={k_ColorEconomy}>{tradeAgreements}</color>", style);
             
             // Build Options stats (host-only, not synced to clients)
             if (!IsClient())
@@ -362,30 +363,6 @@ namespace AIOverhaul
                 int buildCount = Castle.last_build_options.Count;
                 int upgradeCount = Castle.last_upgrade_options.Count;
                 GUILayout.Label($"Build Options: <color=white>{buildCount}</color> | Upgrade Options: <color=white>{upgradeCount}</color>", style);
-
-                if (buildCount > 0)
-                {
-                    string topBuilds = "Top Builds: ";
-                    for (int i = 0; i < Math.Min(buildCount, 3); i++)
-                    {
-                        var opt = Castle.last_build_options[i];
-                        string castleName = opt.castle?.name ?? "?";
-                        topBuilds += $"{opt.def.id}@{castleName}({opt.eval:F0}) ";
-                    }
-                    GUILayout.Label(topBuilds, style);
-                }
-
-                if (upgradeCount > 0)
-                {
-                    string topUpgrades = "Top Upgrades: ";
-                    for (int i = 0; i < Math.Min(upgradeCount, 3); i++)
-                    {
-                        var opt = Castle.last_upgrade_options[i];
-                        string castleName = opt.castle?.name ?? "?";
-                        topUpgrades += $"{opt.def.id}@{castleName}({opt.eval:F0}) ";
-                    }
-                    GUILayout.Label(topUpgrades, style);
-                }
             }
             GUILayout.Space(5);
         }
@@ -596,7 +573,7 @@ namespace AIOverhaul
                 if (shown >= 5) break;
 
                 string priorityTag = opt.priority == KingdomAI.Expense.Priority.Urgent ? "<color=red>!</color>" : "";
-                string evalColor = opt.eval >= 100000 ? k_ColorGreen : (opt.eval >= 1000 ? k_ColorYellow : k_ColorWhite);
+                string evalColor = opt.eval >= 200 ? k_ColorGreen : (opt.eval >= 50 ? k_ColorYellow : k_ColorWhite);
 
                 sb.Append($"{priorityTag}<color={evalColor}>{opt.def.id}({opt.eval:F0})</color> ");
                 shown++;

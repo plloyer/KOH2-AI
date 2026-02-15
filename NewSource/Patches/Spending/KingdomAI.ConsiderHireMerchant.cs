@@ -23,7 +23,7 @@ namespace AIOverhaul
             if (currentMerchants < GameBalance.MinMerchantsBeforeTradition)
             {
                 AIOverhaulPlugin.LogDebug($"Forcing merchant consideration {currentMerchants}/{GameBalance.MinMerchantsBeforeTradition}", LogCategory.Spending, kingdom);
-                TraverseAPI.ConsiderExpense(__instance, KingdomAI.Expense.Type.HireChacacter, merchantDef, null, merchantDef.ai_category, KingdomAI.Expense.Priority.Urgent);
+                TraverseAPI.ConsiderExpenseDirect(__instance, KingdomAI.Expense.Type.HireChacacter, merchantDef, null, merchantDef.ai_category, KingdomAI.Expense.Priority.Urgent);
                 __result = true;
                 return false;
             }
@@ -37,29 +37,13 @@ namespace AIOverhaul
             if (delta >= GameBalance.CommercePerMerchant)
             {
                 AIOverhaulPlugin.LogDebug($"Extra merchant: {currentCommerce}/{maxCommerce} -> {delta} available", LogCategory.Spending, kingdom);
-                TraverseAPI.ConsiderExpense(__instance, KingdomAI.Expense.Type.HireChacacter, merchantDef, null, merchantDef.ai_category);
+                TraverseAPI.ConsiderExpenseDirect(__instance, KingdomAI.Expense.Type.HireChacacter, merchantDef, null, merchantDef.ai_category);
                 __result = true;
                 return false;
             }
 
-            // Block vanilla — its Ceiling(maxCommerce/10) overestimates capacity (e.g. ceil(34/10)=4 but only 3 fit)
             __result = false;
             return false;
-        }
-
-        // Replicates vanilla BlockSlotForPapalCleric() using public APIs.
-        // Returns true if the papal kingdom must reserve a court slot for a cardinal.
-        static bool IsPapalSlotBlocked(KingdomAI ai)
-        {
-            var catholic = ai.game?.religions?.catholic;
-            if (catholic == null) return false;
-            if (ai.kingdom != catholic.hq_kingdom) return false;
-
-            int clericsMinusOne = ai.kingdom.GetClericsCount() - 1;
-            int minCardinals = catholic.min_cardinals_min;
-            if (clericsMinusOne >= minCardinals) return false;
-
-            return ai.kingdom.GetFreeCourtSlots() <= minCardinals - clericsMinusOne;
         }
     }
 }

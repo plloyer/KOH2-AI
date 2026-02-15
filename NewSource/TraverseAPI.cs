@@ -69,5 +69,17 @@ namespace AIOverhaul
                 AIOverhaulPlugin.LogError($"Could not invoke method {k_MethodConsiderExpense}: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Bypasses the 6-param ConsiderExpense (which our Harmony Prefix patches) by calling
+        /// the 1-param ConsiderExpense(Expense) overload directly via Traverse.
+        /// </summary>
+        public static void ConsiderExpenseDirect(KingdomAI ai, KingdomAI.Expense.Type type, BaseObject defParam, Logic.Object objectParam, KingdomAI.Expense.Category category, KingdomAI.Expense.Priority priority = KingdomAI.Expense.Priority.Normal, List<Value> args = null)
+        {
+            var traverse = Traverse.Create(ai);
+            var tmpExpense = traverse.Field("tmp_expense").GetValue<KingdomAI.Expense>();
+            tmpExpense.Set(ai.kingdom, type, category, priority, defParam, objectParam, args);
+            traverse.Method(k_MethodConsiderExpense, new[] { typeof(KingdomAI.Expense) }).GetValue(tmpExpense);
+        }
     }
 }

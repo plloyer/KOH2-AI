@@ -16,6 +16,7 @@ namespace AIOverhaul
         const float k_HighPriorityEval = 100f;
         const float k_QueueEval = 1000f;
         const int k_MinGoodsFeatures = 3;
+        const float k_VanillaEvalDivisor = 40000f;
 
         static readonly string[] s_GoodsFeatures = {
             FeatureNames.Sheep, FeatureNames.Cattle, FeatureNames.FlaxFields, FeatureNames.Herbage,
@@ -76,7 +77,17 @@ namespace AIOverhaul
             if (!AIOverhaulPlugin.IsEnhancedAI(kingdom)) return;
 
             // Don't build anything until we have at least 2 merchants
-            if (kingdom.CountMerchants() < 2) { options.Clear(); sum = 0f; return; }
+            if (kingdom.CountMerchants() < 2)
+            {
+                if (kingdom == game.GetLocalPlayerKingdom())
+                {
+                    if (options == Castle.build_options) Castle.last_build_options.Clear();
+                    else Castle.last_upgrade_options.Clear();
+                }
+                options.Clear();
+                sum = 0f;
+                return;
+            }
 
             bool isBuildOptions = (options == Castle.build_options);
             var queue = GetOrBuildQueue(kingdom);
@@ -84,21 +95,37 @@ namespace AIOverhaul
             if (queue.Count > 0)
             {
                 AdvancePastBuilt(kingdom, queue);
-                if (queue.Count > 0)
+                bool queueApplied = false;
+                while (queue.Count > 0)
                 {
+                    var entry = queue[0];
+                    bool typeMismatch = (isBuildOptions != !entry.isUpgrade);
+
                     s_LastPhase = "Queue";
-                    ApplyBuildQueue(options, kingdom, queue[0], isBuildOptions);
+                    ApplyBuildQueue(options, kingdom, entry, isBuildOptions);
+
+                    if (options.Count > 0 || typeMismatch)
+                    {
+                        queueApplied = true;
+                        break;
+                    }
+
+                    // Entry is unbuildable in all castles — skip it
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Queue: {entry.buildingId} unbuildable, skipping", LogCategory.Spending, kingdom);
+                    queue.RemoveAt(0);
                 }
-                else
+
+                if (!queueApplied)
                 {
                     s_LastPhase = "Normal";
-                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Queue empty for {kingdom.Name}, switching to normal mode", LogCategory.Spending, kingdom);
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Queue exhausted for {kingdom.Name}, switching to normal mode", LogCategory.Spending, kingdom);
                     ApplyNormalMode(options, kingdom, isBuildOptions);
                 }
             }
             else
             {
                 s_LastPhase = "Normal";
+                NormalizeVanillaEvals(options);
                 ApplyNormalMode(options, kingdom, isBuildOptions);
             }
 
@@ -113,7 +140,23 @@ namespace AIOverhaul
             else
                 Castle.upgrade_options_sum = newSum;
 
+            string kind = isBuildOptions ? "build" : "upgrade";
+            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Prefix done ({kind}): {options.Count} options, sum={newSum:F1}, phase={s_LastPhase}", LogCategory.Spending, kingdom);
 
+            // Refresh the debug snapshot so the overlay sees normalized evals (local player only)
+            if (kingdom == game.GetLocalPlayerKingdom())
+            {
+                if (isBuildOptions)
+                {
+                    Castle.last_build_options.Clear();
+                    Castle.last_build_options.AddRange(options);
+                }
+                else
+                {
+                    Castle.last_upgrade_options.Clear();
+                    Castle.last_upgrade_options.AddRange(options);
+                }
+            }
         }
 
         // --- Harmony Postfix (CSV Analytics) ---
@@ -166,13 +209,13 @@ namespace AIOverhaul
 
             // Fletcher
             queue.Add(new BuildQueueEntry { buildingId = BuildingUpgradeNames.Fletcher, isUpgrade = true, parentBuildingId = BuildingNames.Barracks });
+            
+            // House next to barrack
+            queue.Add(new BuildQueueEntry { buildingId = BuildingNames.Housings, isUpgrade = false, realmId = bestBarracksRealmId });
 
             // TrainingGrounds
             if (hasVillageMilitia)
                 queue.Add(new BuildQueueEntry { buildingId = BuildingUpgradeNames.TrainingGrounds, isUpgrade = true, parentBuildingId = BuildingNames.VillageMilitia });
-
-            // House next to barrack
-            queue.Add(new BuildQueueEntry { buildingId = BuildingUpgradeNames.LargeHouses, isUpgrade = false, realmId = bestBarracksRealmId });
             
             return queue;
         }
@@ -307,18 +350,39 @@ namespace AIOverhaul
             while (queue.Count > 0)
             {
                 var entry = queue[0];
-                bool alreadyBuilt = entry.isUpgrade
-                    ? kingdom.HasBuildingUpgrade(entry.buildingId)
-                    : kingdom.HasBuilding(entry.buildingId);
+                bool alreadyBuilt, currentlyBuilding;
 
-                bool currentlyBuilding = entry.isUpgrade
-                    ? kingdom.IsUpgradeInProgress(entry.buildingId)
-                    : kingdom.IsBuildingUnderConstruction(entry.buildingId);
+                // When entry targets a specific realm, check only that realm's castle
+                Castle targetCastle = null;
+                if (entry.realmId >= 0)
+                    targetCastle = kingdom.realms?.Find(r => r != null && r.id == entry.realmId)?.castle;
+
+                if (targetCastle != null)
+                {
+                    if (entry.isUpgrade)
+                    {
+                        var def = targetCastle.game?.defs.Find<Logic.Building.Def>(entry.buildingId);
+                        alreadyBuilt = def != null && kingdom.HasBuildingUpgrade(def);
+                        currentlyBuilding = kingdom.IsUpgradeInProgress(entry.buildingId);
+                    }
+                    else
+                    {
+                        var def = targetCastle.game?.defs.Find<Logic.Building.Def>(entry.buildingId);
+                        alreadyBuilt = def != null && targetCastle.HasBuilding(def);
+                        var buildDef = targetCastle.GetCurrentBuildingBuild();
+                        currentlyBuilding = buildDef != null && buildDef.id == entry.buildingId;
+                    }
+                }
+                else
+                {
+                    alreadyBuilt = entry.isUpgrade ? kingdom.HasBuildingUpgrade(entry.buildingId) : kingdom.HasBuilding(entry.buildingId);
+                    currentlyBuilding = entry.isUpgrade ? kingdom.IsUpgradeInProgress(entry.buildingId) : kingdom.IsBuildingUnderConstruction(entry.buildingId);
+                }
 
                 if (alreadyBuilt || currentlyBuilding)
                 {
                     string reason = alreadyBuilt ? "already built" : "under construction";
-                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Queue: {entry.buildingId} {reason}, advancing", LogCategory.Spending, kingdom);
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Queue: {entry.buildingId} (realm:{entry.realmId}) {reason}, advancing", LogCategory.Spending, kingdom);
                     queue.RemoveAt(0);
                 }
                 else
@@ -329,9 +393,12 @@ namespace AIOverhaul
         static void ApplyBuildQueue(List<Castle.BuildOption> options, Logic.Kingdom kingdom, BuildQueueEntry entry, bool isBuildOptions)
         {
             bool entryIsBuild = !entry.isUpgrade;
+            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} ApplyBuildQueue: {entry.buildingId} (upgrade={entry.isUpgrade}, realm={entry.realmId}), isBuildOptions={isBuildOptions}", LogCategory.Spending, kingdom);
+
             if (isBuildOptions != entryIsBuild)
             {
                 // Mismatch: this call is for builds but entry is upgrade (or vice versa) — clear so vanilla no-ops
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} ApplyBuildQueue: type mismatch, clearing options", LogCategory.Spending, kingdom);
                 options.Clear();
                 return;
             }
@@ -347,9 +414,14 @@ namespace AIOverhaul
                 var targetRealm = kingdom.realms.Find(r => r != null && r.id == entry.realmId);
                 if (targetRealm?.castle != null && IsCastleEligible(targetRealm.castle))
                 {
-                    EnsureBuildOption(options, targetRealm.castle, entry.buildingId, k_QueueEval, urgent);
+                    bool ok = EnsureBuildOption(options, targetRealm.castle, entry.buildingId, k_QueueEval, urgent);
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} ApplyBuildQueue: target realm {entry.realmId} EnsureBuildOption={ok}, options={options.Count}", LogCategory.Spending, kingdom);
                     if (options.Count > 0)
                         return;
+                }
+                else
+                {
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} ApplyBuildQueue: target realm {entry.realmId} not eligible, falling through", LogCategory.Spending, kingdom);
                 }
                 // Target realm not eligible — fall through to all castles
             }
@@ -365,6 +437,7 @@ namespace AIOverhaul
                     EnsureBuildOption(options, castle, entry.buildingId, k_QueueEval, urgent);
             }
 
+            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} ApplyBuildQueue: final options count={options.Count}", LogCategory.Spending, kingdom);
         }
 
         // --- Normal Mode ---
@@ -411,7 +484,7 @@ namespace AIOverhaul
         static void ApplyGoodsUpgrades(List<Castle.BuildOption> options, Logic.Kingdom kingdom)
         {
             if (kingdom.realms == null) return;
-            var normal = KingdomAI.Expense.Priority.Normal;
+            var priority = KingdomAI.Expense.Priority.High;
 
             foreach (var realm in kingdom.realms)
             {
@@ -425,19 +498,19 @@ namespace AIOverhaul
                 float mediumEval = k_HighPriorityEval;
 
                 // High-production buildings
-                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.SheepFarming, highEval, normal);
-                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.CattleFarming, highEval, normal);
-                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.FlaxGrowing, highEval, normal);
-                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.HerbGardening, highEval, normal);
-                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.Viticulture, highEval, normal);
-                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.Woodworking, highEval, normal);
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.SheepFarming, highEval, priority);
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.CattleFarming, highEval, priority);
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.FlaxGrowing, highEval, priority);
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.HerbGardening, highEval, priority);
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.Viticulture, highEval, priority);
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.Woodworking, highEval, priority);
 
                 // Medium
-                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.Metalworking, mediumEval, normal);
-                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.Stoneworking, mediumEval, normal);
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.Metalworking, mediumEval, priority);
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.Stoneworking, mediumEval, priority);
 
                 // Lower-production trade buildings
-                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.HorseBreeding, highEval, normal);
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.HorseBreeding, highEval, priority);
             }
         }
 
@@ -492,15 +565,34 @@ namespace AIOverhaul
             return castle != null && castle.battle == null;
         }
 
+        static void NormalizeVanillaEvals(List<Castle.BuildOption> options)
+        {
+            for (int i = 0; i < options.Count; i++)
+            {
+                var opt = options[i];
+                opt.eval /= k_VanillaEvalDivisor;
+                options[i] = opt;
+            }
+        }
+
         /// <summary>
         /// Ensures a building option exists in the options list for the given castle.
         /// If missing and the building is available (not already built, can build), injects it.
         /// </summary>
         static bool EnsureBuildOption(List<Castle.BuildOption> options, Castle castle, string buildingId, float eval, KingdomAI.Expense.Priority priority)
         {
+            var kingdom = castle.GetKingdom();
             var def = castle.game.defs.Find<Logic.Building.Def>(buildingId);
-            if (def == null) return false;
-            if (castle.HasBuilding(def)) return false;
+            if (def == null)
+            {
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} EnsureBuildOption: {buildingId} @ {castle.name} — def is null", LogCategory.Spending, kingdom);
+                return false;
+            }
+            if (castle.HasBuilding(def))
+            {
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} EnsureBuildOption: {buildingId} @ {castle.name} — already built", LogCategory.Spending, kingdom);
+                return false;
+            }
 
             // Check if option already exists for this castle — update eval/priority if so
             for (int i = 0; i < options.Count; i++)
@@ -515,10 +607,16 @@ namespace AIOverhaul
                 }
             }
 
-            // Verify the castle can actually build it
-            if (castle.CanBuildBuilding(def, ignore_cost: true) != Castle.StructureBuildAvailability.Available)
+            // Verify the castle can actually build it (ignore_must_expand: vanilla adds options even when expansion is needed,
+            // the caller handles ExpandCity vs BuildStructure; ignore_under_construction: same as vanilla AddBuildOption)
+            var availability = castle.CanBuildBuilding(def, ignore_cost: true, ignore_must_expand: true, ignore_under_construction: true);
+            if (availability != Castle.StructureBuildAvailability.Available && availability != Castle.StructureBuildAvailability.NoParent)
+            {
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} EnsureBuildOption: {buildingId} @ {castle.name} — availability={availability}", LogCategory.Spending, kingdom);
                 return false;
+            }
 
+            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} EnsureBuildOption: {buildingId} @ {castle.name} — injected (eval={eval:F0}, avail={availability})", LogCategory.Spending, kingdom);
             options.Add(new Castle.BuildOption { castle = castle, def = def, eval = eval, priority = priority });
             return true;
         }

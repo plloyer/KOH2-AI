@@ -21,7 +21,7 @@ namespace AIOverhaul
 
             string classId = __instance.class_def?.id ?? "?";
             string scoreStr = string.Join(", ", scores.OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key}={kv.Value:F0}"));
-            AIOverhaulPlugin.LogInfo($"[Governor] {__instance.Name} ({classId}) → {castle.name} | Scores: {scoreStr}", LogCategory.Governor, kingdom);
+            AIOverhaulPlugin.LogDebug($"{__instance.Name} ({classId}) → {castle.name} | Scores: {scoreStr}", LogCategory.Governor, kingdom);
 
             GovernOption_Eval.PendingScores.Remove(__instance);
         }

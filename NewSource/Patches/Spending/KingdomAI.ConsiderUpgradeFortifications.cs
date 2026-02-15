@@ -15,11 +15,9 @@ namespace AIOverhaul
             if (__instance == null || __instance.kingdom == null) return true;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
 
-            // Wait for initial military infrastructure before prioritizing fortifications
-            bool hasBarracks = __instance.kingdom.HasBuilding(BuildingNames.Barracks);
-            bool hasSwordsmith = __instance.kingdom.HasBuildingUpgrade(BuildingUpgradeNames.Swordsmith);
-            bool hasFletcher = __instance.kingdom.HasBuildingUpgrade(BuildingUpgradeNames.Fletcher_Barracks);
-            if (!hasBarracks || !hasSwordsmith || !hasFletcher) return true;
+            // Don't spend on fortifications while build queue is still being processed
+            var queue = Castle_ChooseBuildOption.GetBuildQueue(__instance.kingdom);
+            if (queue != null && queue.Count > 0) { __result = true; return false; }
 
             if (!castle.CanUpgradeFortification()) { __result = true; return false; }
             if (!castle.CanAffordFortificationsUpgrade()) { __result = true; return false; }

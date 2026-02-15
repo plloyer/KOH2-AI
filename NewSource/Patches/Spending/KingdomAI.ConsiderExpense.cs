@@ -140,6 +140,9 @@ namespace AIOverhaul
 
                     break;
                 }
+
+                case "Merchant":
+                    return false;  // All merchant hiring routed through ConsiderHireMerchant → ConsiderExpenseDirect
             }
 
             return true;

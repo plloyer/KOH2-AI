@@ -38,7 +38,7 @@ namespace AIOverhaul
                 .Where(r => r?.castle != null)
                 .Select(r => $"{r.castle.name}={ScoreRealmForClass(r, classId):F0}")
             );
-            AIOverhaulPlugin.LogInfo($"[Governor] King {king.Name} ({classId}) → {bestRealm.castle.name} | Scores: {scoreLog}", LogCategory.Governor, kingdom);
+            AIOverhaulPlugin.LogDebug($"King {king.Name} ({classId}) → {bestRealm.castle.name} | Scores: {scoreLog}", LogCategory.Governor, kingdom);
             king.Govern(bestRealm.castle);
         }
 
