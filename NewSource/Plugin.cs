@@ -191,10 +191,27 @@ namespace AIOverhaul
             return BaselineKingdomIds.Contains(k.id);
         }
 
+        static void PatchOfferCooldowns(Game game)
+        {
+            PatchSingleCooldown(game, DiplomacyConstants.DemandSupportInWar, GameBalance.DemandSupportInWarCooldown);
+            PatchSingleCooldown(game, DiplomacyConstants.DemandAttackKingdom, GameBalance.DemandAttackKingdomCooldown);
+        }
+
+        static void PatchSingleCooldown(Game game, string offerId, float cooldown)
+        {
+            var def = game.defs.Find<Offer.Def>(offerId);
+            if (def != null)
+            {
+                def.ai_propose_cooldown = cooldown;
+                Log($"Patched {offerId} cooldown to {cooldown}s");
+            }
+        }
+
         public static void InitializeEnhancedKingdoms(Game game)
         {
             if (game == null || game.kingdoms == null) return;
             if (EnhancedKingdomIds.Count > 0 || BaselineKingdomIds.Count > 0) return;
+            PatchOfferCooldowns(game);
 
             EnhancedKingdomIds.Clear();
             BaselineKingdomIds.Clear();

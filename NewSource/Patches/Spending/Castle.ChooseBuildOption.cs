@@ -38,11 +38,12 @@ namespace AIOverhaul
         }
 
         static readonly Dictionary<int, List<BuildQueueEntry>> s_BuildQueues = new Dictionary<int, List<BuildQueueEntry>>();
+        static readonly Dictionary<int, (string buildingId, Logic.Time firstSeen)> s_QueueFrontTracker = new Dictionary<int, (string, Logic.Time)>();
         static string s_BuildLogPath;
         static bool s_BuildLogInitialized;
         static string s_LastPhase;
 
-        public static void ClearBuildQueues() => s_BuildQueues.Clear();
+        public static void ClearBuildQueues() { s_BuildQueues.Clear(); s_QueueFrontTracker.Clear(); }
 
         public static void EnqueueBuild(Logic.Kingdom kingdom, string buildingId, bool isUpgrade, string parentBuildingId = null, int realmId = -1)
         {
@@ -95,6 +96,36 @@ namespace AIOverhaul
             if (queue.Count > 0)
             {
                 AdvancePastBuilt(kingdom, queue);
+
+                // Game-time timeout: if the front entry hasn't changed in 15 game minutes, force-skip it
+                if (queue.Count > 0)
+                {
+                    var front = queue[0];
+                    int kid = kingdom.id;
+                    if (s_QueueFrontTracker.TryGetValue(kid, out var tracked))
+                    {
+                        if (tracked.buildingId == front.buildingId)
+                        {
+                            float elapsedSec = game.time - tracked.firstSeen;
+                            if (elapsedSec > GameBalance.BuildQueueStallTimeoutSec)
+                            {
+                                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Queue: {front.buildingId} stalled for {elapsedSec:F0}s game-time, force-skipping", LogCategory.Spending, kingdom);
+                                queue.RemoveAt(0);
+                                s_QueueFrontTracker.Remove(kid);
+                            }
+                        }
+                        else
+                        {
+                            // Front changed — reset tracker
+                            s_QueueFrontTracker[kid] = (front.buildingId, game.time);
+                        }
+                    }
+                    else
+                    {
+                        s_QueueFrontTracker[kid] = (front.buildingId, game.time);
+                    }
+                }
+
                 bool queueApplied = false;
                 while (queue.Count > 0)
                 {

@@ -172,7 +172,27 @@ namespace AIOverhaul
                 return false;
             }
 
-            // --- PRIORITY 3: Attack castle ---
+            // --- PRIORITY 3: Plunder settlements if not overwhelming ---
+            if (MilitaryHelper.IsEnemyTerritory(realmIn, kingdom))
+            {
+                float ourTop2 = MilitaryHelper.GetTop2ArmyStrength(kingdom);
+                float enemyTop2 = MilitaryHelper.GetTop2ArmyStrength(realmIn.GetKingdom());
+                bool overwhelming = MilitaryHelper.IsStrongerThan(ourTop2, enemyTop2, GameBalance.OverwhelmingStrengthRatio);
+
+                if (!overwhelming)
+                {
+                    var plunderTarget = MilitaryHelper.FindNearestPlunderableSettlement(army);
+                    if (plunderTarget != null)
+                    {
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: pillaging {plunderTarget.def?.id} to lure defenders out (our top2:{ourTop2:F0} vs enemy top2:{enemyTop2:F0})", LogCategory.Military, kingdom);
+                        TraverseAPI.SendArmy(__instance, army, plunderTarget, AIStatusNames.Plunder);
+                        __result = true;
+                        return false;
+                    }
+                }
+            }
+
+            // --- PRIORITY 4: Attack castle ---
             if (MilitaryHelper.IsEnemyTerritory(realmIn, kingdom))
             {
                 var castle = realmIn.castle;

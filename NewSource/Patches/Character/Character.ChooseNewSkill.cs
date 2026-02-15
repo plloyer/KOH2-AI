@@ -37,12 +37,20 @@ namespace AIOverhaul
                 if (TryPickSkill(skills, SkillNames.Logistics, kingdom, ref __result)) return;
             }
 
-            if (!__instance.IsKing()) return;
-            if (kingdom.GetBooks() < GameBalance.MinBooksForFirstSkillUpgrade) return; // Not enough books
+            // Non-marshal: prioritize Writing (generates books for traditions)
+            if (!__instance.IsMarshal())
+            {
+                if (TryPickSkill(skills, SkillNames.Writing, kingdom, ref __result)) return;
+            }
 
-            // Prioritize Writing then Learning for Tradition unlocking
-            if (TryPickSkill(skills, SkillNames.Writing, kingdom, ref __result)) return;
-            if (TryPickSkill(skills, SkillNames.Learning, kingdom, ref __result)) return;
+            // King with enough books: prioritize Learning for faster tradition unlocking
+            if (__instance.IsKing() && kingdom.GetBooks() >= GameBalance.MinBooksForFirstSkillUpgrade)
+            {
+                if (TryPickSkill(skills, SkillNames.Learning, kingdom, ref __result)) return;
+            }
+
+            // All: prefer skills matching an active tradition
+            if (TryPickTraditionSkill(skills, kingdom, __result, ref __result)) return;
         }
 
         static bool TryPickSkill(List<Skill.Def> skills, string skillName, Logic.Kingdom kingdom, ref Skill.Def result)
@@ -55,6 +63,36 @@ namespace AIOverhaul
                     AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Picking skill: {skillName}", LogCategory.Governor, kingdom);
                     return true;
                 }
+            }
+            return false;
+        }
+
+        static bool TryPickTraditionSkill(List<Skill.Def> skills, Logic.Kingdom kingdom, Skill.Def current, ref Skill.Def result)
+        {
+            if (kingdom.traditions == null || kingdom.traditions.Count == 0) return false;
+
+            // If current pick already matches a tradition, keep it
+            if (current != null && SkillMatchesTradition(current, kingdom)) return false;
+
+            foreach (var skill in skills)
+            {
+                if (skill.Is(SkillNames.Leadership)) continue;
+                if (SkillMatchesTradition(skill, kingdom))
+                {
+                    result = skill;
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix}Picking tradition-matching skill: {skill.id}", LogCategory.Governor, kingdom);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        static bool SkillMatchesTradition(Skill.Def skill, Logic.Kingdom kingdom)
+        {
+            for (int i = 0; i < kingdom.traditions.Count; i++)
+            {
+                var tdef = kingdom.traditions[i]?.def;
+                if (tdef != null && (tdef.BuffsSkill(skill) || tdef.GrantsSkill(skill))) return true;
             }
             return false;
         }

@@ -156,16 +156,14 @@ namespace AIOverhaul
                 var enemyKingdom = army.tgt_realm.GetKingdom();
                 if (enemyKingdom != null)
                 {
-                    float ourStr = army.EvalStrength();
-                    var buddy = BuddySystem.GetBuddy(army, kingdom);
-                    if (buddy != null && buddy.IsValid()) ourStr += buddy.EvalStrength();
+                    float ourStr = MilitaryHelper.GetCombatPairStrength(army, kingdom);
                     float enemyTop2 = MilitaryHelper.GetTop2ArmyStrength(enemyKingdom);
                     if (!MilitaryHelper.IsStrongerThan(ourStr, enemyTop2, GameBalance.MinAttackStrengthRatio))
                     {
                         Castle safeCastle = TraverseAPI.FindNearestOwnCastle(__instance, army, true);
                         if (safeCastle != null)
                         {
-                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {MilitaryHelper.DescribeArmy(army)}: aborting offensive — outmatched (army+buddy:{ourStr:F0} vs enemy top2:{enemyTop2:F0})", LogCategory.Military, kingdom);
+                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {MilitaryHelper.DescribeArmy(army)}: aborting offensive — outmatched (pair:{ourStr:F0} vs enemy top2:{enemyTop2:F0})", LogCategory.Military, kingdom);
                             TraverseAPI.SendArmy(__instance, army, safeCastle, AIStatusNames.EnemiesTooStrong);
                             return;
                         }
@@ -179,12 +177,9 @@ namespace AIOverhaul
                 var leader = BuddySystem.GetLeader(army, kingdom);
                 if (leader == null || !leader.IsValid()) return;
 
-                // If leader is NOT heading to fight, follower acts independently
-                if (!MilitaryHelper.IsLeaderHeadingToFight(leader, kingdom)) return;
-
                 string armyName = MilitaryHelper.DescribeArmy(army);
 
-                // Check if follower has enough units
+                // ALWAYS refill if too weak — regardless of leader state
                 int unitCount = army.units?.Count ?? 0;
                 if (unitCount < GameBalance.MinBuddyUnitsToFollow)
                 {
@@ -213,6 +208,9 @@ namespace AIOverhaul
                         return;
                     }
                 }
+
+                // If leader is NOT heading to fight, follower acts independently
+                if (!MilitaryHelper.IsLeaderHeadingToFight(leader, kingdom)) return;
 
                 // Follow leader's target
                 var leaderTarget = leader.GetTarget();

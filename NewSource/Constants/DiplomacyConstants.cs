@@ -22,5 +22,6 @@ namespace AIOverhaul
         public const string OfferVassalage = "OfferVassalage";
         public const string Peace = "Peace";
         public const string DeclareWar = "DeclareWar";
+        public const string DemandAttackKingdom = "DemandAttackKingdom";
     }
 }

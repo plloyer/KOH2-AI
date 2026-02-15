@@ -34,15 +34,20 @@ namespace AIOverhaul
                     return false;
                 }
 
-                // Block offensive if our best armies can't match the enemy's best
+                // Block offensive if our best combat pair can't match the enemy's best
                 var enemyKingdom = threat.realm?.GetKingdom();
                 if (enemyKingdom != null)
                 {
-                    float ourTop2 = MilitaryHelper.GetTop2ArmyStrength(__instance.kingdom);
-                    float enemyTop2 = MilitaryHelper.GetTop2ArmyStrength(enemyKingdom);
-                    if (!MilitaryHelper.IsStrongerThan(ourTop2, enemyTop2, GameBalance.MinAttackStrengthRatio))
+                    float bestPairStr = 0;
+                    foreach (var a in __instance.kingdom.armies)
                     {
-                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocking offensive to {threat.realm?.name} — outmatched (our top2:{ourTop2:F0} vs enemy top2:{enemyTop2:F0})", LogCategory.Military, __instance.kingdom);
+                        if (a == null || !a.IsValid()) continue;
+                        bestPairStr = Math.Max(bestPairStr, MilitaryHelper.GetCombatPairStrength(a, __instance.kingdom));
+                    }
+                    float enemyTop2 = MilitaryHelper.GetTop2ArmyStrength(enemyKingdom);
+                    if (!MilitaryHelper.IsStrongerThan(bestPairStr, enemyTop2, GameBalance.MinAttackStrengthRatio))
+                    {
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocking offensive to {threat.realm?.name} — outmatched (best pair:{bestPairStr:F0} vs enemy top2:{enemyTop2:F0})", LogCategory.Military, __instance.kingdom);
                         __result = false;
                         return false;
                     }
@@ -105,18 +110,26 @@ namespace AIOverhaul
 
                         if (!buddyInThreat)
                         {
-                            // FORCE ASSIGN BUDDY
-                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Leader {MilitaryHelper.DescribeArmy(army)} dragging Buddy {MilitaryHelper.DescribeArmy(buddy)} to {threat.realm.name}", LogCategory.Military, __instance.kingdom);
-                            
-                            // Remove from old threat if any
-                            if (buddy.tgt_realm != null)
+                            int buddyUnits = buddy.units?.Count ?? 0;
+                            if (buddyUnits < GameBalance.MinBuddyUnitsToFollow)
                             {
-                                var oldThreat = __instance.GetThreat(buddy.tgt_realm);
-                                oldThreat?.assigned.Del(buddy);
+                                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Not dragging weak Buddy {MilitaryHelper.DescribeArmy(buddy)} ({buddyUnits} < {GameBalance.MinBuddyUnitsToFollow} units)", LogCategory.Military, __instance.kingdom);
                             }
-                            
-                            buddy.tgt_realm = threat.realm;
-                            threat.assigned.Add(buddy);
+                            else
+                            {
+                                // FORCE ASSIGN BUDDY
+                                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Leader {MilitaryHelper.DescribeArmy(army)} dragging Buddy {MilitaryHelper.DescribeArmy(buddy)} to {threat.realm.name}", LogCategory.Military, __instance.kingdom);
+
+                                // Remove from old threat if any
+                                if (buddy.tgt_realm != null)
+                                {
+                                    var oldThreat = __instance.GetThreat(buddy.tgt_realm);
+                                    oldThreat?.assigned.Del(buddy);
+                                }
+
+                                buddy.tgt_realm = threat.realm;
+                                threat.assigned.Add(buddy);
+                            }
                         }
                     }
                 }

@@ -36,7 +36,8 @@
       "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" \"C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\Knights of Honor II\\\\AIOverhaul\\\\Scripts\\\\analyze_performance.py\")",
       "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" -c:*)",
       "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" \"C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\Knights of Honor II\\\\AIOverhaul\\\\Scripts\\\\analyze_performance.py\" --no-graph)",
-      "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\":*)"
+      "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\":*)",
+      "Bash(git log:*)"
     ]
   }
 }

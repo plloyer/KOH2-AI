@@ -198,6 +198,7 @@ namespace AIOverhaul
                 if (Event.current.alt)
                 {
                     DrawRealmNeighborsDebug(k, style);
+                    DrawRealmGoodsDebug(k, style);
                 }
                 else
                 {
@@ -311,6 +312,44 @@ namespace AIOverhaul
                     }
                     GUILayout.Label(sb.ToString(), style);
                 }
+            }
+        }
+
+        void DrawRealmGoodsDebug(Logic.Kingdom k, GUIStyle style)
+        {
+            GUILayout.Label("<color=orange>=== REALM GOODS ===</color>", style);
+            if (k.realms == null) return;
+
+            GUIStyle smallStyle = new GUIStyle(style);
+            smallStyle.fontSize = 14;
+
+            foreach (var r in k.realms)
+            {
+                if (r == null) continue;
+
+                List<string> produced, potential;
+                r.GetGoodsDetails(out produced, out potential);
+
+                string realmLabel = !string.IsNullOrEmpty(r.town_name) ? r.town_name : r.name;
+                StringBuilder sb = new StringBuilder();
+                sb.Append($"<b>{realmLabel}</b> ({produced.Count}/{produced.Count + potential.Count}): ");
+
+                for (int i = 0; i < produced.Count; i++)
+                {
+                    sb.Append($"<color={k_ColorGreen}>{produced[i]}</color>");
+                    if (i < produced.Count - 1 || potential.Count > 0) sb.Append(", ");
+                }
+
+                for (int i = 0; i < potential.Count; i++)
+                {
+                    sb.Append($"<color={k_ColorGrey}>{potential[i]}</color>");
+                    if (i < potential.Count - 1) sb.Append(", ");
+                }
+
+                if (produced.Count == 0 && potential.Count == 0)
+                    sb.Append($"<color={k_ColorGrey}>None</color>");
+
+                GUILayout.Label(sb.ToString(), smallStyle);
             }
         }
 

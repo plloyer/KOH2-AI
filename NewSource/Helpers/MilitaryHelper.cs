@@ -26,6 +26,15 @@ namespace AIOverhaul
             return strength;
         }
 
+        public static float GetCombatPairStrength(Logic.Army army, Logic.Kingdom kingdom)
+        {
+            float str = army?.EvalStrength() ?? 0;
+            var buddy = BuddySystem.GetBuddy(army, kingdom);
+            if (buddy != null && buddy.IsValid() && (buddy.units?.Count ?? 0) >= GameBalance.MinBuddyUnitsToFollow)
+                str += buddy.EvalStrength();
+            return str;
+        }
+
         public static float GetTop2ArmyStrength(Logic.Kingdom kingdom)
         {
             if (kingdom?.armies == null) return 0f;
@@ -146,6 +155,32 @@ namespace AIOverhaul
                     AIOverhaulPlugin.LogDebug($"[Buddy] Transferred unit from {DescribeArmy(donor)} to {DescribeArmy(target)}", LogCategory.Military, kingdom);
                 }
             }
+        }
+
+        public static Logic.Settlement FindNearestPlunderableSettlement(Logic.Army army)
+        {
+            if (army?.realm_in?.settlements == null) return null;
+
+            Logic.Settlement target = null;
+            float minDist = float.MaxValue;
+            foreach (var settlement in army.realm_in.settlements)
+            {
+                if (!settlement.IsActiveSettlement()) continue;
+                if (settlement is Castle) continue;
+                if (settlement.razed) continue;
+                if (settlement.battle != null) continue;
+                if (!settlement.IsEnemy(army)) continue;
+                if (settlement.def?.id == SettlementNames.Keep) continue;
+
+                float dist = settlement.position.SqrDist(army.position);
+                if (dist < minDist)
+                {
+                    target = settlement;
+                    minDist = dist;
+                }
+            }
+
+            return target;
         }
 
         // --- Existing Helpers (kept) ---

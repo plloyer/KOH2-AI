@@ -32,7 +32,7 @@ namespace AIOverhaul
 
             string armyName = MilitaryHelper.DescribeArmy(army);
 
-            Logic.Settlement target = FindNearestSettlementInRealm(army);
+            Logic.Settlement target = MilitaryHelper.FindNearestPlunderableSettlement(army);
             if (target == null)
             {
                 // No settlements to plunder - attack the castle if in enemy territory
@@ -57,31 +57,5 @@ namespace AIOverhaul
             return false;
         }
 
-        static Logic.Settlement FindNearestSettlementInRealm(Logic.Army army)
-        {
-            Logic.Settlement target = null;
-            float minDist = float.MaxValue;
-            foreach (var settlement in army.realm_in.settlements)
-            {
-                // Skip inactive, razed, in-battle, or friendly settlements. Copied from vanilla code.
-                if (!settlement.IsActiveSettlement()) continue;
-                if (settlement is Castle) continue;
-                if (settlement.razed) continue;
-                if (settlement.battle != null) continue;
-                if (!settlement.IsEnemy(army)) continue;
-
-                // NEW: Skip Keep settlements (military fortifications)
-                if (settlement.def?.id == SettlementNames.Keep) continue;
-
-                float dist = settlement.position.SqrDist(army.position);
-                if (dist < minDist)
-                {
-                    target = settlement;
-                    minDist = dist;
-                }
-            }
-
-            return target;
-        }
     }
 }

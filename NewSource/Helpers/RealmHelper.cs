@@ -139,6 +139,71 @@ namespace AIOverhaul
             }
         }
 
+        public static void GetGoodsDetails(this Logic.Realm realm, out List<string> produced, out List<string> potential)
+        {
+            produced = new List<string>();
+            potential = new List<string>();
+            if (realm == null || realm.game == null) return;
+
+            var game = realm.game;
+
+            // Produced goods — from the realm's live tracking
+            HashSet<string> producedIds = new HashSet<string>();
+            if (realm.goods_produced != null)
+            {
+                for (int i = 0; i < realm.goods_produced.Count; i++)
+                {
+                    var def = realm.goods_produced[i];
+                    if (def == null) continue;
+                    string name = !string.IsNullOrEmpty(def.Name) ? def.Name : def.id;
+                    produced.Add(name);
+                    producedIds.Add(def.id);
+                }
+            }
+
+            // Potential goods — same building tree traversal as GetGoodsStats but collect names
+            HashSet<string> potentialIds = new HashSet<string>();
+            var castle = realm.castle;
+            if (castle != null)
+            {
+                void CollectGoods(Logic.Building.Def bdef)
+                {
+                    if (bdef == null || !realm.IsPotentiallyBuildable(bdef)) return;
+                    GoodsHelper.AddGoodsFromList(bdef.produces, potentialIds, game);
+                    GoodsHelper.AddGoodsFromList(bdef.produces_completed, potentialIds, game);
+                    if (bdef.upgrades?.buildings != null)
+                        foreach (var uInfo in bdef.upgrades.buildings)
+                            CollectGoods(uInfo?.def);
+                }
+
+                var common = Logic.District.Def.GetCommon(game);
+                if (common?.buildings != null)
+                    foreach (var bi in common.buildings)
+                        CollectGoods(bi?.def);
+
+                var pf = Logic.District.Def.GetPF(game);
+                if (pf?.buildings != null)
+                    foreach (var bi in pf.buildings)
+                        CollectGoods(bi?.def);
+
+                var districts = castle.GetBuildableDistricts();
+                if (districts != null)
+                    foreach (var d in districts)
+                        if (d?.buildings != null)
+                            foreach (var bi in d.buildings)
+                                CollectGoods(bi?.def);
+            }
+
+            // Only add potential goods that are NOT already produced
+            foreach (var resId in potentialIds)
+            {
+                if (producedIds.Contains(resId)) continue;
+                var resDef = game.defs.Find<Logic.Resource.Def>(resId);
+                string name = (resDef != null && !string.IsNullOrEmpty(resDef.Name)) ? resDef.Name : resId;
+                potential.Add(name);
+            }
+        }
+
         public static bool IsPotentiallyBuildable(this Logic.Realm realm, Logic.Building.Def def, int depth = 0)
         {
             if (depth > 10) return false; // Guard against circular deps

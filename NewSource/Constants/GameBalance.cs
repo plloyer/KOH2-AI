@@ -14,12 +14,13 @@ namespace AIOverhaul
 
         // Military - Attack/Defense Thresholds
         public const float MinAttackStrengthRatio = 1.2f; // Must be stronger to attack
+        public const float OverwhelmingStrengthRatio = 1.5f; // Top2 strength ratio to skip pillaging and go straight for castle
         public const float SallyOutStrengthRatio = 1.2f; // Must be stronger to sally out
         public const float SiegeRecallStrengthRatio = 1.0f; // Recalled force + defenders must match enemy to justify recall
 
         // Buddy System
         public const int MaxBuddyPairs = 2; // Max buddy pairs (4 marshals / 2)
-        public const int MinBuddyUnitsToFollow = 4; // Follower needs this many units to follow leader
+        public const int MinBuddyUnitsToFollow = 7; // Follower needs this many units to follow leader
         public const float BuddyReevalIntervalMinutes = 0.5f; // Re-evaluate buddies interval (real time)
 
         // Army Composition - Late Game
@@ -46,6 +47,11 @@ namespace AIOverhaul
         // Diplomacy - Power Ratios
         public const float PowerRatioSoloCapable = 2.0f; // We can handle alone if stronger by this ratio
         public const float PowerRatioStrongerEnemy = 1.3f; // Consider peace if enemy is stronger
+
+        // Diplomacy - AI Offer Cooldowns (seconds of game time)
+        // Vanilla default is 0 for all offers. These override specific spammy offer types.
+        public const float DemandSupportInWarCooldown = 3600f;    // 1 hour game-time
+        public const float DemandAttackKingdomCooldown = 3600f;   // 1 hour game-time
 
         // Diplomacy Thresholds
         public const int MaxWarsCount = 2;
@@ -88,6 +94,14 @@ namespace AIOverhaul
         // Time Conversion
         public const float HoursPerDay = 24f;
         public const float DaysPerYear = 365f;
+
+        // Mercenary System
+        public const float MercenarySpawnLimitMultiplier = 1.5f;
+        public const int MaxMercsPerRealm = 1;
+        public const float OutOfTerritoryMercenaryPriceMultiplier = 2.0f;
+
+        // Build Queue
+        public const float BuildQueueStallTimeoutSec = 900f; // 15 game-minutes in seconds
 
         // Speed Control
         public const float HighSpeed = 20f; // F7 high speed toggle
