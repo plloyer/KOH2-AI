@@ -193,11 +193,7 @@ namespace AIOverhaul
                     }
                 }
             }
-
-            // --- PRIORITY 4: Plunder (delegate to vanilla ThinkPlunder which is already patched) ---
-            // Let vanilla handle by returning true from here, or fall through
-            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: no targets found in {realmIn.name}, falling through", LogCategory.Military, kingdom);
-
+            
             // Return true to let vanilla ThinkFight handle remaining logic (plunder, etc.)
             return true;
         }

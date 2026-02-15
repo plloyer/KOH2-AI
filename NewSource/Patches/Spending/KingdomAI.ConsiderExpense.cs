@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using Logic;
+using Action = Logic.Action;
 using Object = Logic.Object;
 
 namespace AIOverhaul
@@ -12,38 +14,79 @@ namespace AIOverhaul
     {
         const float k_MinIncomeForEspionage = 300f;
         const float k_MinIncomeForDiplomat = 200f;
+        const float k_MinIncomeForReligion = 200f;
         const string k_LogPrefix = "[ConsiderExpense]";
 
         static bool Prefix(KingdomAI __instance, KingdomAI.Expense.Type type, BaseObject defParam, KingdomAI.Expense.Category category)
         {
-            if (__instance == null || __instance.kingdom == null) return true;
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+            
+            if (!ConsiderEspionageExpense(__instance, category)) return false;
+            if (type != KingdomAI.Expense.Type.HireChacacter && IsSavingForFirstTradition(__instance.kingdom)) return false;
 
-            if (category == KingdomAI.Expense.Category.Espionage)
+            switch (type)
             {
-                float income = __instance.kingdom.income[ResourceType.Gold];
-                if (income < k_MinIncomeForEspionage)
-                {
-                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocking espionage expense: Income {income:F1} < k_MinIncomeForEspionage", LogCategory.Knights, __instance.kingdom);
-                    return false;
-                }
+                case KingdomAI.Expense.Type.HireChacacter:      return ConsiderHireCharacter(__instance, defParam);
+                case KingdomAI.Expense.Type.ExecuteOpportunity: return ConsiderExecuteOpportunity(__instance, defParam, category);
+                case KingdomAI.Expense.Type.ExecuteAction:      return ConsiderExecuteAction(__instance, defParam, category);
+                default:                                        return true;
             }
+        }
 
-            if (type == KingdomAI.Expense.Type.HireChacacter)
-                return ConsiderHireCharacter(__instance, defParam as CharacterClass.Def);
+        // Block all espionage expenses when income is too low.
+        static bool ConsiderEspionageExpense(KingdomAI kingdomAI, KingdomAI.Expense.Category category)
+        {
+            if (category != KingdomAI.Expense.Category.Espionage) return true;
 
-            // Early game build order: save gold for first tradition by blocking non-essential expenses
-            if (IsSavingForFirstTradition(__instance.kingdom) && !IsEarlyBuildOrderExpense(type, defParam, __instance.kingdom))
+            float income = kingdomAI.kingdom.income[ResourceType.Gold];
+            if (income < k_MinIncomeForEspionage)
             {
-                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocking expense {type}/{defParam} — saving gold for first tradition", LogCategory.Spending, __instance.kingdom);
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocking espionage expense: Income {income:F1} < {k_MinIncomeForEspionage}", LogCategory.Knights, kingdomAI.kingdom);
                 return false;
             }
+            return true;
+        }
 
+        // Block non-essential religion opportunities when income is low. Allows AppeaseClergyAction.
+        static bool ConsiderExecuteOpportunity(KingdomAI kingdomAI, BaseObject defParam, KingdomAI.Expense.Category category)
+        {
+            if (category == KingdomAI.Expense.Category.Religion)
+            {
+                var opp = defParam as Opportunity;
+                if (opp?.action != null && !(opp.action is AppeaseClergyAction))
+                {
+                    float income = kingdomAI.kingdom.income[ResourceType.Gold];
+                    if (income < k_MinIncomeForReligion)
+                    {
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocking religion opportunity ({opp.action.GetType().Name}): Income {income:F1} < {k_MinIncomeForReligion}", LogCategory.Spending, kingdomAI.kingdom);
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // Block expensive piety missions (MissionInRome/Constantinople) when income is low.
+        static bool ConsiderExecuteAction(KingdomAI kingdomAI, BaseObject defParam, KingdomAI.Expense.Category category)
+        {
+            if (category == KingdomAI.Expense.Category.Religion)
+            {
+                var action = defParam as Action;
+                if (action is MissionInRomeAction || action is MissionInConstantinopleAction)
+                {
+                    float income = kingdomAI.kingdom.income[ResourceType.Gold];
+                    if (income < k_MinIncomeForReligion)
+                    {
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocking piety mission ({action.GetType().Name}): Income {income:F1} < {k_MinIncomeForReligion}", LogCategory.Spending, kingdomAI.kingdom);
+                        return false;
+                    }
+                }
+            }
             return true;
         }
 
         // Returns true when the kingdom should be saving gold for its first tradition:
-        // has enough books (MinBooksForFirstTradition), 0 traditions, and Writing or Medicine is available.
+        // has enough books, 0 traditions, and a preferred tradition is available.
         static bool IsSavingForFirstTradition(Logic.Kingdom kingdom)
         {
             if (kingdom.traditions?.Count != 0) return false;
@@ -55,40 +98,19 @@ namespace AIOverhaul
             for (int i = 0; i < options.Count; i++)
             {
                 string name = options[i].name;
-                if (name == TraditionNames.WritingTradition || name == TraditionNames.MedicineTradition)
-                    return true;
+                for (int j = 0; j < KingdomAI_ConsiderAdoptTradition.PreferredFirstTraditions.Length; j++)
+                {
+                    if (name == KingdomAI_ConsiderAdoptTradition.PreferredFirstTraditions[j])
+                        return true;
+                }
             }
-
             return false;
         }
 
-        // Expenses allowed through even when saving for first tradition.
-        // Build order: MinMerchantsBeforeTradition merchants → VillageMilitia → Barracks → tradition.
-        static bool IsEarlyBuildOrderExpense(KingdomAI.Expense.Type type, BaseObject defParam, Logic.Kingdom kingdom)
+        static bool ConsiderHireCharacter(KingdomAI kingdomAI, BaseObject defParam)
         {
-            if (type == KingdomAI.Expense.Type.AdoptTradition)
-                return true;
-            if (type == KingdomAI.Expense.Type.ExecuteAction)
-                return true;
-            if (type == KingdomAI.Expense.Type.ExecuteOpportunity)
-                return true;
-
-            if (type == KingdomAI.Expense.Type.BuildStructure)
-            {
-                var buildingDef = defParam as Building.Def;
-                if (buildingDef == null) return false;
-                if (buildingDef.id == BuildingNames.VillageMilitia)
-                    return true;
-                if (buildingDef.id == BuildingNames.Barracks && !kingdom.HasBuilding(BuildingNames.Barracks))
-                    return true;
-            }
-
-            return false;
-        }
-
-        static bool ConsiderHireCharacter(KingdomAI kingdomAI, CharacterClass.Def classDef)
-        {
-            if (classDef == null) return false;
+            var classDef = defParam as CharacterClass.Def;
+            if (classDef == null) return true;
 
             switch (classDef.name)
             {

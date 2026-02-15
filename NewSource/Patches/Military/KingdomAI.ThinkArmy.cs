@@ -150,6 +150,29 @@ namespace AIOverhaul
                 }
             }
 
+            // --- PREVENT OFFENSIVE WHEN OUTMATCHED ---
+            if (!BuddySystem.IsFollower(army, kingdom) && army.tgt_realm != null && MilitaryHelper.IsEnemyTerritory(army.tgt_realm, kingdom))
+            {
+                var enemyKingdom = army.tgt_realm.GetKingdom();
+                if (enemyKingdom != null)
+                {
+                    float ourStr = army.EvalStrength();
+                    var buddy = BuddySystem.GetBuddy(army, kingdom);
+                    if (buddy != null && buddy.IsValid()) ourStr += buddy.EvalStrength();
+                    float enemyTop2 = MilitaryHelper.GetTop2ArmyStrength(enemyKingdom);
+                    if (!MilitaryHelper.IsStrongerThan(ourStr, enemyTop2, GameBalance.MinAttackStrengthRatio))
+                    {
+                        Castle safeCastle = TraverseAPI.FindNearestOwnCastle(__instance, army, true);
+                        if (safeCastle != null)
+                        {
+                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {MilitaryHelper.DescribeArmy(army)}: aborting offensive — outmatched (army+buddy:{ourStr:F0} vs enemy top2:{enemyTop2:F0})", LogCategory.Military, kingdom);
+                            TraverseAPI.SendArmy(__instance, army, safeCastle, AIStatusNames.EnemiesTooStrong);
+                            return;
+                        }
+                    }
+                }
+            }
+
             // --- FOLLOWER FOLLOW LOGIC ---
             if (BuddySystem.IsFollower(army, kingdom))
             {

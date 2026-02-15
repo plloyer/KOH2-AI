@@ -263,6 +263,10 @@ namespace AIOverhaul
                 Log($"Baseline ({baseline.Count}): {string.Join(", ", baseline.Select(k => k.Name))}");
             else
                 Log("Baseline (0): None");
+
+            // Reassign kings to optimal realms based on their class
+            foreach (var k in enhanced)
+                GovernorHelper.ReassignKingToOptimalRealm(k);
         }
 
         /// <summary>

@@ -347,12 +347,14 @@ namespace AIOverhaul
             float food = k.GetFood();
             float foodIncome = k.GetFoodIncome();
             int tradeAgreements = k.GetTradeAgreementCount();
+            float commerce = k.GetAllocatedCommerce();
+            float maxCommerce = k.GetMaxCommerce();
 
             GUILayout.Label($"Food: <color={k_ColorFood}>{food:F0} / {foodIncome:F0}</color>", style);
             float levy = k.resources[ResourceType.Levy];
             float maxLevy = k.GetStat(Stats.ks_max_levy);
             string levyColor = (maxLevy > 0f && levy >= maxLevy) ? "red" : "green";
-            GUILayout.Label($"Gold: <color={k_ColorEconomy}>{gold:F0}</color> (+{goldIncome:F0}/s) | Books: <color={k_ColorReligion}>{books:F0}</color> | Merchants: <color={k_ColorEconomy}>{merchants}</color> | TA: <color={k_ColorEconomy}>{tradeAgreements}</color> | Levy: <color={levyColor}>{levy:F0}/{maxLevy:F0}</color>", style);
+            GUILayout.Label($"Gold: <color={k_ColorEconomy}>{gold:F0}</color> (+{goldIncome:F0}/s) | Books: <color={k_ColorReligion}>{books:F0}</color> | Merchants: <color={k_ColorEconomy}>{merchants}</color> | TA: <color={k_ColorEconomy}>{tradeAgreements}</color> | Commerce: <color={k_ColorEconomy}>{commerce:F0}/{maxCommerce:F0}</color> | Levy: <color={levyColor}>{levy:F0}/{maxLevy:F0}</color>", style);
             
             // Build Options stats (host-only, not synced to clients)
             if (!IsClient())
@@ -497,7 +499,7 @@ namespace AIOverhaul
 
                 // Get Goods stats
                 int currentGoods, maxGoods;
-                RealmHelper.GetGoodsStats(r, out currentGoods, out maxGoods);
+                r.GetGoodsStats(out currentGoods, out maxGoods);
                 string goodsColor = currentGoods > 0 ? (currentGoods >= maxGoods ? k_ColorGreen : k_ColorYellow) : k_ColorGrey;
 
                 // Format the output string with color coding

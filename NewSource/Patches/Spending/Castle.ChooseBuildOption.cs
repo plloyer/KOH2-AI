@@ -15,7 +15,16 @@ namespace AIOverhaul
         const string k_LogPrefix = "[Build]";
         const float k_HighPriorityEval = 100f;
         const float k_QueueEval = 1000f;
-        const float k_InjectionEval = 1f; // Placeholder for injected options — eval overrides apply after
+        const int k_MinGoodsFeatures = 3;
+
+        static readonly string[] s_GoodsFeatures = {
+            FeatureNames.Sheep, FeatureNames.Cattle, FeatureNames.FlaxFields, FeatureNames.Herbage,
+            FeatureNames.Vines, FeatureNames.DeepForests, FeatureNames.IronOre, FeatureNames.MarbleDeposit,
+            FeatureNames.Horses, FeatureNames.AmberDeposits, FeatureNames.Camels, FeatureNames.RareGame,
+            FeatureNames.MineralsDeposit, FeatureNames.SaltDeposit, FeatureNames.SaltpeterDeposits,
+            FeatureNames.SulfurDeposits, FeatureNames.LimestoneDeposit, FeatureNames.SilverOre,
+            FeatureNames.GoldOre, FeatureNames.LodestoneDeposits
+        };
 
         // --- Build Queue System ---
 
@@ -64,8 +73,10 @@ namespace AIOverhaul
 
             var castle = options[0].castle;
             var kingdom = castle?.GetKingdom();
-            if (kingdom == null) return;
             if (!AIOverhaulPlugin.IsEnhancedAI(kingdom)) return;
+
+            // Don't build anything until we have at least 2 merchants
+            if (kingdom.CountMerchants() < 2) { options.Clear(); sum = 0f; return; }
 
             bool isBuildOptions = (options == Castle.build_options);
             var queue = GetOrBuildQueue(kingdom);
@@ -116,31 +127,8 @@ namespace AIOverhaul
             bool isUpgrade = (options == Castle.upgrade_options);
             LogBuildToCsv(game, kingdom, __result, isUpgrade, s_LastPhase ?? "Normal");
         }
-
-        // --- Queue Logic ---
-
-        static List<BuildQueueEntry> GetOrBuildQueue(Logic.Kingdom kingdom)
-        {
-            if (!s_BuildQueues.TryGetValue(kingdom.id, out var queue))
-            {
-                queue = BuildInitialQueue(kingdom);
-                s_BuildQueues[kingdom.id] = queue;
-                if (queue.Count > 0)
-                {
-                    var sb = new StringBuilder();
-                    sb.Append($"{k_LogPrefix} Built initial queue for {kingdom.Name}: ");
-                    for (int i = 0; i < queue.Count; i++)
-                    {
-                        if (i > 0) sb.Append(", ");
-                        sb.Append(queue[i].buildingId);
-                        if (queue[i].isUpgrade) sb.Append(" (upgrade)");
-                        if (queue[i].realmId >= 0) sb.Append($" (realm:{queue[i].realmId})");
-                    }
-                    AIOverhaulPlugin.LogDebug(sb.ToString(), LogCategory.Spending, kingdom);
-                }
-            }
-            return queue;
-        }
+        
+        // --- Queue Init and Normal mode ---
 
         static List<BuildQueueEntry> BuildInitialQueue(Logic.Kingdom kingdom)
         {
@@ -183,6 +171,134 @@ namespace AIOverhaul
             if (hasVillageMilitia)
                 queue.Add(new BuildQueueEntry { buildingId = BuildingUpgradeNames.TrainingGrounds, isUpgrade = true, parentBuildingId = BuildingNames.VillageMilitia });
 
+            // House next to barrack
+            queue.Add(new BuildQueueEntry { buildingId = BuildingUpgradeNames.LargeHouses, isUpgrade = false, realmId = bestBarracksRealmId });
+            
+            return queue;
+        }
+
+        static void ApplyNormalBuildMode(List<Castle.BuildOption> options, Logic.Kingdom kingdom)
+        {
+            ApplyCropFarmingConstraint(options, kingdom);
+            ApplyReligiousSettlementConstraint(options);
+
+            ApplyFoodBuildings(options, kingdom);
+            ApplyGoodsBuildings(options, kingdom);
+        }
+
+        static void ApplyFoodBuildings(List<Castle.BuildOption> options, Logic.Kingdom kingdom)
+        {
+            float food = KingdomHelper.GetFood(kingdom);
+            if (food > 0 || kingdom.realms == null) return;
+
+            var urgent = KingdomAI.Expense.Priority.Urgent;
+
+            foreach (var realm in kingdom.realms)
+            {
+                var castle = realm?.castle;
+                if (!IsCastleEligible(castle)) continue;
+
+                int farmCount = realm.GetFarmCount();
+                int coastalCount = realm.GetCoastalCount();
+                bool hasRivers = realm.features != null && realm.features.Contains(FeatureNames.Rivers);
+                bool hasRareGame = realm.features != null && realm.features.Contains(FeatureNames.RareGame);
+                bool hasVines = realm.features != null && realm.features.Contains(FeatureNames.Vines);
+
+                EnsureBuildOption(options, castle, BuildingNames.CropFarming, k_HighPriorityEval * (0.5f + farmCount), urgent);
+                EnsureBuildOption(options, castle, BuildingNames.Harbor, k_HighPriorityEval * (0.5f + coastalCount), urgent);
+                EnsureBuildOption(options, castle, BuildingNames.SheepFarming, k_HighPriorityEval * 5, urgent);
+                EnsureBuildOption(options, castle, BuildingNames.CattleFarming, k_HighPriorityEval * 5, urgent);
+                if (hasRivers)
+                    EnsureBuildOption(options, castle, BuildingNames.Irrigation, k_HighPriorityEval * (1 + farmCount * 3), urgent);
+                if (hasRareGame)
+                    EnsureBuildOption(options, castle, BuildingNames.FurTrade, k_HighPriorityEval * 3, urgent);
+                if (hasVines)
+                    EnsureBuildOption(options, castle, BuildingNames.Viticulture, k_HighPriorityEval * 3, urgent);
+            }
+        }
+
+        static void ApplyGoodsBuildings(List<Castle.BuildOption> options, Logic.Kingdom kingdom)
+        {
+            if (kingdom.realms == null) return;
+            var normal = KingdomAI.Expense.Priority.Normal;
+
+            foreach (var realm in kingdom.realms)
+            {
+                var castle = realm?.castle;
+                if (!IsCastleEligible(castle)) continue;
+
+                int goodsCount = CountGoodsFeatures(realm);
+                if (goodsCount < k_MinGoodsFeatures) continue;
+
+                float highEval = k_HighPriorityEval * 2;
+                float mediumEval = k_HighPriorityEval;
+                float lowEval = k_HighPriorityEval * 0.5f;
+
+                // High-production buildings (produce more goods)
+                EnsureBuildOption(options, castle, BuildingNames.SheepFarming, highEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.CattleFarming, highEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.FlaxGrowing, highEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.HerbGardening, highEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.Viticulture, highEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.Woodworking, highEval, normal);
+                
+                // Medium
+                EnsureBuildOption(options, castle, BuildingNames.Metalworking, mediumEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.Stoneworking, mediumEval, normal);
+
+                // Lower-production trade buildings
+                EnsureBuildOption(options, castle, BuildingNames.HorseBreeding, highEval, normal);
+
+                // Market is a prerequisite for trade buildings — ensure it's built first
+                EnsureBuildOption(options, castle, BuildingNames.MarketSquare, lowEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.AmberTrade, lowEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.CamelsTrade, lowEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.FurTrade, lowEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.MineralsTrade, lowEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.SaltTrade, lowEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.SaltpeterTrade, lowEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.SulfurTrade, lowEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.LimeTrade, lowEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.SilverSmelting, lowEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.GoldSmelting, lowEval, normal);
+                EnsureBuildOption(options, castle, BuildingNames.LodestoneTrade, lowEval, normal);
+            }
+        }
+
+        static int CountGoodsFeatures(Logic.Realm realm)
+        {
+            if (realm.features == null) return 0;
+            int count = 0;
+            for (int i = 0; i < s_GoodsFeatures.Length; i++)
+            {
+                if (realm.features.Contains(s_GoodsFeatures[i]))
+                    count++;
+            }
+            return count;
+        }
+
+        // --- Queue Logic ---
+
+        static List<BuildQueueEntry> GetOrBuildQueue(Logic.Kingdom kingdom)
+        {
+            if (!s_BuildQueues.TryGetValue(kingdom.id, out var queue))
+            {
+                queue = BuildInitialQueue(kingdom);
+                s_BuildQueues[kingdom.id] = queue;
+                if (queue.Count > 0)
+                {
+                    var sb = new StringBuilder();
+                    sb.Append($"{k_LogPrefix} Built initial queue for {kingdom.Name}: ");
+                    for (int i = 0; i < queue.Count; i++)
+                    {
+                        if (i > 0) sb.Append(", ");
+                        sb.Append(queue[i].buildingId);
+                        if (queue[i].isUpgrade) sb.Append(" (upgrade)");
+                        if (queue[i].realmId >= 0) sb.Append($" (realm:{queue[i].realmId})");
+                    }
+                    AIOverhaulPlugin.LogDebug(sb.ToString(), LogCategory.Spending, kingdom);
+                }
+            }
             return queue;
         }
 
@@ -261,237 +377,76 @@ namespace AIOverhaul
                 ApplyNormalUpgradeMode(options, kingdom);
         }
 
-        static void ApplyNormalBuildMode(List<Castle.BuildOption> options, Logic.Kingdom kingdom)
-        {
-            bool needsBarracks = kingdom.GetBuildingCount(BuildingNames.Barracks) == 0;
-            float food = KingdomHelper.GetFood(kingdom);
-            var normal = KingdomAI.Expense.Priority.Normal;
-
-            // Injection: add missing options across eligible castles
-            if (kingdom.realms != null)
-            {
-                foreach (var realm in kingdom.realms)
-                {
-                    var castle = realm?.castle;
-                    if (!IsCastleEligible(castle)) continue;
-
-                    int villageCount = realm.GetVillageCount();
-                    if (villageCount >= GameBalance.MinVillagesForMilitia)
-                        EnsureBuildOption(options, castle, BuildingNames.VillageMilitia, k_InjectionEval, normal);
-
-                    if (needsBarracks)
-                        EnsureBuildOption(options, castle, BuildingNames.Barracks, k_InjectionEval, normal);
-
-                    if (food <= 0)
-                        InjectFoodBuildOptions(options, castle, realm);
-                }
-            }
-
-            // Eval overrides on all options (both vanilla-added and injected)
-            ApplyBuildingEvalOverrides(options, kingdom, needsBarracks, food);
-
-            // Constraints
-            ApplyCropFarmingConstraint(options, food);
-            ApplyReligiousSettlementConstraint(options);
-        }
-
         static void ApplyNormalUpgradeMode(List<Castle.BuildOption> options, Logic.Kingdom kingdom)
         {
-            bool hasSwordsmith = kingdom.HasBuildingUpgrade(BuildingUpgradeNames.Swordsmith);
-            bool hasFletcher = kingdom.HasBuildingUpgrade(BuildingUpgradeNames.Fletcher_Barracks);
-            bool hasVillageMilitia = kingdom.HasBuilding(BuildingNames.VillageMilitia);
-            bool hasTrainingGrounds = kingdom.HasBuildingUpgrade(BuildingUpgradeNames.TrainingGrounds);
+            ApplyFoodUpgrades(options, kingdom);
+            ApplyGoodsUpgrades(options, kingdom);
+        }
+
+        static void ApplyFoodUpgrades(List<Castle.BuildOption> options, Logic.Kingdom kingdom)
+        {
             float food = KingdomHelper.GetFood(kingdom);
+            if (food > 0 || kingdom.realms == null) return;
+
+            var urgent = KingdomAI.Expense.Priority.Urgent;
+
+            foreach (var realm in kingdom.realms)
+            {
+                var castle = realm?.castle;
+                if (!IsCastleEligible(castle)) continue;
+
+                int farmCount = realm.GetFarmCount();
+                int coastalCount = realm.GetCoastalCount();
+                bool hasVines = realm.features != null && realm.features.Contains(FeatureNames.Vines);
+
+                EnsureUpgradeOption(options, kingdom, castle, BuildingUpgradeNames.CropsRotation, BuildingNames.CropFarming, k_HighPriorityEval * (0.5f + farmCount), urgent);
+                EnsureUpgradeOption(options, kingdom, castle, BuildingUpgradeNames.Docks_Harbor, BuildingNames.Harbor, k_HighPriorityEval * (0.5f + coastalCount), urgent);
+                EnsureUpgradeOption(options, kingdom, castle, BuildingUpgradeNames.Butcher_Sheep, BuildingNames.SheepFarming, k_HighPriorityEval * 5, urgent);
+                EnsureUpgradeOption(options, kingdom, castle, BuildingUpgradeNames.Butcher_Cattle, BuildingNames.CattleFarming, k_HighPriorityEval * 5, urgent);
+                if (hasVines)
+                    EnsureUpgradeOption(options, kingdom, castle, BuildingUpgradeNames.SunDryingGrapes, BuildingNames.Viticulture, k_HighPriorityEval * 3, urgent);
+            }
+        }
+
+        static void ApplyGoodsUpgrades(List<Castle.BuildOption> options, Logic.Kingdom kingdom)
+        {
+            if (kingdom.realms == null) return;
             var normal = KingdomAI.Expense.Priority.Normal;
 
-            // Injection: add missing options across eligible castles
-            if (kingdom.realms != null)
+            foreach (var realm in kingdom.realms)
             {
-                foreach (var realm in kingdom.realms)
-                {
-                    var castle = realm?.castle;
-                    if (!IsCastleEligible(castle)) continue;
+                var castle = realm?.castle;
+                if (!IsCastleEligible(castle)) continue;
 
-                    if (!hasSwordsmith)
-                        EnsureUpgradeOption(options, kingdom, castle, BuildingUpgradeNames.Swordsmith, BuildingNames.Barracks, k_InjectionEval, normal);
+                int goodsCount = CountGoodsFeatures(realm);
+                if (goodsCount < k_MinGoodsFeatures) continue;
 
-                    if (hasSwordsmith && !hasFletcher)
-                        EnsureUpgradeOption(options, kingdom, castle, BuildingUpgradeNames.Fletcher, BuildingNames.Barracks, k_InjectionEval, normal);
+                float highEval = k_HighPriorityEval * 2;
+                float mediumEval = k_HighPriorityEval;
 
-                    if (hasVillageMilitia && !hasTrainingGrounds)
-                    {
-                        EnsureUpgradeOption(
-                            options, kingdom, castle, BuildingUpgradeNames.TrainingGrounds, BuildingNames.VillageMilitia, k_InjectionEval, normal);
-                    }
+                // High-production buildings
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.SheepFarming, highEval, normal);
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.CattleFarming, highEval, normal);
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.FlaxGrowing, highEval, normal);
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.HerbGardening, highEval, normal);
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.Viticulture, highEval, normal);
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.Woodworking, highEval, normal);
 
-                    if (food <= 0)
-                        InjectFoodUpgradeOptions(options, kingdom, castle, realm);
-                }
+                // Medium
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.Metalworking, mediumEval, normal);
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.Stoneworking, mediumEval, normal);
+
+                // Lower-production trade buildings
+                EnsureUpgradesForBuilding(options, kingdom, castle, BuildingNames.HorseBreeding, highEval, normal);
             }
-
-            // Eval overrides on all options (both vanilla-added and injected)
-            ApplyUpgradeEvalOverrides(options, kingdom, hasSwordsmith, hasFletcher, hasVillageMilitia, hasTrainingGrounds, food);
-        }
-
-        // --- Eval Overrides ---
-
-        static void ApplyBuildingEvalOverrides(List<Castle.BuildOption> options, Logic.Kingdom kingdom, bool needsBarracks, float food)
-        {
-            for (int i = 0; i < options.Count; i++)
-            {
-                var opt = options[i];
-                if (opt.def == null) continue;
-
-                var realm = opt.castle.GetRealm();
-                string id = opt.def.id;
-
-                if (id == BuildingNames.VillageMilitia)
-                {
-                    int villageCount = realm.GetVillageCount();
-                    if (villageCount >= GameBalance.MinVillagesForMilitia)
-                    {
-                        opt.eval = k_HighPriorityEval + (villageCount * GameBalance.BoostPerDistrict);
-                        opt.priority = KingdomAI.Expense.Priority.Urgent;
-                        options[i] = opt;
-                    }
-                }
-                else if (id == BuildingNames.Barracks && needsBarracks)
-                {
-                    int keep = realm.GetKeepCount();
-                    opt.eval = k_HighPriorityEval * (1 + keep * GameBalance.BoostPerDistrict);
-                    opt.priority = KingdomAI.Expense.Priority.Urgent;
-                    options[i] = opt;
-                }
-                else if (food <= 0)
-                {
-                    ApplyFoodBuildingOverride(options, i, opt, realm);
-                }
-            }
-        }
-
-        static void ApplyFoodBuildingOverride(List<Castle.BuildOption> options, int index, Castle.BuildOption opt, Logic.Realm realm)
-        {
-            string id = opt.def.id;
-            float? newEval = null;
-
-            if (id == BuildingNames.CropFarming)
-                newEval = k_HighPriorityEval * (0.5f + realm.GetFarmCount());
-            else if (id == BuildingNames.Harbor)
-                newEval = k_HighPriorityEval * (0.5f + realm.GetCoastalCount());
-            else if (id == BuildingNames.SheepFarming || id == BuildingNames.CattleFarming)
-                newEval = k_HighPriorityEval * 5;
-            else if (id == BuildingNames.Irrigation)
-                newEval = k_HighPriorityEval * (1 + realm.GetFarmCount() * 3);
-            else if (id == BuildingNames.FurTrade)
-                newEval = k_HighPriorityEval * 3;
-            else if (id == BuildingNames.Viticulture)
-                newEval = k_HighPriorityEval * 3;
-
-            if (newEval.HasValue)
-            {
-                opt.eval = newEval.Value;
-                opt.priority = KingdomAI.Expense.Priority.Urgent;
-                options[index] = opt;
-            }
-        }
-
-        static void ApplyUpgradeEvalOverrides(
-            List<Castle.BuildOption> options, Logic.Kingdom kingdom, bool hasSwordsmith, bool hasFletcher,
-            bool hasVillageMilitia, bool hasTrainingGrounds, float food)
-        {
-            for (int i = 0; i < options.Count; i++)
-            {
-                var opt = options[i];
-                if (opt.def == null) continue;
-                string id = opt.def.id;
-
-                if (id == BuildingUpgradeNames.Swordsmith && !hasSwordsmith)
-                {
-                    opt.eval = GameBalance.HighPriorityBuildingMultiplier;
-                    opt.priority = KingdomAI.Expense.Priority.Urgent;
-                    options[i] = opt;
-                }
-                else if (id == BuildingUpgradeNames.Fletcher && hasSwordsmith && !hasFletcher)
-                {
-                    opt.eval = GameBalance.HighPriorityBuildingMultiplier;
-                    opt.priority = KingdomAI.Expense.Priority.Urgent;
-                    options[i] = opt;
-                }
-                else if (id == BuildingUpgradeNames.TrainingGrounds && hasVillageMilitia && !hasTrainingGrounds)
-                {
-                    opt.eval = GameBalance.HighPriorityBuildingMultiplier;
-                    opt.priority = KingdomAI.Expense.Priority.Urgent;
-                    options[i] = opt;
-                }
-                else if (food <= 0)
-                {
-                    ApplyFoodUpgradeOverride(options, i, opt);
-                }
-            }
-        }
-
-        static void ApplyFoodUpgradeOverride(List<Castle.BuildOption> options, int index, Castle.BuildOption opt)
-        {
-            string id = opt.def.id;
-            float? newEval = null;
-            var realm = opt.castle.GetRealm();
-
-            if (id == BuildingUpgradeNames.CropsRotation)
-                newEval = k_HighPriorityEval * (0.5f + realm.GetFarmCount());
-            else if (id == BuildingUpgradeNames.Docks_Harbor)
-                newEval = k_HighPriorityEval * (0.5f + realm.GetCoastalCount());
-            else if (id == BuildingUpgradeNames.Butcher_Sheep || id == BuildingUpgradeNames.Butcher_Cattle)
-                newEval = k_HighPriorityEval * 5;
-            else if (id == BuildingUpgradeNames.SunDryingGrapes)
-                newEval = k_HighPriorityEval * 3;
-
-            if (newEval.HasValue)
-            {
-                opt.eval = newEval.Value;
-                opt.priority = KingdomAI.Expense.Priority.Urgent;
-                options[index] = opt;
-            }
-        }
-
-        // --- Injection Helpers ---
-
-        static void InjectFoodBuildOptions(List<Castle.BuildOption> options, Castle castle, Logic.Realm realm)
-        {
-            bool hasRareGame = realm.features != null && realm.features.Contains(FeatureNames.RareGame);
-            bool hasRivers = realm.features != null && realm.features.Contains(FeatureNames.Rivers);
-            bool hasVines = realm.features != null && realm.features.Contains(FeatureNames.Vines);
-            var p = KingdomAI.Expense.Priority.Normal;
-
-            EnsureBuildOption(options, castle, BuildingNames.CropFarming, k_InjectionEval, p);
-            EnsureBuildOption(options, castle, BuildingNames.Harbor, k_InjectionEval, p);
-            EnsureBuildOption(options, castle, BuildingNames.SheepFarming, k_InjectionEval, p);
-            EnsureBuildOption(options, castle, BuildingNames.CattleFarming, k_InjectionEval, p);
-            if (hasRivers)
-                EnsureBuildOption(options, castle, BuildingNames.Irrigation, k_InjectionEval, p);
-            if (hasRareGame)
-                EnsureBuildOption(options, castle, BuildingNames.FurTrade, k_InjectionEval, p);
-            if (hasVines)
-                EnsureBuildOption(options, castle, BuildingNames.Viticulture, k_InjectionEval, p);
-        }
-
-        static void InjectFoodUpgradeOptions(List<Castle.BuildOption> options, Logic.Kingdom kingdom, Castle castle, Logic.Realm realm)
-        {
-            bool hasVines = realm.features != null && realm.features.Contains(FeatureNames.Vines);
-            var p = KingdomAI.Expense.Priority.Normal;
-
-            EnsureUpgradeOption(options, kingdom, castle, BuildingUpgradeNames.CropsRotation, BuildingNames.CropFarming, k_InjectionEval, p);
-            EnsureUpgradeOption(options, kingdom, castle, BuildingUpgradeNames.Docks_Harbor, BuildingNames.Harbor, k_InjectionEval, p);
-            EnsureUpgradeOption(options, kingdom, castle, BuildingUpgradeNames.Butcher_Sheep, BuildingNames.SheepFarming, k_InjectionEval, p);
-            EnsureUpgradeOption(options, kingdom, castle, BuildingUpgradeNames.Butcher_Cattle, BuildingNames.CattleFarming, k_InjectionEval, p);
-            if (hasVines)
-                EnsureUpgradeOption(options, kingdom, castle, BuildingUpgradeNames.SunDryingGrapes, BuildingNames.Viticulture, k_InjectionEval, p);
         }
 
         // --- Constraint Logic ---
 
-        static void ApplyCropFarmingConstraint(List<Castle.BuildOption> options, float food)
+        static void ApplyCropFarmingConstraint(List<Castle.BuildOption> options, Logic.Kingdom kingdom)
         {
-            if (food <= 0) return; // Don't remove crop farming when food is critical
+            float food = KingdomHelper.GetFood(kingdom);
+            if (food <= 0) return;
 
             for (int i = options.Count - 1; i >= 0; i--)
             {
@@ -547,12 +502,17 @@ namespace AIOverhaul
             if (def == null) return false;
             if (castle.HasBuilding(def)) return false;
 
-            // Check if option already exists for this castle
+            // Check if option already exists for this castle — update eval/priority if so
             for (int i = 0; i < options.Count; i++)
             {
                 var opt = options[i];
                 if (opt.def == def && opt.castle == castle)
-                    return false;
+                {
+                    opt.eval = eval;
+                    opt.priority = priority;
+                    options[i] = opt;
+                    return true;
+                }
             }
 
             // Verify the castle can actually build it
@@ -579,18 +539,44 @@ namespace AIOverhaul
             var parentDef = castle.game.defs.Find<Logic.Building.Def>(parentBuildingId);
             if (parentDef == null || !castle.HasBuilding(parentDef)) return false;
 
-            // Check if option already exists
+            // Check if option already exists — update eval/priority if so
             for (int i = 0; i < options.Count; i++)
             {
                 var opt = options[i];
                 if (opt.def == def)
-                    return false;
+                {
+                    opt.eval = eval;
+                    opt.priority = priority;
+                    options[i] = opt;
+                    return true;
+                }
             }
 
             options.Add(new Castle.BuildOption { castle = castle, def = def, eval = eval, priority = priority });
             return true;
         }
-        
+
+        /// <summary>
+        /// Dynamically discovers all upgrades for a building via def.upgrades.buildings and ensures each one.
+        /// </summary>
+        static void EnsureUpgradesForBuilding(
+            List<Castle.BuildOption> options, Logic.Kingdom kingdom, Castle castle,
+            string parentBuildingId, float eval, KingdomAI.Expense.Priority priority)
+        {
+            var parentDef = castle.game.defs.Find<Logic.Building.Def>(parentBuildingId);
+            if (parentDef == null || !castle.HasBuilding(parentDef)) return;
+
+            var upgrades = parentDef.upgrades?.buildings;
+            if (upgrades == null) return;
+
+            for (int i = 0; i < upgrades.Count; i++)
+            {
+                var upgradeDef = upgrades[i].def;
+                if (upgradeDef == null) continue;
+                EnsureUpgradeOption(options, kingdom, castle, upgradeDef.id, parentBuildingId, eval, priority);
+            }
+        }
+
         // --- CSV Build Log ---
 
         static void InitBuildLog()

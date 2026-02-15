@@ -77,9 +77,8 @@ namespace AIOverhaul
         public const float EnhancedAISelectionPercentage = 0.30f;
 
         // Governor Logic
-        public const float MerchantGovernorMarketBonus = 20f; // Bonus for merchant governor in town with market
-        public const float MarshalEarlyGameBoost = 10000f; // Massive boost for Marshals in best military province
-        public const float IronOreMilitaryBonus = 15f; // Bonus for Iron Ore in military potential calc
+        public const float MerchantGovernorGoodsBonus = 10f; // Per good produced — dominates village count
+        public const float MarshalEarlyGameBoost = 100f; // Massive boost for Marshals in best military province
 
         // Building Priority Multipliers
         // CRITICAL: Higher eval = higher priority. Multiply eval by these values (eval *= multiplier) to increase priority.

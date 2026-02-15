@@ -12,6 +12,15 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(KingdomAI), "ConsiderAdoptTradition")]
     public static class KingdomAI_ConsiderAdoptTradition
     {
+        internal static readonly string[] PreferredFirstTraditions =
+        {
+            TraditionNames.WritingTradition,
+            TraditionNames.LearningTradition,
+            TraditionNames.MedicineTradition,
+            TraditionNames.LogisticsTradition,
+            TraditionNames.InfantryTacticsTradition
+        };
+
         [HarmonyPrefix]
         public static bool Prefix(KingdomAI __instance, ref bool __result)
         {
@@ -20,15 +29,15 @@ namespace AIOverhaul
             var traditionOptions = __instance.kingdom.GetNewTraditionOptions();
             if (traditionOptions == null || traditionOptions.Count == 0) return true;
 
-            bool rushingTradition = __instance.kingdom.GetBooks() > 400;
+            bool rushingTradition = __instance.kingdom.GetBooks() > GameBalance.MinBooksForFirstTradition;
             if (!rushingTradition) return true;
-            
-            // Look for Writing or Learning tradition
-            var preferredTradition = traditionOptions.Find(t => t.id == TraditionNames.WritingTradition);
-            if (preferredTradition == null)
-                preferredTradition = traditionOptions.Find(t => t.id == TraditionNames.LearningTradition);
-            if (preferredTradition == null)
-                preferredTradition = traditionOptions.Find(t => t.id == TraditionNames.MedicineTradition);
+
+            Tradition.Def preferredTradition = null;
+            for (int i = 0; i < PreferredFirstTraditions.Length; i++)
+            {
+                preferredTradition = traditionOptions.Find(t => t.id == PreferredFirstTraditions[i]);
+                if (preferredTradition != null) break;
+            }
 
             if (preferredTradition == null)
                 return true;

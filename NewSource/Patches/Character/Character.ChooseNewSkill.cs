@@ -30,6 +30,13 @@ namespace AIOverhaul
                 }
             }
 
+            // Merchant: prioritize Bargain then Logistics
+            if (__instance.class_def?.id == CharacterClassNames.Merchant)
+            {
+                if (TryPickSkill(skills, SkillNames.Bargain, kingdom, ref __result)) return;
+                if (TryPickSkill(skills, SkillNames.Logistics, kingdom, ref __result)) return;
+            }
+
             if (!__instance.IsKing()) return;
             if (kingdom.GetBooks() < GameBalance.MinBooksForFirstSkillUpgrade) return; // Not enough books
 

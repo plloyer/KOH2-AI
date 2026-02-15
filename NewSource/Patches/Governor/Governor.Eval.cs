@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
 using Logic;
@@ -9,20 +10,30 @@ namespace AIOverhaul
     [HarmonyPatch(typeof(KingdomAI.GovernOption), "Eval")]
     public class GovernOption_Eval
     {
+        internal static Dictionary<Logic.Character, Dictionary<string, float>> PendingScores = new Dictionary<Logic.Character, Dictionary<string, float>>();
+
         static void Postfix(ref KingdomAI.GovernOption __instance, ref float __result)
         {
             if (__instance.governor == null || __instance.castle == null) return;
-            
+
             Logic.Kingdom kingdom = __instance.castle.GetKingdom();
             if (kingdom == null || !AIOverhaulPlugin.IsEnhancedAI(kingdom)) return;
 
             ApplyEarlyGameMarshalLogic(__instance, kingdom, ref __result);
             ApplyMerchantMarketBonus(__instance, ref __result);
+
+            if (!PendingScores.TryGetValue(__instance.governor, out var scores))
+            {
+                scores = new Dictionary<string, float>();
+                PendingScores[__instance.governor] = scores;
+            }
+            scores[__instance.castle.name] = __result;
         }
 
         static void ApplyEarlyGameMarshalLogic(KingdomAI.GovernOption option, Logic.Kingdom kingdom, ref float score)
         {
-            // Rule: Early game (2-3 provinces), Marshals should govern the castle with most districts (military potential)
+            // Rule: Early game (2-3 provinces, first 10 minutes), Marshals should govern the castle with most districts (military potential)
+            if (option.castle.game.session_time.minutes > 10f) return;
             if (kingdom.realms.Count >= 2 && kingdom.realms.Count <= 3 && option.governor.IsMarshal())
             {
                 // Find the best military province in the kingdom
@@ -50,13 +61,11 @@ namespace AIOverhaul
 
         static void ApplyMerchantMarketBonus(KingdomAI.GovernOption option, ref float score)
         {
-            if (option.governor.class_def?.id == CharacterClassNames.Merchant)
-            {
-                if (option.castle.buildings.Any(b => b.def.id.Contains(BuildingNames.MarketSquare)))
-                {
-                    score += GameBalance.MerchantGovernorMarketBonus;
-                }
-            }
+            if (option.governor.class_def?.id != CharacterClassNames.Merchant) return;
+
+            var realm = option.castle.GetRealm();
+            realm.GetGoodsStats(out int currentGoods, out _);
+            score += currentGoods * GameBalance.MerchantGovernorGoodsBonus;
         }
 
         static float CalcMilitaryPotential(Logic.Realm realm)

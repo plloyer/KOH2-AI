@@ -26,6 +26,20 @@ namespace AIOverhaul
             return strength;
         }
 
+        public static float GetTop2ArmyStrength(Logic.Kingdom kingdom)
+        {
+            if (kingdom?.armies == null) return 0f;
+            float top1 = 0f, top2 = 0f;
+            foreach (var a in kingdom.armies)
+            {
+                if (a == null || !a.IsValid()) continue;
+                float s = a.EvalStrength();
+                if (s > top1) { top2 = top1; top1 = s; }
+                else if (s > top2) { top2 = s; }
+            }
+            return top1 + top2;
+        }
+
         public static float GetRealmOwnStrength(Logic.Realm realm, Logic.Kingdom kingdom)
         {
             float strength = 0;
