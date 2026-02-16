@@ -36,5 +36,6 @@ namespace AIOverhaul
         // Used to track AI-specific state between saves
         public const string MortalEnemyId = "aimod_mortal_enemy";           // Points to the kingdom_id of the current target kingdom
         public const string MortalEnemySovereignId = "aimod_mortal_enemy_sov"; // Points to the nid of the target sovereign
+        public const string NemesisTeam = "aimod_nemesis";                     // Marks kingdom as part of the nemesis team (value=1)
     }
 }

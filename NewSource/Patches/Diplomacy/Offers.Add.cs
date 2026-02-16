@@ -12,7 +12,16 @@ namespace AIOverhaul.Patches.Diplomacy
         {
             var receiver = offer.to as Logic.Kingdom;   // Kingdom being claimed from (loses territory)
             var claimant = offer.from as Logic.Kingdom;  // Kingdom making the claim (gains territory)
-            
+
+            // Block inheritance claims between nemesis teammates (regardless of Enhanced status)
+            if (receiver != null && claimant != null && offer is PrincessClaimInheritanceOffer
+                && NemesisTeamManager.AreNemesisTeammates(receiver, claimant))
+            {
+                AIOverhaulPlugin.LogDebug($"NEMESIS: Blocking inheritance claim from teammate {claimant.Name} on {receiver.Name}", LogCategory.Nemesis, receiver);
+                offer.Decline();
+                return false;
+            }
+
             // Only care about Inheritance Claims
             if (receiver == null || !receiver.IsAuthority() || !AIOverhaulPlugin.IsEnhancedAI(receiver)) return true;
             if (!(offer is PrincessClaimInheritanceOffer)) return true;

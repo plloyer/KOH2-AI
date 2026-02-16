@@ -97,7 +97,7 @@ namespace AIOverhaul
         public const float DaysPerYear = 365f;
 
         // Mercenary System
-        public const float MercenarySpawnLimitMultiplier = 1.5f;
+        public const float MercenarySpawnLimitMultiplier = 1.9f;
         public const int MaxMercsPerRealm = 1;
         public const float OutOfTerritoryMercenaryPriceMultiplier = 2.0f;
 
@@ -107,5 +107,13 @@ namespace AIOverhaul
         // Speed Control
         public const float HighSpeed = 20f; // F7 high speed toggle
         public const float UltraSpeed = 50f; // F8 ultra speed toggle
+
+        // Nemesis Team System - Scoring constants for AI team selection
+        public const float NemesisHumanNeighborPenalty = 50f;  // Penalty for directly bordering a human player
+        public const float NemesisAINeighborBonus = 10f;       // Bonus per AI neighbor (easier to cluster)
+        public const float NemesisRealmCountBonus = 5f;        // Bonus per realm owned (prefer established kingdoms)
+        public const float NemesisClusterAdjacencyBonus = 20f; // Bonus per existing nemesis member a candidate borders
+        public const float NemesisPowerWeight = 0.01f;         // Weight for kingdom power in scoring
+        public const int NemesisMinTeamSize = 2;               // Minimum viable nemesis team size
     }
 }

@@ -18,6 +18,7 @@ namespace AIOverhaul
         Governor,     // Governor assignments
         Spectator,    // F9 spectator mode toggles
         AutoStart,    // Auto-start game feature
+        Nemesis,      // Nemesis team system (multiplayer coop rival)
     }
 
     /// <summary>

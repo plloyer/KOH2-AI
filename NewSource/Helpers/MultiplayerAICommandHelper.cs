@@ -78,6 +78,34 @@ namespace AIOverhaul
                     return true;
                 }
             }
+            else if (cmd == "!nemesis_info" || cmd == "/nemesis")
+            {
+                AIOverhaulPlugin.LogInfo(NemesisTeamManager.GetInfoString(), LogCategory.Nemesis);
+                return true;
+            }
+            else if (cmd == "!nemesis_log" || cmd == "/nemesis_log")
+            {
+                NemesisTeamManager.VerboseLogging = !NemesisTeamManager.VerboseLogging;
+                AIOverhaulPlugin.LogInfo($"[Nemesis] Verbose logging {(NemesisTeamManager.VerboseLogging ? "ENABLED" : "DISABLED")}", LogCategory.Nemesis);
+                return true;
+            }
+            else if (cmd == "!nemesis_reroll" || cmd == "/nemesis_reroll")
+            {
+                var game = AIOverhaulPlugin.CurrentGame;
+                if (game != null)
+                {
+                    // Clear existing nemesis vars on kingdoms
+                    foreach (int id in NemesisTeamManager.NemesisKingdomIds)
+                    {
+                        Logic.Kingdom k = game.GetKingdom(id);
+                        if (k != null) k.SetVar(CampaignVarNames.NemesisTeam, new Value());
+                    }
+                    NemesisTeamManager.Clear();
+                    NemesisTeamManager.Initialize(game);
+                    AIOverhaulPlugin.LogInfo(NemesisTeamManager.GetInfoString(), LogCategory.Nemesis);
+                }
+                return true;
+            }
 
             return false;
         }

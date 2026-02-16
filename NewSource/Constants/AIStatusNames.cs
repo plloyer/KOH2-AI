@@ -45,5 +45,6 @@ namespace AIOverhaul
         public const string FollowLeader = "follow_leader";                 // Follower following leader's target
         public const string SallyOut = "sally_out";                         // Garrison sallying out from siege
         public const string SiegeRecall = "siege_recall";                   // Army recalled to defend own siege
+        public const string DefendTeammate = "defend_teammate";               // Nemesis army defending teammate's realm
     }
 }

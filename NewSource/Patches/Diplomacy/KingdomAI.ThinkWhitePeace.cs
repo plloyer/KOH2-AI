@@ -14,6 +14,17 @@ namespace AIOverhaul
             Logic.Kingdom actor = __instance.kingdom;
             if (actor == null || k == null) return true;
 
+            // Nemesis teammates at war: immediately send plain peace offer (resolve accidental war)
+            if (actor.IsEnemy(k) && NemesisTeamManager.AreNemesisTeammates(actor, k))
+            {
+                if (OfferHelper.TrySendOffer(DiplomacyConstants.Peace, __instance, k))
+                {
+                    AIOverhaulPlugin.LogDebug($"NEMESIS: Sending peace to teammate {k.Name} (resolving accidental war)", LogCategory.Nemesis, actor);
+                    __result = true;
+                    return false;
+                }
+            }
+
             // Emergency: Enemy is assaulting our realm — offer peace immediately
             if (actor.IsEnemy(k) && actor.FindAssaultAttacker() == k)
             {

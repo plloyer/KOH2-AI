@@ -63,7 +63,7 @@ namespace AIOverhaul
                         else
                             friendStrength += aStr;
                     }
-                    else if (kingdom.IsEnemy(a.kingdom_id))
+                    else if (kingdom.IsEnemy(a.kingdom_id) || (NemesisTeamManager.IsNemesis(kingdom) && NemesisTeamManager.IsTeammateEnemy(a.kingdom_id, kingdom)))
                     {
                         enemyTotal += aStr;
 
@@ -102,6 +102,26 @@ namespace AIOverhaul
                         float dist = a.position.SqrDist(army.position);
                         if (dist < closestBattleDist)
                         {
+                            closestBattle = a.battle;
+                            closestBattleDist = dist;
+                        }
+                    }
+                }
+            }
+
+            // Nemesis: also check for battles involving nemesis teammates in this realm
+            if (closestBattle == null && NemesisTeamManager.IsNemesis(kingdom) && realmIn.armies != null)
+            {
+                foreach (var a in realmIn.armies)
+                {
+                    if (a == null || a.battle == null) continue;
+                    Logic.Kingdom armyKingdom = a.GetKingdom();
+                    if (armyKingdom != null && NemesisTeamManager.AreNemesisTeammates(kingdom, armyKingdom))
+                    {
+                        float dist = a.position.SqrDist(army.position);
+                        if (dist < closestBattleDist)
+                        {
+                            NemesisTeamManager.LogVerbose($"Found teammate {armyKingdom.Name}'s battle in {realmIn.name} — will reinforce", kingdom);
                             closestBattle = a.battle;
                             closestBattleDist = dist;
                         }
@@ -163,7 +183,36 @@ namespace AIOverhaul
                 return false;
             }
 
-            // --- PRIORITY 2: Attack enemy army ---
+            // --- PRIORITY 2: Defend threatened teammate realm ---
+            if (NemesisTeamManager.IsNemesis(kingdom) && !MilitaryHelper.IsEnemyTerritory(realmIn, kingdom))
+            {
+                foreach (int teammateId in NemesisTeamManager.GetTeammatesSortedByRealmCount(kingdom.game))
+                {
+                    if (teammateId == kingdom.id) continue;
+                    var teammate = kingdom.game.GetKingdom(teammateId);
+                    if (teammate?.realms == null) continue;
+
+                    foreach (var tRealm in teammate.realms)
+                    {
+                        if (tRealm?.armies == null) continue;
+                        bool hasEnemy = false;
+                        foreach (var a in tRealm.armies)
+                        {
+                            if (a != null && teammate.IsEnemy(a.kingdom_id))
+                            { hasEnemy = true; break; }
+                        }
+                        if (hasEnemy && tRealm.castle != null)
+                        {
+                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: defending teammate {teammate.Name}'s realm {tRealm.name}", LogCategory.Military, kingdom);
+                            TraverseAPI.SendArmy(__instance, army, tRealm.castle, AIStatusNames.DefendTeammate);
+                            __result = true;
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            // --- PRIORITY 3: Attack enemy army ---
             if (closestEnemyArmy != null)
             {
                 AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: attacking {MilitaryHelper.DescribeArmy(closestEnemyArmy)}", LogCategory.Military, kingdom);
@@ -172,7 +221,7 @@ namespace AIOverhaul
                 return false;
             }
 
-            // --- PRIORITY 3: Plunder settlements if not overwhelming ---
+            // --- PRIORITY 4: Plunder settlements if not overwhelming ---
             if (MilitaryHelper.IsEnemyTerritory(realmIn, kingdom))
             {
                 float ourTop2 = MilitaryHelper.GetTop2ArmyStrength(kingdom);
@@ -192,7 +241,7 @@ namespace AIOverhaul
                 }
             }
 
-            // --- PRIORITY 4: Attack castle ---
+            // --- PRIORITY 5: Attack castle ---
             if (MilitaryHelper.IsEnemyTerritory(realmIn, kingdom))
             {
                 var castle = realmIn.castle;

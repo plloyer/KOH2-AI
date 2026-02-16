@@ -82,6 +82,15 @@ namespace AIOverhaul
                     m_WebhookUrl = args[i + 1];
                     AIOverhaulPlugin.LogInfo("Detected -webhook <url>", LogCategory.AutoStart);
                 }
+                if (args[i] == "-nemesis-size" && i + 1 < args.Length)
+                {
+                    int nemesisSize;
+                    if (int.TryParse(args[i + 1], out nemesisSize) && nemesisSize > 0)
+                    {
+                        NemesisTeamManager.ForcedTeamSize = nemesisSize;
+                        AIOverhaulPlugin.LogInfo($"Detected -nemesis-size {nemesisSize}", LogCategory.AutoStart);
+                    }
+                }
             }
 
             if (m_HasStarted)

@@ -119,6 +119,31 @@ namespace AIOverhaul
                     ai.TrySendWarInvite(neighbor, war);
                 }
             }
+
+            // Nemesis: invite all teammates to our wars (bypass relation check)
+            if (NemesisTeamManager.IsNemesis(kingdom))
+            {
+                foreach (int teammateId in NemesisTeamManager.NemesisKingdomIds)
+                {
+                    if (teammateId == kingdom.id) continue;
+                    Logic.Kingdom teammate = kingdom.game?.GetKingdom(teammateId);
+                    if (teammate == null || teammate.IsDefeated()) continue;
+
+                    foreach (var war in kingdom.wars)
+                    {
+                        if (war == null) continue;
+                        bool alreadyInWar = war.attackers.Contains(teammate) || war.defenders.Contains(teammate);
+                        if (alreadyInWar)
+                        {
+                            NemesisTeamManager.LogVerbose($"Teammate {teammate.Name} already in war — skipping invite", kingdom);
+                            continue;
+                        }
+                        var enemy = war.GetEnemyLeader(kingdom);
+                        NemesisTeamManager.LogVerbose($"Inviting teammate {teammate.Name} to war against {enemy?.Name ?? "unknown"}", kingdom);
+                        ai.TrySendWarInvite(teammate, war);
+                    }
+                }
+            }
         }
 
         static float GetWarSideStrength(List<Logic.Kingdom> kingdoms)

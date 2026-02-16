@@ -448,6 +448,37 @@ namespace AIOverhaul
                 }
             }
 
+            // Nemesis: remove teammates from expansion targets and prefer humans
+            if (NemesisTeamManager.IsNemesis(k))
+            {
+                int removedCount = strategicNeighbors.RemoveAll(n => NemesisTeamManager.AreNemesisTeammates(k, n));
+                if (removedCount > 0)
+                    NemesisTeamManager.LogVerbose($"Filtered {removedCount} nemesis teammates from expansion neighbors", k);
+
+                // Prefer weakest human player as target
+                Logic.Kingdom weakestHuman = null;
+                float weakestHumanPower = float.MaxValue;
+                foreach (var n in strategicNeighbors)
+                {
+                    if (NemesisTeamManager.IsHumanTeam(n))
+                    {
+                        float power = n.GetTotalPower();
+                        if (power < weakestHumanPower)
+                        {
+                            weakestHumanPower = power;
+                            weakestHuman = n;
+                        }
+                    }
+                }
+
+                if (weakestHuman != null && mortalEnemy == null)
+                {
+                    selectedTarget = weakestHuman;
+                    reason = "NEMESIS: Human player target";
+                    NemesisTeamManager.LogVerbose($"Targeting weakest human: {weakestHuman.Name} (power {weakestHumanPower:F0})", k);
+                }
+            }
+
             if (selectedTarget == null)
             {
                 foreach (var nk in strategicNeighbors)

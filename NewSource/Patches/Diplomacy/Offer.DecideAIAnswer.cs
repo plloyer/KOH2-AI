@@ -23,6 +23,49 @@ namespace AIOverhaul
             bool isEnhanced = AIOverhaulPlugin.IsEnhancedAI(receiver);
             if (!isEnhanced) return true;
 
+            // Nemesis teammates: auto-accept cooperative offers, coordinate peace
+            if (NemesisTeamManager.AreNemesisTeammates(receiver, sender))
+            {
+                if (__instance.IsOfType(typeof(SignTrade)) || __instance.IsOfType(typeof(SignNonAggression))
+                    || __instance.IsOfType(typeof(OfferSupportInWar)) || __instance.def?.field?.key == DiplomacyConstants.OfferJoinInDefensivePact)
+                {
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} NEMESIS AUTO-ACCEPT {__instance.GetType().Name} from teammate {sender.Name}", LogCategory.Nemesis, receiver);
+                    __result = DiplomacyConstants.Accept;
+                    return false;
+                }
+
+                // Peace offers from teammate: accept (resolve accidental wars)
+                bool isPeace = __instance.def?.field?.key?.Contains("Peace") ?? false;
+                if (isPeace)
+                {
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} NEMESIS AUTO-ACCEPT peace from teammate {sender.Name}", LogCategory.Nemesis, receiver);
+                    __result = DiplomacyConstants.Accept;
+                    return false;
+                }
+            }
+
+            // Nemesis: auto-accept trade/NAP from kingdoms that a teammate already has pacts with
+            if (NemesisTeamManager.IsNemesis(receiver) && !NemesisTeamManager.IsHumanTeam(sender))
+            {
+                bool isTradeOffer = __instance.IsOfType(typeof(SignTrade));
+                bool isNAPOffer = __instance.IsOfType(typeof(SignNonAggression));
+                if (isTradeOffer || isNAPOffer)
+                {
+                    foreach (int id in NemesisTeamManager.NemesisKingdomIds)
+                    {
+                        if (id == receiver.id) continue;
+                        var teammate = receiver.game.GetKingdom(id);
+                        if (teammate == null || teammate.IsDefeated()) continue;
+                        if ((isTradeOffer && teammate.HasTradeAgreement(sender)) || (isNAPOffer && teammate.HasStance(sender, RelationUtils.Stance.NonAggression)))
+                        {
+                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} NEMESIS: accepting {__instance.GetType().Name} from {sender.Name} (teammate {teammate.Name} already has pact)", LogCategory.Nemesis, receiver);
+                            __result = DiplomacyConstants.Accept;
+                            return false;
+                        }
+                    }
+                }
+            }
+
             // Check if this is a peace offer (WhitePeaceOffer, PeaceOfferTribute, etc.)
             bool isPeaceOffer = __instance.def?.field?.key?.Contains("Peace") ?? false;
             if (isPeaceOffer)

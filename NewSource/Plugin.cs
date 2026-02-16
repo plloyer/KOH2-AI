@@ -38,6 +38,7 @@ namespace AIOverhaul
                 // New game instance — reset A/B split so InitializeEnhancedKingdoms re-runs
                 EnhancedKingdomIds.Clear();
                 BaselineKingdomIds.Clear();
+                NemesisTeamManager.Clear();
             }
             s_CurrentGame = game;
         }
@@ -65,6 +66,12 @@ namespace AIOverhaul
             DontDestroyOnLoad(pingGO);
             pingGO.hideFlags = HideFlags.HideAndDontSave;
             pingGO.AddComponent<PingSystem>();
+
+            // Initialize NemesisOverlay for multiplayer nemesis team display
+            var nemesisGO = new GameObject("AI_NemesisOverlay");
+            DontDestroyOnLoad(nemesisGO);
+            nemesisGO.hideFlags = HideFlags.HideAndDontSave;
+            nemesisGO.AddComponent<NemesisOverlay>();
 
             // Listen to all Unity logs to capture game errors/warnings into BepInEx log
             Application.logMessageReceived += OnUnityLogMessage;
@@ -219,7 +226,15 @@ namespace AIOverhaul
         public static void InitializeEnhancedKingdoms(Game game)
         {
             if (game == null || game.kingdoms == null) return;
-            if (EnhancedKingdomIds.Count > 0 || BaselineKingdomIds.Count > 0) return;
+            // Ensure CurrentGame is set BEFORE we populate any state, so the
+            // Game.Update Postfix won't call SetCurrentGame later and clear everything.
+            SetCurrentGame(game);
+            if (EnhancedKingdomIds.Count > 0 || BaselineKingdomIds.Count > 0)
+            {
+                // Reload path — restore nemesis team from saved kingdom vars
+                NemesisTeamManager.RestoreFromVars(game);
+                return;
+            }
             PatchOfferCooldowns(game);
 
             EnhancedKingdomIds.Clear();
@@ -293,6 +308,9 @@ namespace AIOverhaul
             // Reassign kings to optimal realms based on their class
             foreach (var k in enhanced)
                 GovernorHelper.ReassignKingToOptimalRealm(k);
+
+            // Initialize nemesis team for multiplayer coop (after A/B split so EnhancedKingdomIds is populated)
+            NemesisTeamManager.Initialize(game);
         }
 
         /// <summary>
@@ -429,6 +447,14 @@ namespace AIOverhaul
             // Ensure CurrentGame is set on both host and client (KingdomAI only runs on host)
             if (AIOverhaulPlugin.CurrentGame == null && __instance.kingdoms != null)
                 AIOverhaulPlugin.SetCurrentGame(__instance);
+
+            // MP clients: try to restore nemesis team from synced kingdom vars (for overlay display)
+            if (!NemesisTeamManager.IsInitialized && __instance.multiplayer != null
+                && __instance.multiplayer.type == Logic.Multiplayer.Type.Client)
+            {
+                NemesisTeamManager.LogVerbose("Client-side nemesis restoration triggered");
+                NemesisTeamManager.RestoreFromVars(__instance);
+            }
 
             // Detect F9 key press to toggle spectator mode
             if (Input.GetKeyDown(KeyCode.F9))
