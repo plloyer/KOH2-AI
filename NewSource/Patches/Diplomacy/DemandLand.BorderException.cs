@@ -81,6 +81,39 @@ namespace AIOverhaul
              }
         }
 
+        static void AddAllRealmsForCoop(Logic.Kingdom sourceK, Logic.Kingdom targetK, List<Value> lst, HashSet<object> existingRealms)
+        {
+            var realmsObj = Traverse.Create(sourceK).Field(k_FieldRealms).GetValue();
+            if (realmsObj == null) return;
+            IList realms = realmsObj as IList;
+            if (realms == null) return;
+
+            foreach (object realm in realms)
+            {
+                if (realm == null) continue;
+                if (existingRealms.Contains(realm)) continue;
+
+                var realmTraverse = Traverse.Create(realm);
+                var castle = realmTraverse.Field(k_FieldCastle).GetValue();
+                if (castle == null) continue;
+
+                bool isOccupied = GetBoolSafe(realmTraverse.Method(k_MethodIsOccupied));
+                if (isOccupied) continue;
+
+                var castleBattle = Traverse.Create(castle).Field(k_FieldBattle).GetValue();
+                if (castleBattle != null)
+                {
+                    var battleTraverse = Traverse.Create(castleBattle);
+                    var att = battleTraverse.Field(k_FieldAttackerKingdom).GetValue();
+                    var def = battleTraverse.Field(k_FieldDefenderKingdom).GetValue();
+                    if (att != targetK && def != targetK) continue;
+                }
+
+                Object rBase = realm as Object;
+                if (rBase != null) lst.Add(new Value(rBase));
+            }
+        }
+
         [HarmonyPatch("Validate")]
         [HarmonyPostfix]
         static void Validate_Postfix(DemandLand __instance, ref string __result)
@@ -89,6 +122,15 @@ namespace AIOverhaul
             {
                 if (__result != k_ErrorCultureMismatch)
                     return;
+
+                // Coop bypass: human teammates can give any realm regardless of culture
+                var source = __instance.GetSourceObj() as Logic.Kingdom;
+                var target = __instance.GetTargetObj() as Logic.Kingdom;
+                if (source != null && target != null && NemesisTeamManager.IsHumanTeam(source) && NemesisTeamManager.IsHumanTeam(target))
+                {
+                    __result = DiplomacyConstants.ValidationOk;
+                    return;
+                }
 
                 var realm = __instance.GetArg<object>(0);
                 if (realm == null) return;
@@ -127,6 +169,20 @@ namespace AIOverhaul
                 var kingdom2 = __instance.GetTargetObj(); 
 
                 if (kingdom == null || kingdom2 == null) return;
+
+                // Coop bypass: human teammates see all realms regardless of culture/border
+                Logic.Kingdom sourceK = kingdom as Logic.Kingdom;
+                Logic.Kingdom targetK = kingdom2 as Logic.Kingdom;
+                if (sourceK != null && targetK != null && NemesisTeamManager.IsHumanTeam(sourceK) && NemesisTeamManager.IsHumanTeam(targetK))
+                {
+                    HashSet<object> existing = new HashSet<object>();
+                    foreach (var val in lst)
+                    {
+                        if (val.obj_val != null) existing.Add(val.obj_val);
+                    }
+                    AddAllRealmsForCoop(sourceK, targetK, lst, existing);
+                    return;
+                }
 
                 var kingdomTraverse = Traverse.Create(kingdom);
                 var kingdom2Traverse = Traverse.Create(kingdom2);

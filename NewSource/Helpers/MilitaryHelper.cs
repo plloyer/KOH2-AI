@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Logic;
 
 namespace AIOverhaul
@@ -33,6 +34,43 @@ namespace AIOverhaul
             if (buddy != null && buddy.IsValid() && (buddy.units?.Count ?? 0) >= GameBalance.MinBuddyUnitsToFollow)
                 str += buddy.EvalStrength();
             return str;
+        }
+
+        public static float GetEnemyOffensiveStrength(Logic.Kingdom kingdom, Castle targetCastle)
+        {
+            if (kingdom == null) return 0f;
+
+            float garrisonStr = targetCastle?.army?.EvalStrength() ?? 0;
+
+            // Find top 2 enemy armies across ALL wars (or top 1 if castle has garrison)
+            float top1 = 0f, top2 = 0f;
+            if (kingdom.wars != null)
+            {
+                var seen = new HashSet<int>();
+                foreach (var war in kingdom.wars)
+                {
+                    var enemies = war.GetEnemiesInWar(kingdom);
+                    if (enemies == null) continue;
+                    foreach (var enemy in enemies)
+                    {
+                        if (enemy == null || seen.Contains(enemy.id)) continue;
+                        seen.Add(enemy.id);
+                        if (enemy.armies == null) continue;
+                        foreach (var a in enemy.armies)
+                        {
+                            if (a == null || !a.IsValid()) continue;
+                            float s = a.EvalStrength();
+                            if (s > top1) { top2 = top1; top1 = s; }
+                            else if (s > top2) { top2 = s; }
+                        }
+                    }
+                }
+            }
+
+            if (garrisonStr > 0)
+                return garrisonStr + top1;  // Garrison + strongest enemy army
+            else
+                return top1 + top2;         // Top 2 enemy armies
         }
 
         public static float GetTop2ArmyStrength(Logic.Kingdom kingdom)

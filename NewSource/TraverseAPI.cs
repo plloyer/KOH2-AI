@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using HarmonyLib;
 using Logic;
 
@@ -19,15 +20,27 @@ namespace AIOverhaul
         const string k_MethodThinkProposeOfferThread = "ThinkProposeOfferThread";
         const string k_MethodConsiderExpense = "ConsiderExpense";
 
+        // Cached MethodInfo for vanilla Send — avoids repeated reflection
+        static MethodInfo s_SendMethod;
+
+        static MethodInfo GetSendMethod()
+        {
+            if (s_SendMethod == null)
+                s_SendMethod = AccessTools.Method(typeof(KingdomAI), k_MethodSend, new[] { typeof(Logic.Army), typeof(MapObject), typeof(string), typeof(Logic.Battle) });
+            return s_SendMethod;
+        }
+
         public static bool SendArmy(this KingdomAI ai, Logic.Army army, MapObject target, string aiStatus, Logic.Battle battleViewBattle = null)
         {
             // Vanilla "Send" method signature: private bool Send(Army army, MapObject target, string status, Battle battle_view_battle = null)
             try
             {
-                var method = AccessTools.Method(typeof(KingdomAI), k_MethodSend, new[] { typeof(Logic.Army), typeof(MapObject), typeof(string), typeof(Logic.Battle) });
+                var method = GetSendMethod();
                 if (method != null)
                 {
-                    return (bool)method.Invoke(ai, new object[] { army, target, aiStatus, battleViewBattle });
+                    bool result = (bool)method.Invoke(ai, new object[] { army, target, aiStatus, battleViewBattle });
+                    if (result) SyncBuddyFollower(ai, army, target, aiStatus);
+                    return result;
                 }
 
                 AIOverhaulPlugin.LogError($"Could not find method {k_MethodSend} with params (Army, MapObject, string, Battle)");
@@ -37,6 +50,36 @@ namespace AIOverhaul
             {
                 AIOverhaulPlugin.LogError($"Could not invoke method {k_MethodSend}: {ex.Message}");
                 return false;
+            }
+        }
+
+        static void SyncBuddyFollower(KingdomAI ai, Logic.Army leader, MapObject target, string aiStatus)
+        {
+            var kingdom = ai?.kingdom;
+            if (kingdom == null || !AIOverhaulPlugin.IsEnhancedAI(kingdom)) return;
+            if (!BuddySystem.IsLeader(leader, kingdom)) return;
+
+            var follower = BuddySystem.GetBuddy(leader, kingdom);
+            if (follower == null || !follower.IsValid()) return;
+            if (follower.battle != null || follower.IsFleeing()) return;
+            if ((follower.units?.Count ?? 0) < GameBalance.MinBuddyUnitsToFollow) return;
+
+            var method = GetSendMethod();
+            if (method == null) return;
+
+            if (MilitaryHelper.IsLeaderHeadingToFight(leader, kingdom))
+            {
+                // Leader heading to fight → follower follows the same target
+                var leaderTarget = leader.GetTarget();
+                MapObject followTarget = leaderTarget as MapObject ?? leader;
+                method.Invoke(ai, new object[] { follower, followTarget, AIStatusNames.FollowLeader, null });
+                AIOverhaulPlugin.LogDebug($"[BuddySync] {MilitaryHelper.DescribeArmy(follower)}: immediately following leader {MilitaryHelper.DescribeArmy(leader)} -> {MilitaryHelper.DescribeTarget(leaderTarget)}", LogCategory.Military, kingdom);
+            }
+            else if (follower.ai_status == AIStatusNames.FollowLeader)
+            {
+                // Leader redirected to non-fight (retreat, refill, etc.) → follower was following, redirect too
+                method.Invoke(ai, new object[] { follower, target, aiStatus, null });
+                AIOverhaulPlugin.LogDebug($"[BuddySync] {MilitaryHelper.DescribeArmy(follower)}: mirroring leader redirect to {MilitaryHelper.DescribeTarget(target)} ({aiStatus})", LogCategory.Military, kingdom);
             }
         }
 

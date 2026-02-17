@@ -39,8 +39,149 @@ namespace AIOverhaul
             var kingdom = __instance.kingdom;
             var realmIn = army.realm_in;
 
-            // --- SIEGE DEFENSE RECALL ---
-            // Recall offensive armies to defend own realms under siege
+            
+            if (HandleSiegeDefenseRecall(__instance, army, kingdom)) return; // Recall offensive armies to defend own realms under siege
+            
+            if (HandleRetreatWhilePlundering(__instance, army, realmIn, kingdom)) return;
+            
+            if (HandleAbordOffensiveOutmatched(__instance, army, kingdom)) return;
+
+            if (HandleFollowerLogic(__instance, army, kingdom)) return;
+
+            HandleLeaderRefillWhenWeak(__instance, army, kingdom);
+        }
+
+        static void HandleLeaderRefillWhenWeak(KingdomAI __instance, Logic.Army army, Logic.Kingdom kingdom)
+        {
+            if (BuddySystem.IsLeader(army, kingdom))
+            {
+                string armyName = MilitaryHelper.DescribeArmy(army);
+                int unitCount = army.units?.Count ?? 0;
+                float healthPct = army.GetArmyHealthPercentage();
+                bool needsRefill = unitCount < GameBalance.MinFullArmyUnits || healthPct < GameBalance.HealthRetreatThreshold;
+
+                if (needsRefill)
+                {
+                    // Already heading to refill — don't recalculate target
+                    if (army.ai_status == AIStatusNames.Refill && army.GetTarget() != null)
+                    {
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Leader {armyName}: already refilling, keeping target {MilitaryHelper.DescribeTarget(army.GetTarget())}", LogCategory.Military, kingdom);
+                        return;
+                    }
+
+                    Castle castle = MilitaryHelper.FindNearestCastleWithBarracks(army, kingdom) ?? TraverseAPI.FindNearestOwnCastle(__instance, army, true);
+                    if (castle != null)
+                    {
+                        TraverseAPI.SendArmy(__instance, army, castle, AIStatusNames.Refill);
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Leader {armyName}: refilling ({unitCount} units, {healthPct:P0} health)", LogCategory.Military, kingdom);
+                        return;
+                    }
+                }
+            }
+        }
+
+        static bool HandleFollowerLogic(KingdomAI __instance, Logic.Army army, Logic.Kingdom kingdom)
+        {
+            if (BuddySystem.IsFollower(army, kingdom))
+            {
+                var leader = BuddySystem.GetLeader(army, kingdom);
+                if (leader == null || !leader.IsValid()) return true;
+
+                string armyName = MilitaryHelper.DescribeArmy(army);
+
+                // ALWAYS refill if too weak — regardless of leader state
+                int unitCount = army.units?.Count ?? 0;
+                if (unitCount < GameBalance.MinBuddyUnitsToFollow)
+                {
+                    // Already heading to refill — don't recalculate target
+                    if (army.ai_status == AIStatusNames.Refill && army.GetTarget() != null)
+                    {
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: already refilling, keeping target {MilitaryHelper.DescribeTarget(army.GetTarget())}", LogCategory.Military, kingdom);
+                        return true;
+                    }
+
+                    // HIGH PRIORITY: follower needs to refill
+                    // Try to take units from non-pair armies if in same castle
+                    MilitaryHelper.RefillFromNonPairArmies(army, kingdom);
+
+                    // Recheck after transfer
+                    unitCount = army.units?.Count ?? 0;
+                    if (unitCount < GameBalance.MinBuddyUnitsToFollow)
+                    {
+                        // Go to nearest castle with barracks to hire
+                        Castle castle = MilitaryHelper.FindNearestCastleWithBarracks(army, kingdom) ?? TraverseAPI.FindNearestOwnCastle(__instance, army, true);
+                        if (castle != null)
+                        {
+                            TraverseAPI.SendArmy(__instance, army, castle, AIStatusNames.Refill);
+                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: follower refilling ({unitCount} units < {GameBalance.MinBuddyUnitsToFollow})", LogCategory.Military, kingdom);
+                        }
+                        return true;
+                    }
+                }
+
+                // If leader is NOT heading to fight, follower acts independently
+                if (!MilitaryHelper.IsLeaderHeadingToFight(leader, kingdom)) return true;
+
+                // Follow leader's target
+                var leaderTarget = leader.GetTarget();
+                MapObject followTarget = leaderTarget as MapObject ?? leader;
+
+                TraverseAPI.SendArmy(__instance, army, followTarget, AIStatusNames.FollowLeader);
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: following leader {MilitaryHelper.DescribeArmy(leader)} -> {MilitaryHelper.DescribeTarget(leaderTarget)}", LogCategory.Military, kingdom);
+                return true;
+            }
+
+            return false;
+        }
+
+        static bool HandleAbordOffensiveOutmatched(KingdomAI __instance, Logic.Army army, Logic.Kingdom kingdom)
+        {
+            if (!BuddySystem.IsFollower(army, kingdom) && army.tgt_realm != null && MilitaryHelper.IsEnemyTerritory(army.tgt_realm, kingdom))
+            {
+                float ourStr = MilitaryHelper.GetCombatPairStrength(army, kingdom);
+                float enemyStr = MilitaryHelper.GetEnemyOffensiveStrength(kingdom, army.tgt_realm?.castle);
+                if (!MilitaryHelper.IsStrongerThan(ourStr, enemyStr, GameBalance.MinAttackStrengthRatio))
+                {
+                    Castle safeCastle = TraverseAPI.FindNearestOwnCastle(__instance, army, true);
+                    if (safeCastle != null)
+                    {
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {MilitaryHelper.DescribeArmy(army)}: aborting offensive — outmatched (pair:{ourStr:F0} vs enemy:{enemyStr:F0})", LogCategory.Military, kingdom);
+                        TraverseAPI.SendArmy(__instance, army, safeCastle, AIStatusNames.EnemiesTooStrong);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        static bool HandleRetreatWhilePlundering(KingdomAI __instance, Logic.Army army, Logic.Realm realmIn, Logic.Kingdom kingdom)
+        {
+            // --- RETREAT FROM STRONGER ENEMIES WHILE PLUNDERING ---
+            if (realmIn != null && MilitaryHelper.IsEnemyTerritory(realmIn, kingdom))
+            {
+                float enemyStr = MilitaryHelper.GetRealmEnemyStrength(realmIn, kingdom);
+                if (enemyStr > 0)
+                {
+                    float ownStr = army.EvalStrength();
+                    if (!MilitaryHelper.IsStrongerThan(ownStr, enemyStr, GameBalance.MinAttackStrengthRatio))
+                    {
+                        Castle safeCastle = TraverseAPI.FindNearestOwnCastle(__instance, army, true);
+                        if (safeCastle != null)
+                        {
+                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {MilitaryHelper.DescribeArmy(army)}: retreating from stronger enemies in {realmIn.name} (own:{ownStr:F0} vs enemy:{enemyStr:F0})", LogCategory.Military, kingdom);
+                            TraverseAPI.SendArmy(__instance, army, safeCastle, AIStatusNames.EnemiesTooStrong);
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        static bool HandleSiegeDefenseRecall(KingdomAI __instance, Logic.Army army, Logic.Kingdom kingdom)
+        {
             bool isActiveFollower = BuddySystem.IsFollower(army, kingdom)
                 && MilitaryHelper.IsLeaderHeadingToFight(BuddySystem.GetLeader(army, kingdom), kingdom);
             if (!isActiveFollower)
@@ -140,7 +281,7 @@ namespace AIOverhaul
                         {
                             AIOverhaulPlugin.LogDebug($"{k_LogPrefix} RECALLING {armyName} to defend siege at {bestSiegedRealm.name} (top2 projected:{projected:F0} vs enemy:{bestEnemyStr:F0})", LogCategory.Military, kingdom);
                             TraverseAPI.SendArmy(__instance, army, bestSiegedRealm.castle, AIStatusNames.SiegeRecall);
-                            return;
+                            return true;
                         }
                         else
                         {
@@ -150,123 +291,7 @@ namespace AIOverhaul
                 }
             }
 
-            // --- RETREAT FROM STRONGER ENEMIES WHILE PLUNDERING ---
-            if (realmIn != null && MilitaryHelper.IsEnemyTerritory(realmIn, kingdom))
-            {
-                float enemyStr = MilitaryHelper.GetRealmEnemyStrength(realmIn, kingdom);
-                if (enemyStr > 0)
-                {
-                    float ownStr = army.EvalStrength();
-                    if (!MilitaryHelper.IsStrongerThan(ownStr, enemyStr, GameBalance.MinAttackStrengthRatio))
-                    {
-                        Castle safeCastle = TraverseAPI.FindNearestOwnCastle(__instance, army, true);
-                        if (safeCastle != null)
-                        {
-                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {MilitaryHelper.DescribeArmy(army)}: retreating from stronger enemies in {realmIn.name} (own:{ownStr:F0} vs enemy:{enemyStr:F0})", LogCategory.Military, kingdom);
-                            TraverseAPI.SendArmy(__instance, army, safeCastle, AIStatusNames.EnemiesTooStrong);
-                            return;
-                        }
-                    }
-                }
-            }
-
-            // --- PREVENT OFFENSIVE WHEN OUTMATCHED ---
-            if (!BuddySystem.IsFollower(army, kingdom) && army.tgt_realm != null && MilitaryHelper.IsEnemyTerritory(army.tgt_realm, kingdom))
-            {
-                var enemyKingdom = army.tgt_realm.GetKingdom();
-                if (enemyKingdom != null)
-                {
-                    float ourStr = MilitaryHelper.GetCombatPairStrength(army, kingdom);
-                    float enemyTop2 = MilitaryHelper.GetTop2ArmyStrength(enemyKingdom);
-                    if (!MilitaryHelper.IsStrongerThan(ourStr, enemyTop2, GameBalance.MinAttackStrengthRatio))
-                    {
-                        Castle safeCastle = TraverseAPI.FindNearestOwnCastle(__instance, army, true);
-                        if (safeCastle != null)
-                        {
-                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {MilitaryHelper.DescribeArmy(army)}: aborting offensive — outmatched (pair:{ourStr:F0} vs enemy top2:{enemyTop2:F0})", LogCategory.Military, kingdom);
-                            TraverseAPI.SendArmy(__instance, army, safeCastle, AIStatusNames.EnemiesTooStrong);
-                            return;
-                        }
-                    }
-                }
-            }
-
-            // --- FOLLOWER FOLLOW LOGIC ---
-            if (BuddySystem.IsFollower(army, kingdom))
-            {
-                var leader = BuddySystem.GetLeader(army, kingdom);
-                if (leader == null || !leader.IsValid()) return;
-
-                string armyName = MilitaryHelper.DescribeArmy(army);
-
-                // ALWAYS refill if too weak — regardless of leader state
-                int unitCount = army.units?.Count ?? 0;
-                if (unitCount < GameBalance.MinBuddyUnitsToFollow)
-                {
-                    // Already heading to refill — don't recalculate target
-                    if (army.ai_status == AIStatusNames.Refill && army.GetTarget() != null)
-                    {
-                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: already refilling, keeping target {MilitaryHelper.DescribeTarget(army.GetTarget())}", LogCategory.Military, kingdom);
-                        return;
-                    }
-
-                    // HIGH PRIORITY: follower needs to refill
-                    // Try to take units from non-pair armies if in same castle
-                    MilitaryHelper.RefillFromNonPairArmies(army, kingdom);
-
-                    // Recheck after transfer
-                    unitCount = army.units?.Count ?? 0;
-                    if (unitCount < GameBalance.MinBuddyUnitsToFollow)
-                    {
-                        // Go to nearest castle with barracks to hire
-                        Castle castle = MilitaryHelper.FindNearestCastleWithBarracks(army, kingdom) ?? TraverseAPI.FindNearestOwnCastle(__instance, army, true);
-                        if (castle != null)
-                        {
-                            TraverseAPI.SendArmy(__instance, army, castle, AIStatusNames.Refill);
-                            AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: follower refilling ({unitCount} units < {GameBalance.MinBuddyUnitsToFollow})", LogCategory.Military, kingdom);
-                        }
-                        return;
-                    }
-                }
-
-                // If leader is NOT heading to fight, follower acts independently
-                if (!MilitaryHelper.IsLeaderHeadingToFight(leader, kingdom)) return;
-
-                // Follow leader's target
-                var leaderTarget = leader.GetTarget();
-                MapObject followTarget = leaderTarget as MapObject ?? leader;
-
-                TraverseAPI.SendArmy(__instance, army, followTarget, AIStatusNames.FollowLeader);
-                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} {armyName}: following leader {MilitaryHelper.DescribeArmy(leader)} -> {MilitaryHelper.DescribeTarget(leaderTarget)}", LogCategory.Military, kingdom);
-                return;
-            }
-
-            // --- LEADER: Refill when weak ---
-            if (BuddySystem.IsLeader(army, kingdom))
-            {
-                string armyName = MilitaryHelper.DescribeArmy(army);
-                int unitCount = army.units?.Count ?? 0;
-                float healthPct = army.GetArmyHealthPercentage();
-                bool needsRefill = unitCount < GameBalance.MinFullArmyUnits || healthPct < GameBalance.HealthRetreatThreshold;
-
-                if (needsRefill)
-                {
-                    // Already heading to refill — don't recalculate target
-                    if (army.ai_status == AIStatusNames.Refill && army.GetTarget() != null)
-                    {
-                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Leader {armyName}: already refilling, keeping target {MilitaryHelper.DescribeTarget(army.GetTarget())}", LogCategory.Military, kingdom);
-                        return;
-                    }
-
-                    Castle castle = MilitaryHelper.FindNearestCastleWithBarracks(army, kingdom) ?? TraverseAPI.FindNearestOwnCastle(__instance, army, true);
-                    if (castle != null)
-                    {
-                        TraverseAPI.SendArmy(__instance, army, castle, AIStatusNames.Refill);
-                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Leader {armyName}: refilling ({unitCount} units, {healthPct:P0} health)", LogCategory.Military, kingdom);
-                        return;
-                    }
-                }
-            }
+            return false;
         }
     }
 }

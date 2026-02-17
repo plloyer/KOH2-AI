@@ -34,23 +34,19 @@ namespace AIOverhaul
                     return false;
                 }
 
-                // Block offensive if our best combat pair can't match the enemy's best
-                var enemyKingdom = threat.realm?.GetKingdom();
-                if (enemyKingdom != null)
+                // Block offensive if our best combat pair can't match the enemy's combined threat at the target
+                float bestPairStr = 0;
+                foreach (var a in __instance.kingdom.armies)
                 {
-                    float bestPairStr = 0;
-                    foreach (var a in __instance.kingdom.armies)
-                    {
-                        if (a == null || !a.IsValid()) continue;
-                        bestPairStr = Math.Max(bestPairStr, MilitaryHelper.GetCombatPairStrength(a, __instance.kingdom));
-                    }
-                    float enemyTop2 = MilitaryHelper.GetTop2ArmyStrength(enemyKingdom);
-                    if (!MilitaryHelper.IsStrongerThan(bestPairStr, enemyTop2, GameBalance.MinAttackStrengthRatio))
-                    {
-                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocking offensive to {threat.realm?.name} — outmatched (best pair:{bestPairStr:F0} vs enemy top2:{enemyTop2:F0})", LogCategory.Military, __instance.kingdom);
-                        __result = false;
-                        return false;
-                    }
+                    if (a == null || !a.IsValid()) continue;
+                    bestPairStr = Math.Max(bestPairStr, MilitaryHelper.GetCombatPairStrength(a, __instance.kingdom));
+                }
+                float enemyStr = MilitaryHelper.GetEnemyOffensiveStrength(__instance.kingdom, threat.realm?.castle);
+                if (!MilitaryHelper.IsStrongerThan(bestPairStr, enemyStr, GameBalance.MinAttackStrengthRatio))
+                {
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocking offensive to {threat.realm?.name} — outmatched (best pair:{bestPairStr:F0} vs enemy:{enemyStr:F0})", LogCategory.Military, __instance.kingdom);
+                    __result = false;
+                    return false;
                 }
             }
             // DEFENSIVE: Our territory is invaded - defend if we're stronger than the enemy
