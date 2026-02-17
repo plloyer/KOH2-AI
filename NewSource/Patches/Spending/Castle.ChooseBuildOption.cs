@@ -256,8 +256,47 @@ namespace AIOverhaul
             ApplyCropFarmingConstraint(options, kingdom);
             ApplyReligiousSettlementConstraint(options);
 
+            // No barracks anywhere — super high priority to build one
+            if (!kingdom.HasBuilding(BuildingNames.Barracks))
+                ApplyBarracksPriority(options, kingdom);
+
             ApplyFoodBuildings(options, kingdom);
             ApplyGoodsBuildings(options, kingdom);
+        }
+
+        static void ApplyBarracksPriority(List<Castle.BuildOption> options, Logic.Kingdom kingdom)
+        {
+            if (kingdom.realms == null) return;
+            var urgent = KingdomAI.Expense.Priority.Urgent;
+
+            // Pick the realm with the most keeps (best barracks location)
+            int bestKeeps = -1;
+            Logic.Realm bestRealm = null;
+            foreach (var realm in kingdom.realms)
+            {
+                if (realm == null) continue;
+                int kc = realm.GetKeepCount();
+                if (kc > bestKeeps) { bestKeeps = kc; bestRealm = realm; }
+            }
+
+            if (bestRealm?.castle != null && IsCastleEligible(bestRealm.castle))
+            {
+                EnsureBuildOption(options, bestRealm.castle, BuildingNames.Barracks, k_QueueEval, urgent);
+                AIOverhaulPlugin.LogDebug($"{k_LogPrefix} No barracks — injected urgent barracks at {bestRealm.castle.name}", LogCategory.Spending, kingdom);
+            }
+            else
+            {
+                // Fallback: try any eligible castle
+                foreach (var realm in kingdom.realms)
+                {
+                    if (realm?.castle == null || !IsCastleEligible(realm.castle)) continue;
+                    if (EnsureBuildOption(options, realm.castle, BuildingNames.Barracks, k_QueueEval, urgent))
+                    {
+                        AIOverhaulPlugin.LogDebug($"{k_LogPrefix} No barracks — injected urgent barracks at {realm.castle.name} (fallback)", LogCategory.Spending, kingdom);
+                        break;
+                    }
+                }
+            }
         }
 
         static void ApplyFoodBuildings(List<Castle.BuildOption> options, Logic.Kingdom kingdom)

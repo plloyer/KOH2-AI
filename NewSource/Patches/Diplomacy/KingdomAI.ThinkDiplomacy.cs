@@ -17,35 +17,13 @@ namespace AIOverhaul
             Logic.Kingdom actor = __instance.kingdom;
             float score = actor.GetAverageWarScore();
 
-            // Nemesis team: highest priority — form pacts with teammates before anything else
+            // Nemesis team: form pacts with teammates and sync wars
             if (NemesisTeamManager.IsNemesis(actor))
             {
-                string pactType;
-                Logic.Kingdom teammate = NemesisTeamManager.FindTeammateNeedingPact(actor, actor.game, out pactType);
-                if (teammate != null)
-                {
-                    AIOverhaulPlugin.LogDebug($"NEMESIS: Proposing {pactType} to teammate {teammate.Name}", LogCategory.Nemesis, actor);
-                    if (pactType == DiplomacyConstants.SignTrade)
-                    {
-                        __result = __instance.RunTradeAgreementProposal(teammate);
-                        return false;
-                    }
-                    if (pactType == DiplomacyConstants.SignNonAggression)
-                    {
-                        __result = __instance.RunNonAggressionProposal(teammate);
-                        return false;
-                    }
-                    if (pactType == DiplomacyConstants.OfferJoinInDefensivePact)
-                    {
-                        __result = __instance.RunDefensivePactProposal(teammate);
-                        return false;
-                    }
-                }
-            }
-
-            // Nemesis: force-sync all teammates into each other's wars
-            if (NemesisTeamManager.IsNemesis(actor))
+                IEnumerator nemesisResult = HandleNemesisTeamPacts(__instance, actor);
+                if (nemesisResult != null) { __result = nemesisResult; return false; }
                 NemesisTeamManager.SyncWars(actor.game);
+            }
 
             // EMERGENCY: Realm being assaulted — seek peace immediately
             Logic.Kingdom assaultAttacker = actor.FindAssaultAttacker();
@@ -78,13 +56,8 @@ namespace AIOverhaul
             // Nemesis: try team-aligned trade target first (converge on same partners)
             if (NemesisTeamManager.IsNemesis(actor))
             {
-                Logic.Kingdom alignedTarget = NemesisTeamManager.FindTeamAlignedTradeTarget(actor, actor.game);
-                if (alignedTarget != null)
-                {
-                    AIOverhaulPlugin.LogDebug($"NEMESIS: Aligned trade with {alignedTarget.Name} (teammate already has trade)", LogCategory.Nemesis, actor);
-                    __result = __instance.RunTradeAgreementProposal(alignedTarget);
-                    return false;
-                }
+                IEnumerator alignedResult = HandleNemesisAlignedTrade(__instance, actor);
+                if (alignedResult != null) { __result = alignedResult; return false; }
             }
 
             // Proactively seek trade agreements when below minimum (prioritize over NAPs for early commerce)
@@ -103,13 +76,8 @@ namespace AIOverhaul
             // Nemesis: try team-aligned NAP target first
             if (NemesisTeamManager.IsNemesis(actor))
             {
-                Logic.Kingdom alignedTarget = NemesisTeamManager.FindTeamAlignedNAPTarget(actor, actor.game);
-                if (alignedTarget != null)
-                {
-                    AIOverhaulPlugin.LogDebug($"NEMESIS: Aligned NAP with {alignedTarget.Name} (teammate already has NAP)", LogCategory.Nemesis, actor);
-                    __result = __instance.RunNonAggressionProposal(alignedTarget);
-                    return false;
-                }
+                IEnumerator alignedResult = HandleNemesisAlignedNAP(__instance, actor);
+                if (alignedResult != null) { __result = alignedResult; return false; }
             }
 
             // Offer non-aggression pacts to all neighbors EXCEPT the expansion target
@@ -180,6 +148,38 @@ namespace AIOverhaul
             }
 
             return true;
+        }
+
+        /// <summary>Nemesis: form pacts with teammates. Returns IEnumerator if handled, null otherwise.</summary>
+        static IEnumerator HandleNemesisTeamPacts(KingdomAI ai, Logic.Kingdom actor)
+        {
+            string pactType;
+            Logic.Kingdom teammate = NemesisTeamManager.FindTeammateNeedingPact(actor, actor.game, out pactType);
+            if (teammate == null) return null;
+
+            AIOverhaulPlugin.LogDebug($"NEMESIS: Proposing {pactType} to teammate {teammate.Name}", LogCategory.Nemesis, actor);
+            if (pactType == DiplomacyConstants.SignTrade) return ai.RunTradeAgreementProposal(teammate);
+            if (pactType == DiplomacyConstants.SignNonAggression) return ai.RunNonAggressionProposal(teammate);
+            if (pactType == DiplomacyConstants.OfferJoinInDefensivePact) return ai.RunDefensivePactProposal(teammate);
+            return null;
+        }
+
+        /// <summary>Nemesis: converge on same trade partners as teammates. Returns IEnumerator if handled.</summary>
+        static IEnumerator HandleNemesisAlignedTrade(KingdomAI ai, Logic.Kingdom actor)
+        {
+            Logic.Kingdom target = NemesisTeamManager.FindTeamAlignedTradeTarget(actor, actor.game);
+            if (target == null) return null;
+            AIOverhaulPlugin.LogDebug($"NEMESIS: Aligned trade with {target.Name} (teammate already has trade)", LogCategory.Nemesis, actor);
+            return ai.RunTradeAgreementProposal(target);
+        }
+
+        /// <summary>Nemesis: converge on same NAP partners as teammates. Returns IEnumerator if handled.</summary>
+        static IEnumerator HandleNemesisAlignedNAP(KingdomAI ai, Logic.Kingdom actor)
+        {
+            Logic.Kingdom target = NemesisTeamManager.FindTeamAlignedNAPTarget(actor, actor.game);
+            if (target == null) return null;
+            AIOverhaulPlugin.LogDebug($"NEMESIS: Aligned NAP with {target.Name} (teammate already has NAP)", LogCategory.Nemesis, actor);
+            return ai.RunNonAggressionProposal(target);
         }
 
         static void Postfix(KingdomAI __instance)

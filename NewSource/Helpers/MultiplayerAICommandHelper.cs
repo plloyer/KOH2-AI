@@ -86,7 +86,7 @@ namespace AIOverhaul
             else if (cmd == "!nemesis_log" || cmd == "/nemesis_log")
             {
                 NemesisTeamManager.VerboseLogging = !NemesisTeamManager.VerboseLogging;
-                AIOverhaulPlugin.LogInfo($"[Nemesis] Verbose logging {(NemesisTeamManager.VerboseLogging ? "ENABLED" : "DISABLED")}", LogCategory.Nemesis);
+                AIOverhaulPlugin.LogInfo($"Verbose logging {(NemesisTeamManager.VerboseLogging ? "ENABLED" : "DISABLED")}", LogCategory.Nemesis);
                 return true;
             }
             else if (cmd == "!nemesis_reroll" || cmd == "/nemesis_reroll")

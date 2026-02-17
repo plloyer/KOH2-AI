@@ -97,7 +97,7 @@ namespace AIOverhaul
         public const float DaysPerYear = 365f;
 
         // Mercenary System
-        public const float MercenarySpawnLimitMultiplier = 1.9f;
+        public const float MercenarySpawnLimitMultiplier = 2f;
         public const int MaxMercsPerRealm = 1;
         public const float OutOfTerritoryMercenaryPriceMultiplier = 2.0f;
 
@@ -115,5 +115,12 @@ namespace AIOverhaul
         public const float NemesisClusterAdjacencyBonus = 20f; // Bonus per existing nemesis member a candidate borders
         public const float NemesisPowerWeight = 0.01f;         // Weight for kingdom power in scoring
         public const int NemesisMinTeamSize = 2;               // Minimum viable nemesis team size
+
+        // Nemesis Team System - Distance tuning (kingdom hops from human players)
+        public const int NemesisIdealDistanceMin = 4;          // Ideal minimum hops from human players
+        public const int NemesisIdealDistanceMax = 4;          // Ideal maximum hops from human players
+        public const float NemesisIdealDistanceBonus = 30f;    // Bonus for being in the ideal range
+        public const float NemesisCloseDistancePenaltyPerHop = 10f; // Penalty per hop below ideal min
+        public const float NemesisFarDistancePenaltyPerHop = 10f;   // Penalty per hop above ideal max
     }
 }

@@ -18,12 +18,11 @@ namespace AIOverhaul
             if (k == null || !AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
             if (__instance.kingdom.IsAlly(k)) return false;
 
-            // Nemesis teammates never declare war on each other
-            if (NemesisTeamManager.AreNemesisTeammates(__instance.kingdom, k))
+            // Nemesis: block war on teammates and defer to teammate wars
+            if (NemesisTeamManager.IsNemesis(__instance.kingdom))
             {
-                NemesisTeamManager.LogVerbose($"Blocking war on nemesis teammate {k.Name}", __instance.kingdom);
-                __result = false;
-                return false;
+                if (HandleNemesisWarBlock(__instance, k, ref __result))
+                    return false;
             }
 
             __result = false;
@@ -34,26 +33,13 @@ namespace AIOverhaul
                 return false;
             }
 
-            // Nemesis: if a teammate is at war, don't start our own — SyncWars will join theirs
-            if (NemesisTeamManager.IsNemesis(__instance.kingdom) && __instance.kingdom.wars.Count == 0)
-            {
-                War teammateWar = NemesisTeamManager.FindTeammateWar(__instance.kingdom, __instance.game);
-                if (teammateWar != null)
-                {
-                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Nemesis: deferring to teammate war, SyncWars will join.", LogCategory.Diplomacy, __instance.kingdom);
-                    return false;
-                }
-            }
-
             if (__instance.kingdom.HasDisorder())
             {
                 AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Blocked: Has disorder.", LogCategory.Diplomacy,  __instance.kingdom);
                 return false;
             }
 
-            float ownPower = __instance.kingdom.GetTotalPower();
-            if (NemesisTeamManager.IsNemesis(__instance.kingdom))
-                ownPower = NemesisTeamManager.GetTeamPower(__instance.game);
+            float ownPower = GetEffectivePower(__instance);
             float targetPower = k.GetTotalPower();
             float powerRatio = targetPower > 0 ? ownPower / targetPower : 10f;
             if (powerRatio < k_MinPowerRatio)
@@ -108,6 +94,42 @@ namespace AIOverhaul
                 AIOverhaulPlugin.LogDebug($"{k_LogPrefix} War on {k.Name} blocked by game validation: {validation}", LogCategory.Diplomacy, __instance.kingdom);
             }
             return false;
+        }
+
+        /// <summary>Nemesis: block war on teammates and defer to teammate wars. Returns true if war should be blocked.</summary>
+        static bool HandleNemesisWarBlock(KingdomAI ai, Logic.Kingdom target, ref bool result)
+        {
+            Logic.Kingdom actor = ai.kingdom;
+
+            // Never declare war on teammates
+            if (NemesisTeamManager.AreNemesisTeammates(actor, target))
+            {
+                NemesisTeamManager.LogVerbose($"Blocking war on nemesis teammate {target.Name}", actor);
+                result = false;
+                return true;
+            }
+
+            // If a teammate is already at war, don't start our own — SyncWars will join theirs
+            if (actor.wars != null && actor.wars.Count == 0)
+            {
+                War teammateWar = NemesisTeamManager.FindTeammateWar(actor, ai.game);
+                if (teammateWar != null)
+                {
+                    AIOverhaulPlugin.LogDebug($"{k_LogPrefix} Nemesis: deferring to teammate war, SyncWars will join.", LogCategory.Diplomacy, actor);
+                    result = false;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>Nemesis kingdoms use combined team power for war evaluation.</summary>
+        static float GetEffectivePower(KingdomAI ai)
+        {
+            if (NemesisTeamManager.IsNemesis(ai.kingdom))
+                return NemesisTeamManager.GetTeamPower(ai.game);
+            return ai.kingdom.GetTotalPower();
         }
     }
 }

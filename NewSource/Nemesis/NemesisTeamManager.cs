@@ -26,7 +26,7 @@ namespace AIOverhaul
         public static void LogVerbose(string message, Logic.Kingdom kingdom = null)
         {
             if (!VerboseLogging) return;
-            AIOverhaulPlugin.LogInfo($"[Nemesis] {message}", LogCategory.Nemesis, kingdom);
+            AIOverhaulPlugin.LogInfo($"{message}", LogCategory.Nemesis, kingdom);
         }
 
         // --- Query Methods ---
@@ -287,7 +287,7 @@ namespace AIOverhaul
                     return;
                 }
                 targetSize = ForcedTeamSize;
-                AIOverhaulPlugin.LogInfo($"[Nemesis] FORCED mode: creating team of {targetSize} against {humanKingdoms.Count} player(s)", LogCategory.Nemesis);
+                AIOverhaulPlugin.LogInfo($"FORCED mode: creating team of {targetSize} against {humanKingdoms.Count} player(s)", LogCategory.Nemesis);
             }
             else
             {
@@ -301,17 +301,39 @@ namespace AIOverhaul
 
             foreach (var hk in humanKingdoms)
                 HumanTeamKingdomIds.Add(hk.id);
-            AIOverhaulPlugin.LogInfo($"[Nemesis] Detected {humanKingdoms.Count} coop players: {string.Join(", ", humanKingdoms.Select(k => k.Name))}", LogCategory.Nemesis);
+            AIOverhaulPlugin.LogInfo($"Detected {humanKingdoms.Count} coop players: {string.Join(", ", humanKingdoms.Select(k => k.Name))}", LogCategory.Nemesis);
 
-            // Step 2: Build human neighbor set (AI kingdoms directly bordering any human player)
+            // Step 2: BFS from human kingdoms to compute hop distance to every kingdom
+            var distanceFromHumans = new Dictionary<int, int>();
             var humanNeighborIds = new HashSet<int>();
+            var bfsQueue = new Queue<int>();
             foreach (var hk in humanKingdoms)
             {
-                if (hk.neighbors == null) continue;
-                foreach (var n in hk.neighbors)
+                distanceFromHumans[hk.id] = 0;
+                bfsQueue.Enqueue(hk.id);
+            }
+            while (bfsQueue.Count > 0)
+            {
+                int curId = bfsQueue.Dequeue();
+                int curDist = distanceFromHumans[curId];
+                Logic.Kingdom cur = game.GetKingdom(curId);
+                if (cur?.neighbors == null) continue;
+                foreach (var n in cur.neighbors)
                 {
-                    if (n is Logic.Kingdom nk && !nk.is_player && !nk.IsDefeated())
-                        humanNeighborIds.Add(nk.id);
+                    if (n is Logic.Kingdom nk && !nk.IsDefeated() && !distanceFromHumans.ContainsKey(nk.id))
+                    {
+                        distanceFromHumans[nk.id] = curDist + 1;
+                        bfsQueue.Enqueue(nk.id);
+                    }
+                }
+            }
+            // Build direct-neighbor set (distance == 1) for backwards compat
+            foreach (var kvp in distanceFromHumans)
+            {
+                if (kvp.Value == 1)
+                {
+                    Logic.Kingdom nk = game.GetKingdom(kvp.Key);
+                    if (nk != null && !nk.is_player) humanNeighborIds.Add(kvp.Key);
                 }
             }
 
@@ -322,7 +344,7 @@ namespace AIOverhaul
             foreach (var ai in aiKingdoms)
             {
                 float score = 0f;
-                float neighborPenalty = 0f, powerScore = 0f, aiNeighborScore = 0f, realmScore = 0f;
+                float neighborPenalty = 0f, powerScore = 0f, aiNeighborScore = 0f, realmScore = 0f, distScore = 0f;
 
                 // Penalty for directly neighboring a human player
                 if (humanNeighborIds.Contains(ai.id))
@@ -330,6 +352,22 @@ namespace AIOverhaul
                     score -= GameBalance.NemesisHumanNeighborPenalty;
                     neighborPenalty = -GameBalance.NemesisHumanNeighborPenalty;
                 }
+
+                // Distance scoring: bonus for ideal range, penalty outside it
+                int dist = distanceFromHumans.ContainsKey(ai.id) ? distanceFromHumans[ai.id] : 999;
+                if (dist >= GameBalance.NemesisIdealDistanceMin && dist <= GameBalance.NemesisIdealDistanceMax)
+                {
+                    distScore = GameBalance.NemesisIdealDistanceBonus;
+                }
+                else if (dist < GameBalance.NemesisIdealDistanceMin)
+                {
+                    distScore = -(GameBalance.NemesisIdealDistanceMin - dist) * GameBalance.NemesisCloseDistancePenaltyPerHop;
+                }
+                else
+                {
+                    distScore = -(dist - GameBalance.NemesisIdealDistanceMax) * GameBalance.NemesisFarDistancePenaltyPerHop;
+                }
+                score += distScore;
 
                 // Prefer strong kingdoms
                 float power = ai.GetTotalPower();
@@ -359,13 +397,13 @@ namespace AIOverhaul
                 }
 
                 scores[ai.id] = score;
-                LogVerbose($"Score {ai.Name}: {score:F1} (power:{powerScore:F1}, aiNeighbors:{aiNeighborCount}x{GameBalance.NemesisAINeighborBonus}={aiNeighborScore:F1}, realms:{realmScore:F1}, humanPenalty:{neighborPenalty:F1})");
+                LogVerbose($"Score {ai.Name}: {score:F1} (dist:{dist}, distScore:{distScore:F1}, power:{powerScore:F1}, aiNeighbors:{aiNeighborCount}x{GameBalance.NemesisAINeighborBonus}={aiNeighborScore:F1}, realms:{realmScore:F1}, humanPenalty:{neighborPenalty:F1})");
             }
 
             // Step 4: Greedy cluster expansion
             if (scores.Count == 0)
             {
-                AIOverhaulPlugin.LogInfo("[Nemesis] No AI kingdoms available for nemesis team.", LogCategory.Nemesis);
+                AIOverhaulPlugin.LogInfo("No AI kingdoms available for nemesis team.", LogCategory.Nemesis);
                 return;
             }
 
@@ -428,7 +466,7 @@ namespace AIOverhaul
             // Step 5: Fallback - need at least MinTeamSize
             if (selected.Count < GameBalance.NemesisMinTeamSize)
             {
-                AIOverhaulPlugin.LogInfo($"[Nemesis] Could only select {selected.Count} kingdoms (need {GameBalance.NemesisMinTeamSize}). Skipping.", LogCategory.Nemesis);
+                AIOverhaulPlugin.LogInfo($"Could only select {selected.Count} kingdoms (need {GameBalance.NemesisMinTeamSize}). Skipping.", LogCategory.Nemesis);
                 return;
             }
 
@@ -448,7 +486,7 @@ namespace AIOverhaul
 
             IsInitialized = true;
             var selectedNames = selected.Select(id => game.GetKingdom(id)?.Name ?? id.ToString());
-            AIOverhaulPlugin.LogInfo($"[Nemesis] Selected nemesis team: {string.Join(", ", selectedNames)}", LogCategory.Nemesis);
+            AIOverhaulPlugin.LogInfo($"Selected nemesis team: {string.Join(", ", selectedNames)}", LogCategory.Nemesis);
         }
 
         /// <summary>
@@ -548,7 +586,7 @@ namespace AIOverhaul
             if (NemesisKingdomIds.Count >= GameBalance.NemesisMinTeamSize)
             {
                 IsInitialized = true;
-                AIOverhaulPlugin.LogInfo($"[Nemesis] Restored nemesis team from save: {string.Join(", ", restored)}", LogCategory.Nemesis);
+                AIOverhaulPlugin.LogInfo($"Restored nemesis team from save: {string.Join(", ", restored)}", LogCategory.Nemesis);
             }
         }
 
@@ -557,10 +595,10 @@ namespace AIOverhaul
         public static string GetInfoString()
         {
             if (!IsInitialized || NemesisKingdomIds.Count == 0)
-                return "[Nemesis] No nemesis team active.";
+                return "No nemesis team active.";
 
             var game = AIOverhaulPlugin.CurrentGame;
-            if (game == null) return "[Nemesis] No game active.";
+            if (game == null) return "No game active.";
 
             var sb = new StringBuilder();
             sb.AppendLine("=== NEMESIS TEAM ===");

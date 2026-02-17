@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using Logic;
 using UnityEngine;
@@ -26,10 +27,13 @@ namespace AIOverhaul
             var game = AIOverhaulPlugin.CurrentGame;
             if (game?.multiplayer == null) return;
 
-            // Lazy-init styles
+            // Lazy-init styles with monospace font for column alignment
             if (m_Style == null)
             {
+                var monoFont = Font.CreateDynamicFontFromOSFont(new[] { "Consolas", "Courier New", "Courier" }, 18);
+
                 m_Style = new GUIStyle(GUI.skin.label);
+                m_Style.font = monoFont;
                 m_Style.fontSize = 18;
                 m_Style.richText = true;
                 m_Style.wordWrap = false;
@@ -42,11 +46,11 @@ namespace AIOverhaul
             }
 
             // Position: top-right corner, lowered to avoid overlapping other UI
-            float width = 380f;
+            float width = 440f;
             int humanCount = NemesisTeamManager.HumanTeamKingdomIds.Count;
             int nemesisCount = NemesisTeamManager.NemesisKingdomIds.Count;
             float height = 40f + (humanCount + nemesisCount) * 28f + 32f + 36f;
-            m_WindowRect = new Rect(Screen.width - width - 10f, 100f, width, height);
+            m_WindowRect = new Rect(Screen.width - width - 10f, 300f, width, height);
 
             // Draw background
             if (m_BackgroundTexture == null)
@@ -66,6 +70,7 @@ namespace AIOverhaul
 
             GUILayout.BeginArea(new Rect(m_WindowRect.x + 10f, m_WindowRect.y + 6f, m_WindowRect.width - 20f, m_WindowRect.height - 12f));
             GUILayout.Label("<color=#C8B078>SCOREBOARD</color>", m_HeaderStyle);
+            GUILayout.Space(6f);
 
             // Draw each line from cached text
             GUILayout.Label(m_CachedText, m_Style);
@@ -74,35 +79,27 @@ namespace AIOverhaul
 
         string BuildOverlayText(Game game)
         {
-            var sb = new StringBuilder();
+            // Gather all rows first to compute max name length for alignment
+            var humanRows = new List<(string name, string color, int realms, int fame, int power)>();
+            var nemesisRows = new List<(string name, string color, int realms, int fame, int power)>();
+            int totalRealms = 0, totalFame = 0, totalPower = 0;
 
-            // Human players section
             foreach (int id in NemesisTeamManager.HumanTeamKingdomIds)
             {
                 Logic.Kingdom k = game.GetKingdom(id);
                 if (k == null) continue;
-                int realms = k.realms?.Count ?? 0;
-                int fame = (int)k.fame;
-                int power = (int)k.GetTotalPower();
                 string color = GetWarColor(k, game, NemesisTeamManager.NemesisKingdomIds);
-                sb.AppendLine($"<color={color}>{k.Name} - R:{realms} | F:{fame} | P:{power}</color>");
+                humanRows.Add((k.Name, color, k.realms?.Count ?? 0, (int)k.fame, (int)k.GetTotalPower()));
             }
 
-            // Separator
-            sb.AppendLine("<color=#555555>───────────────</color>");
-            sb.AppendLine("<color=#C87868>NEMESIS TEAM</color>");
-
-            // Nemesis kingdoms section
-            int totalRealms = 0, totalFame = 0, totalPower = 0;
             foreach (int id in NemesisTeamManager.NemesisKingdomIds)
             {
                 Logic.Kingdom k = game.GetKingdom(id);
                 if (k == null) continue;
-
                 int realms = k.realms?.Count ?? 0;
                 int fame = (int)k.fame;
                 int power = (int)k.GetTotalPower();
-
+                string label = k.IsDefeated() ? k.Name + " [X]" : k.Name;
                 string color;
                 if (k.IsDefeated())
                 {
@@ -115,13 +112,35 @@ namespace AIOverhaul
                     totalPower += power;
                     color = GetWarColor(k, game, NemesisTeamManager.HumanTeamKingdomIds);
                 }
-
-                string status = k.IsDefeated() ? " [X]" : "";
-                sb.AppendLine($"<color={color}>{k.Name}{status} - R:{realms} | F:{fame} | P:{power}</color>");
+                nemesisRows.Add((label, color, realms, fame, power));
             }
 
-            sb.Append($"<color=#D0C8B0>TOTAL: R:{totalRealms} | F:{totalFame} | P:{totalPower}</color>");
+            // Compute column widths across all rows
+            int maxName = 5; // minimum "TOTAL" length
+            foreach (var r in humanRows) if (r.name.Length > maxName) maxName = r.name.Length;
+            foreach (var r in nemesisRows) if (r.name.Length > maxName) maxName = r.name.Length;
+
+            var sb = new StringBuilder();
+            foreach (var r in humanRows)
+                sb.AppendLine(FormatRow(r.name, r.color, r.realms, r.fame, r.power, maxName));
+
+            sb.AppendLine("<color=#555555>───────────────────────</color>");
+            sb.AppendLine("<color=#C87868>NEMESIS TEAM</color>");
+
+            foreach (var r in nemesisRows)
+                sb.AppendLine(FormatRow(r.name, r.color, r.realms, r.fame, r.power, maxName));
+
+            sb.Append(FormatRow("TOTAL", "#D0C8B0", totalRealms, totalFame, totalPower, maxName));
             return sb.ToString();
+        }
+
+        static string FormatRow(string name, string color, int realms, int fame, int power, int nameWidth)
+        {
+            string padded = name.PadRight(nameWidth);
+            string r = realms.ToString().PadLeft(2);
+            string f = fame.ToString().PadLeft(4);
+            string p = power.ToString().PadLeft(5);
+            return $"<color={color}>{padded}  R:{r} F:{f} P:{p}</color>";
         }
 
         /// <summary>Returns coral if at war with opponents, amber if at war with anyone, sage if at peace.</summary>

@@ -17,7 +17,7 @@ namespace AIOverhaul
         }
 
         // --- Constants ---
-        const float k_Duration = 12f;
+        const float k_Duration = 8f;
         const float k_RingRadius = 22f;
         const int k_RingSegments = 64;
         const float k_RingThickness = 1.5f;

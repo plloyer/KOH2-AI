@@ -14,18 +14,27 @@ namespace AIOverhaul
             Logic.Kingdom actor = __instance.kingdom;
             if (actor == null || k == null) return true;
 
-            // Nemesis teammates at war: immediately send plain peace offer (resolve accidental war)
-            if (actor.IsEnemy(k) && NemesisTeamManager.AreNemesisTeammates(actor, k))
+            if (!HandleNemesis(__instance, k, ref __result, actor)) return false;
+            if (!HandleEmergencyPeace(__instance, k, ref __result, actor)) return false;
+            if (!HandleIndependance(__instance, k, out __result, actor)) return false;
+            if (!HandleDesperateSurrender(__instance, k, ref __result, actor)) return false;
+
+            return true;
+        }
+
+        static bool HandleNemesis(KingdomAI __instance, Logic.Kingdom k, ref bool __result, Logic.Kingdom actor)
+        {
+            if (actor.IsEnemy(k) && NemesisTeamManager.IsNemesis(actor))
             {
-                if (OfferHelper.TrySendOffer(DiplomacyConstants.Peace, __instance, k))
-                {
-                    AIOverhaulPlugin.LogDebug($"NEMESIS: Sending peace to teammate {k.Name} (resolving accidental war)", LogCategory.Nemesis, actor);
-                    __result = true;
+                if (HandleNemesisWhitePeace(__instance, actor, k, ref __result))
                     return false;
-                }
             }
 
-            // Emergency: Enemy is assaulting our realm — offer peace immediately
+            return true;
+        }
+
+        static bool HandleEmergencyPeace(KingdomAI __instance, Logic.Kingdom k, ref bool __result, Logic.Kingdom actor)
+        {
             if (actor.IsEnemy(k) && actor.FindAssaultAttacker() == k)
             {
                 Offer peace = Offer.GetCachedOffer(DiplomacyConstants.PeaceOfferTribute, actor, k);
@@ -49,26 +58,11 @@ namespace AIOverhaul
                 }
             }
 
-            // Independence
-            if (actor.sovereignState == k)
-            {
-                float myStr = actor.GetTotalPower();
-                float theirStr = k.GetTotalPower();
-                float kScore = k.GetAverageWarScore();
-                if (myStr > theirStr * GameBalance.PowerRatioStrongerEnemy ||
-                    k.wars.Count > GameBalance.MaxWarsCount ||
-                    kScore < GameBalance.WarScoreIndependence)
-                {
-                    if (OfferHelper.TrySendOffer(DiplomacyConstants.ClaimIndependence, __instance, k))
-                    {
-                        AIOverhaulPlugin.LogDebug($"Claiming independence from {k.Name}", LogCategory.War, actor);
-                        __result = true;
-                        return false;
-                    }
-                }
-            }
-			
-            // Desperate Surrender
+            return true;
+        }
+
+        static bool HandleDesperateSurrender(KingdomAI __instance, Logic.Kingdom k, ref bool __result, Logic.Kingdom actor)
+        {
             if (actor.IsEnemy(k))
             {
                 float score = actor.GetAverageWarScore();
@@ -98,6 +92,58 @@ namespace AIOverhaul
             }
 
             return true;
+        }
+
+        static bool HandleIndependance(KingdomAI __instance, Logic.Kingdom k, out bool __result, Logic.Kingdom actor)
+        {
+            if (actor.sovereignState == k)
+            {
+                float myStr = actor.GetTotalPower();
+                float theirStr = k.GetTotalPower();
+                float kScore = k.GetAverageWarScore();
+                if (myStr > theirStr * GameBalance.PowerRatioStrongerEnemy ||
+                    k.wars.Count > GameBalance.MaxWarsCount ||
+                    kScore < GameBalance.WarScoreIndependence)
+                {
+                    if (OfferHelper.TrySendOffer(DiplomacyConstants.ClaimIndependence, __instance, k))
+                    {
+                        AIOverhaulPlugin.LogDebug($"Claiming independence from {k.Name}", LogCategory.War, actor);
+                        __result = true;
+                        return false;
+                    }
+                }
+            }
+
+            __result = false;
+            return true;
+        }
+
+        /// <summary>Nemesis peace logic: resolve teammate wars and trim side conflicts. Returns true if handled.</summary>
+        static bool HandleNemesisWhitePeace(KingdomAI ai, Logic.Kingdom actor, Logic.Kingdom k, ref bool result)
+        {
+            // Teammates at war: immediately send plain peace offer
+            if (NemesisTeamManager.AreNemesisTeammates(actor, k))
+            {
+                if (OfferHelper.TrySendOffer(DiplomacyConstants.Peace, ai, k))
+                {
+                    AIOverhaulPlugin.LogDebug($"NEMESIS: Sending peace to teammate {k.Name} (resolving accidental war)", LogCategory.Nemesis, actor);
+                    result = true;
+                    return true;
+                }
+            }
+
+            // Fighting more than 1 war: seek peace with non-human enemies to stay focused
+            if (!NemesisTeamManager.IsHumanTeam(k) && actor.wars != null && actor.wars.Count > 1)
+            {
+                if (OfferHelper.TrySendOffer(DiplomacyConstants.Peace, ai, k))
+                {
+                    AIOverhaulPlugin.LogDebug($"NEMESIS: Seeking peace with {k.Name} (have {actor.wars.Count} wars, trimming side conflicts)", LogCategory.Nemesis, actor);
+                    result = true;
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
