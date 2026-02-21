@@ -19,9 +19,37 @@ namespace AIOverhaul
         const string k_MethodFindNearestOwnCastle = "FindNearestOwnCastle";
         const string k_MethodThinkProposeOfferThread = "ThinkProposeOfferThread";
         const string k_MethodConsiderExpense = "ConsiderExpense";
+        const string k_MethodThinkRetreat = "ThinkRetreat";
+        const string k_MethodThinkBreakSiege = "ThinkBreakSiege";
+        const string k_MethodShouldWait = "ShouldWait";
+        const string k_MethodConsiderHireMercenaries = "ConsiderHireMercenaries";
+        const string k_MethodThinkHelpWithRebels = "ThinkHelpWithRebels";
+        const string k_MethodDecideOwnCastleForArmy = "DecideOwnCastleForArmy";
+        const string k_MethodCalcBudget = "CalcBudget";
+        const string k_MethodClearExpenses = "ClearExpenses";
+        const string k_MethodCalcThreat = "CalcThreat";
+        const string k_MethodThinkThreats = "ThinkThreats";
+        const string k_MethodThinkHireUnits = "ThinkHireUnits";
+        const string k_MethodThinkArmies = "ThinkArmies";
+        const string k_MethodSpendExpenses = "SpendExpenses";
+        const string k_MethodTooSoonRetreat = "TooSoonRetreat";
 
-        // Cached MethodInfo for vanilla Send — avoids repeated reflection
+        // Cached MethodInfo — avoids repeated reflection
         static MethodInfo s_SendMethod;
+        static MethodInfo s_ThinkRetreatMethod;
+        static MethodInfo s_ThinkBreakSiegeMethod;
+        static MethodInfo s_ShouldWaitMethod;
+        static MethodInfo s_ConsiderHireMercenariesMethod;
+        static MethodInfo s_ThinkHelpWithRebelsMethod;
+        static MethodInfo s_DecideOwnCastleForArmyMethod;
+        static MethodInfo s_CalcBudgetMethod;
+        static MethodInfo s_ClearExpensesMethod;
+        static MethodInfo s_CalcThreatMethod;
+        static MethodInfo s_ThinkThreatsMethod;
+        static MethodInfo s_ThinkHireUnitsMethod;
+        static MethodInfo s_ThinkArmiesMethod;
+        static MethodInfo s_SpendExpensesMethod;
+        static MethodInfo s_TooSoonRetreatMethod;
 
         static MethodInfo GetSendMethod()
         {
@@ -123,6 +151,122 @@ namespace AIOverhaul
             var tmpExpense = traverse.Field("tmp_expense").GetValue<KingdomAI.Expense>();
             tmpExpense.Set(ai.kingdom, type, category, priority, defParam, objectParam, args);
             traverse.Method(k_MethodConsiderExpense, new[] { typeof(KingdomAI.Expense) }).GetValue(tmpExpense);
+        }
+
+        // --- ThinkArmy vanilla method wrappers ---
+
+        /// <summary>Instance method: bool ThinkRetreat(Army a)</summary>
+        public static bool ThinkRetreat(this KingdomAI ai, Logic.Army army)
+        {
+            if (s_ThinkRetreatMethod == null)
+                s_ThinkRetreatMethod = AccessTools.Method(typeof(KingdomAI), k_MethodThinkRetreat, new[] { typeof(Logic.Army) });
+            return (bool)s_ThinkRetreatMethod.Invoke(ai, new object[] { army });
+        }
+
+        /// <summary>Instance method: void ThinkBreakSiege(Army a)</summary>
+        public static void ThinkBreakSiege(this KingdomAI ai, Logic.Army army)
+        {
+            if (s_ThinkBreakSiegeMethod == null)
+                s_ThinkBreakSiegeMethod = AccessTools.Method(typeof(KingdomAI), k_MethodThinkBreakSiege, new[] { typeof(Logic.Army) });
+            s_ThinkBreakSiegeMethod.Invoke(ai, new object[] { army });
+        }
+
+        /// <summary>Instance method: bool ShouldWait(Army army)</summary>
+        public static bool ShouldWait(this KingdomAI ai, Logic.Army army)
+        {
+            if (s_ShouldWaitMethod == null)
+                s_ShouldWaitMethod = AccessTools.Method(typeof(KingdomAI), k_MethodShouldWait, new[] { typeof(Logic.Army) });
+            return (bool)s_ShouldWaitMethod.Invoke(ai, new object[] { army });
+        }
+
+        /// <summary>Instance method: bool ConsiderHireMercenaries(Army army)</summary>
+        public static bool ConsiderHireMercenaries(this KingdomAI ai, Logic.Army army)
+        {
+            if (s_ConsiderHireMercenariesMethod == null)
+                s_ConsiderHireMercenariesMethod = AccessTools.Method(typeof(KingdomAI), k_MethodConsiderHireMercenaries, new[] { typeof(Logic.Army) });
+            return (bool)s_ConsiderHireMercenariesMethod.Invoke(ai, new object[] { army });
+        }
+
+        /// <summary>Instance method: bool ThinkHelpWithRebels(Army army)</summary>
+        public static bool ThinkHelpWithRebels(this KingdomAI ai, Logic.Army army)
+        {
+            if (s_ThinkHelpWithRebelsMethod == null)
+                s_ThinkHelpWithRebelsMethod = AccessTools.Method(typeof(KingdomAI), k_MethodThinkHelpWithRebels, new[] { typeof(Logic.Army) });
+            return (bool)s_ThinkHelpWithRebelsMethod.Invoke(ai, new object[] { army });
+        }
+
+        /// <summary>Instance method: Castle DecideOwnCastleForArmy(Character leader)</summary>
+        public static Castle DecideOwnCastleForArmy(this KingdomAI ai, Logic.Character leader)
+        {
+            if (s_DecideOwnCastleForArmyMethod == null)
+                s_DecideOwnCastleForArmyMethod = AccessTools.Method(typeof(KingdomAI), k_MethodDecideOwnCastleForArmy, new[] { typeof(Logic.Character) });
+            return (Castle)s_DecideOwnCastleForArmyMethod.Invoke(ai, new object[] { leader });
+        }
+
+        /// <summary>Instance method: bool TooSoonRetreat(Army army)</summary>
+        public static bool TooSoonRetreat(this KingdomAI ai, Logic.Army army)
+        {
+            if (s_TooSoonRetreatMethod == null)
+                s_TooSoonRetreatMethod = AccessTools.Method(typeof(KingdomAI), k_MethodTooSoonRetreat, new[] { typeof(Logic.Army) });
+            return (bool)s_TooSoonRetreatMethod.Invoke(ai, new object[] { army });
+        }
+
+        // --- ThinkMilitary vanilla method wrappers ---
+
+        /// <summary>Instance method: void CalcBudget() — no params</summary>
+        public static void CalcBudget(KingdomAI ai)
+        {
+            if (s_CalcBudgetMethod == null)
+                s_CalcBudgetMethod = AccessTools.Method(typeof(KingdomAI), k_MethodCalcBudget, Type.EmptyTypes);
+            s_CalcBudgetMethod.Invoke(ai, null);
+        }
+
+        /// <summary>Instance method: void ClearExpenses(WeightedRandom&lt;Expense&gt;)</summary>
+        public static void ClearExpenses(KingdomAI ai, WeightedRandom<KingdomAI.Expense> expenses)
+        {
+            if (s_ClearExpensesMethod == null)
+                s_ClearExpensesMethod = AccessTools.Method(typeof(KingdomAI), k_MethodClearExpenses, new[] { typeof(WeightedRandom<KingdomAI.Expense>) });
+            s_ClearExpensesMethod.Invoke(ai, new object[] { expenses });
+        }
+
+        /// <summary>Instance method: IEnumerator CalcThreat() — no params</summary>
+        public static IEnumerator CalcThreat(KingdomAI ai)
+        {
+            if (s_CalcThreatMethod == null)
+                s_CalcThreatMethod = AccessTools.Method(typeof(KingdomAI), k_MethodCalcThreat, Type.EmptyTypes);
+            return (IEnumerator)s_CalcThreatMethod.Invoke(ai, null);
+        }
+
+        /// <summary>Instance method: IEnumerator ThinkThreats() — no params</summary>
+        public static IEnumerator ThinkThreats(KingdomAI ai)
+        {
+            if (s_ThinkThreatsMethod == null)
+                s_ThinkThreatsMethod = AccessTools.Method(typeof(KingdomAI), k_MethodThinkThreats, Type.EmptyTypes);
+            return (IEnumerator)s_ThinkThreatsMethod.Invoke(ai, null);
+        }
+
+        /// <summary>Instance method: IEnumerator ThinkHireUnits() — no params</summary>
+        public static IEnumerator ThinkHireUnits(KingdomAI ai)
+        {
+            if (s_ThinkHireUnitsMethod == null)
+                s_ThinkHireUnitsMethod = AccessTools.Method(typeof(KingdomAI), k_MethodThinkHireUnits, Type.EmptyTypes);
+            return (IEnumerator)s_ThinkHireUnitsMethod.Invoke(ai, null);
+        }
+
+        /// <summary>Instance method: IEnumerator ThinkArmies() — no params</summary>
+        public static IEnumerator ThinkArmies(KingdomAI ai)
+        {
+            if (s_ThinkArmiesMethod == null)
+                s_ThinkArmiesMethod = AccessTools.Method(typeof(KingdomAI), k_MethodThinkArmies, Type.EmptyTypes);
+            return (IEnumerator)s_ThinkArmiesMethod.Invoke(ai, null);
+        }
+
+        /// <summary>Instance method: IEnumerator SpendExpenses(WeightedRandom&lt;Expense&gt;)</summary>
+        public static IEnumerator SpendExpenses(KingdomAI ai, WeightedRandom<KingdomAI.Expense> expenses)
+        {
+            if (s_SpendExpensesMethod == null)
+                s_SpendExpensesMethod = AccessTools.Method(typeof(KingdomAI), k_MethodSpendExpenses, new[] { typeof(WeightedRandom<KingdomAI.Expense>) });
+            return (IEnumerator)s_SpendExpensesMethod.Invoke(ai, new object[] { expenses });
         }
     }
 }
