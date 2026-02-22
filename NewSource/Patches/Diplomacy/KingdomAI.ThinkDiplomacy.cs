@@ -52,6 +52,7 @@ namespace AIOverhaul
             // Strategic expansion targeting - keep ONE enemy neighbor, NAP with all others
             // This creates focused expansion direction with secure flanks
             Logic.Kingdom expansionTarget = actor.SelectExpansionTarget();
+            if (SettingsMenu.IsDefensive(actor)) expansionTarget = null;
 
             // Nemesis: try team-aligned trade target first (converge on same partners)
             if (NemesisTeamManager.IsNemesis(actor))
@@ -81,7 +82,7 @@ namespace AIOverhaul
             }
 
             // Offer non-aggression pacts to all neighbors EXCEPT the expansion target
-            Logic.Kingdom napTarget = actor.FindNonAggressionTarget(expansionTarget);
+            Logic.Kingdom napTarget = SettingsMenu.CanProposeNAP(actor) ? actor.FindNonAggressionTarget(expansionTarget) : null;
             if (napTarget != null)
             {
                 __result = __instance.RunNonAggressionProposal(napTarget);
@@ -187,7 +188,8 @@ namespace AIOverhaul
             if (!AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return;
 
             // Consider inviting neighbors to join our wars if we need help
-            __instance.ConsiderInvitingNeighborsToWar();
+            if (SettingsMenu.CanDemandSupportInWar(__instance.kingdom))
+                __instance.ConsiderInvitingNeighborsToWar();
         }
     }
 }

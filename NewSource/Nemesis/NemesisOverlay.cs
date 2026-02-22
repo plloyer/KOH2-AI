@@ -11,6 +11,7 @@ namespace AIOverhaul
     /// </summary>
     public class NemesisOverlay : MonoBehaviour
     {
+        public static Rect WindowRect { get; private set; }
         Rect m_WindowRect;
         Texture2D m_BackgroundTexture;
         GUIStyle m_Style;
@@ -51,6 +52,7 @@ namespace AIOverhaul
             int nemesisCount = NemesisTeamManager.NemesisKingdomIds.Count;
             float height = 40f + (humanCount + nemesisCount) * 28f + 32f + 36f;
             m_WindowRect = new Rect(Screen.width - width - 10f, 300f, width, height);
+            WindowRect = m_WindowRect;
 
             // Draw background
             if (m_BackgroundTexture == null)

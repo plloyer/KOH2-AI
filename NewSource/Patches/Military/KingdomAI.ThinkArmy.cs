@@ -18,7 +18,21 @@ namespace AIOverhaul
             var kingdom = __instance.kingdom;
             var realmIn = army.realm_in;
 
-            if (realmIn == null || army.IsHiredMercenary()) return false;
+            if (realmIn == null) return false;
+            if (army.IsHiredMercenary())
+            {
+                if (SettingsMenu.MercsCastleOnly(kingdom))
+                {
+                    if (army.battle != null) return false;
+                    var castle = realmIn.castle;
+                    var castleKingdom = castle?.GetKingdom();
+                    if (castle != null && castle.battle == null && castleKingdom != null && castleKingdom.IsEnemy(kingdom.id))
+                    {
+                        TraverseAPI.SendArmy(__instance, army, castle, AIStatusNames.AttackRealm);
+                    }
+                }
+                return false;
+            }
 
             if (army.battle != null) { HandleInBattle(__instance, army); return false; }
             if (army.IsFleeing()) return false;

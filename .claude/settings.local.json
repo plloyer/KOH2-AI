@@ -1,4 +1,5 @@
 {
+  "dangerouslySkipPermissions": true,
   "permissions": {
     "allow": [
       "Bash(ls:*)",
@@ -21,7 +22,6 @@
       "Bash(msbuild:*)",
       "Bash(findstr:*)",
       "Bash(powershell -Command:*)",
-      "Bash(powershell << 'EOF'\n$searchPatterns = @\\(\n  'BuddySystem\\\\.BuddyMap',\n  'BuddySystem\\\\.ReevaluateBuddies',\n  'BuddySystem\\\\.IsStrikeForce',\n  'BuddySystem\\\\.ShouldBuddyHelp',\n  'BuddySystem\\\\.GetBuddy',\n  'RetreatHeal|RetreatHealBuddy|RetreatLowChance|WaitForBuddy|RescueLeaderSiege|JoinLeaderBattle|FollowBuddyForce|FollowBuddyMove|JoinLeaderTerritory|RescueBuddy|AttackSallyOut',\n  'BuddyBreakDistance|BuddyWaitDistance|MinArmiesForStrikeForce|MinBuddyUnitsToHelp|SoloAttackStrengthRatio'\n\\)\n\nforeach \\($pattern in $searchPatterns\\) {\n  $results = Get-ChildItem -Path 'C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\Knights of Honor II\\\\AIOverhaul\\\\NewSource' -Recurse -Filter *.cs | Select-String -Pattern $pattern\n  foreach \\($result in $results\\) {\n    Write-Host \\(\"{0}:{1}:{2}\" -f $result.Path, $result.LineNumber, $result.Line.Trim\\(\\)\\)\n  }\n}\nEOF)",
       "Bash(dir:*)",
       "Bash(git rm:*)",
       "Bash(if exist nul echo EXISTS else echo GONE)",
@@ -30,13 +30,6 @@
       "Bash(python:*)",
       "Bash(where:*)",
       "Bash(python3:*)",
-      "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" --version)",
-      "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" -c \"import ast; ast.parse\\(open\\(r''C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\Knights of Honor II\\\\AIOverhaul\\\\Scripts\\\\analyze_performance.py''\\).read\\(\\)\\); print\\(''Syntax OK''\\)\")",
-      "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" -c \"import matplotlib; print\\(f''matplotlib {matplotlib.__version__}''\\)\")",
-      "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" \"C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\Knights of Honor II\\\\AIOverhaul\\\\Scripts\\\\analyze_performance.py\")",
-      "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" -c:*)",
-      "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\" \"C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\Knights of Honor II\\\\AIOverhaul\\\\Scripts\\\\analyze_performance.py\" --no-graph)",
-      "Bash(\"C:\\\\Users\\\\pierrelucloyer\\\\AppData\\\\Local\\\\Python\\\\bin\\\\python.exe\":*)",
       "Bash(git log:*)"
     ]
   }

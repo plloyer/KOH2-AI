@@ -16,6 +16,7 @@ namespace AIOverhaul
         static bool Prefix(KingdomAI __instance, Logic.Kingdom k, ref bool __result)
         {
             if (k == null || !AIOverhaulPlugin.IsEnhancedAI(__instance.kingdom)) return true;
+            if (!SettingsMenu.CanDeclareWar(__instance.kingdom)) { __result = false; return false; }
             if (__instance.kingdom.IsAlly(k)) return false;
 
             // Nemesis: block war on teammates and defer to teammate wars

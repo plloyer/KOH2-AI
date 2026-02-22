@@ -32,7 +32,7 @@ namespace AIOverhaul
 
             string armyName = MilitaryHelper.DescribeArmy(army);
 
-            Logic.Settlement target = MilitaryHelper.FindNearestPlunderableSettlement(army);
+            Logic.Settlement target = SettingsMenu.ShouldRushCastle(kingdom) ? null : MilitaryHelper.FindNearestPlunderableSettlement(army);
             if (target == null)
             {
                 // No settlements to plunder - attack the castle if in enemy territory

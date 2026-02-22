@@ -100,6 +100,7 @@ namespace AIOverhaul
                         Logic.Kingdom k = game.GetKingdom(id);
                         if (k != null) k.SetVar(CampaignVarNames.NemesisTeam, new Value());
                     }
+                    NemesisTeamManager.ClearCampaignVars(game);
                     NemesisTeamManager.Clear();
                     NemesisTeamManager.Initialize(game);
                     AIOverhaulPlugin.LogInfo(NemesisTeamManager.GetInfoString(), LogCategory.Nemesis);

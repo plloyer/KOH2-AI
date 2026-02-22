@@ -176,9 +176,18 @@ namespace AIOverhaul
             // Minimized space
             GUILayout.Space(0);
 
+            m_ScrollPosition = GUILayout.BeginScrollView(m_ScrollPosition);
             DrawOverlayContent(style);
+            GUILayout.EndScrollView();
 
             GUILayout.EndArea();
+
+            // Consume mouse/scroll events inside the overlay so they don't pass to the game
+            if (m_WindowRect.Contains(Event.current.mousePosition))
+            {
+                if (Event.current.type == EventType.ScrollWheel)
+                    Event.current.Use();
+            }
         }
 
         void DrawOverlayContent(GUIStyle style)
@@ -221,7 +230,8 @@ namespace AIOverhaul
             var queue = Castle_ChooseBuildOption.GetBuildQueue(k);
             if (queue != null && queue.Count > 0)
             {
-                for (int i = 0; i < queue.Count; i++)
+                int displayCount = Math.Min(queue.Count, 5);
+                for (int i = 0; i < displayCount; i++)
                 {
                     var entry = queue[i];
                     string color = i == 0 ? k_ColorYellow : k_ColorGrey;
@@ -235,6 +245,8 @@ namespace AIOverhaul
                     }
                     GUILayout.Label($"  <color={color}>{i + 1}. {entry.buildingId}{tag}{target}</color>", style);
                 }
+                if (queue.Count > 5)
+                    GUILayout.Label($"  <color={k_ColorGrey}>... +{queue.Count - 5} more</color>", style);
             }
             GUILayout.Space(5);
         }
@@ -484,16 +496,12 @@ namespace AIOverhaul
             // Sort by Score descending
             var sorted = m_ConsideredExpenses.OrderByDescending(e => e.Score).ToList();
 
-            m_ScrollPosition = GUILayout.BeginScrollView(m_ScrollPosition, GUILayout.Height(300));
-            
             foreach (var record in sorted)
             {
                 // Cyan (< 1.0), Green (< 10.0), White (< 100.0), Grey (>= 100.0)
                 string color = record.Score < 1.0f ? "cyan" : (record.Score < 10.0f ? "green" : (record.Score < 100.0f ? "white" : "grey"));
                 GUILayout.Label($"<color={color}>[{record.Score:F1}]</color> {record.Name} ({record.Category})", style);
             }
-
-            GUILayout.EndScrollView();
         }
         
         void DrawRealmSettlements(Logic.Kingdom k, GUIStyle style)

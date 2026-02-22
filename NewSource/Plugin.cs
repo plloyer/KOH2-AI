@@ -73,6 +73,12 @@ namespace AIOverhaul
             nemesisGO.hideFlags = HideFlags.HideAndDontSave;
             nemesisGO.AddComponent<NemesisOverlay>();
 
+            // Initialize SettingsMenu for in-game configuration (F5)
+            var settingsGO = new GameObject("AI_SettingsMenu");
+            DontDestroyOnLoad(settingsGO);
+            settingsGO.hideFlags = HideFlags.HideAndDontSave;
+            settingsGO.AddComponent<SettingsMenu>();
+
             // Listen to all Unity logs to capture game errors/warnings into BepInEx log
             Application.logMessageReceived += OnUnityLogMessage;
 
@@ -211,6 +217,7 @@ namespace AIOverhaul
         {
             PatchSingleCooldown(game, DiplomacyConstants.DemandSupportInWar, GameBalance.DemandSupportInWarCooldown);
             PatchSingleCooldown(game, DiplomacyConstants.DemandAttackKingdom, GameBalance.DemandAttackKingdomCooldown);
+            PatchSingleCooldown(game, DiplomacyConstants.SignNonAggression, GameBalance.SignNonAggressionCooldown);
         }
 
         static void PatchSingleCooldown(Game game, string offerId, float cooldown)
@@ -233,6 +240,10 @@ namespace AIOverhaul
             {
                 // Reload path — restore nemesis team from saved kingdom vars
                 NemesisTeamManager.RestoreFromVars(game);
+                // Reload auto-refuse settings for player kingdoms
+                var reloadPlayers = game.kingdoms.Where(k => k != null && k.is_player && !k.IsDefeated());
+                foreach (var pk in reloadPlayers)
+                    SettingsMenu.LoadSettings(pk);
                 return;
             }
             PatchOfferCooldowns(game);
@@ -251,6 +262,7 @@ namespace AIOverhaul
             {
                 EnhancedKingdomIds.Add(playerKingdom.id);
                 EnhancedPerformanceLogger.RecordBaseline(playerKingdom, "Enhanced", game);
+                SettingsMenu.LoadSettings(playerKingdom);
             }
 
             if (playerKingdoms.Count > 0)
@@ -454,6 +466,12 @@ namespace AIOverhaul
             {
                 NemesisTeamManager.LogVerbose("Client-side nemesis restoration triggered");
                 NemesisTeamManager.RestoreFromVars(__instance);
+            }
+
+            // Detect F5 key press to toggle settings menu
+            if (Input.GetKeyDown(KeyCode.F5))
+            {
+                SettingsMenu.Instance?.Toggle();
             }
 
             // Detect F9 key press to toggle spectator mode

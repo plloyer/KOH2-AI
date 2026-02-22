@@ -37,5 +37,16 @@ namespace AIOverhaul
         public const string MortalEnemyId = "aimod_mortal_enemy";           // Points to the kingdom_id of the current target kingdom
         public const string MortalEnemySovereignId = "aimod_mortal_enemy_sov"; // Points to the nid of the target sovereign
         public const string NemesisTeam = "aimod_nemesis";                     // Marks kingdom as part of the nemesis team (value=1)
+        public const string NemesisTeamIds = "aimod_nemesis_ids";                // Comma-separated kingdom IDs in campaignData
+        public const string AutoRefusePrefix = "aimod_ar_";                    // Prefix for auto-refuse offer settings (per offer type)
+
+        // AI Behavior settings (spectator mode)
+        public const string AISettingPrefix = "aimod_ai_";
+        public const string AIDeclareWar = "aimod_ai_declare_war";
+        public const string AIDefensive = "aimod_ai_defensive";
+        public const string AIRushCastle = "aimod_ai_rush_castle";
+        public const string AICanNAP = "aimod_ai_can_nap";
+        public const string AIDemandSupport = "aimod_ai_demand_support";
+        public const string AIMercCastleOnly = "aimod_ai_merc_castle_only";
     }
 }

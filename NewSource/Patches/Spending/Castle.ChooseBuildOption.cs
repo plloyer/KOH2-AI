@@ -394,6 +394,13 @@ namespace AIOverhaul
 
         static List<BuildQueueEntry> GetOrBuildQueue(Logic.Kingdom kingdom)
         {
+            if (kingdom.realms != null && kingdom.realms.Count > GameBalance.MaxProvincesForBuildQueue)
+            {
+                if (s_BuildQueues.Remove(kingdom.id))
+                    s_QueueFrontTracker.Remove(kingdom.id);
+                return new List<BuildQueueEntry>();
+            }
+
             if (!s_BuildQueues.TryGetValue(kingdom.id, out var queue))
             {
                 queue = BuildInitialQueue(kingdom);

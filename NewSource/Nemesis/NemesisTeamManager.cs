@@ -487,6 +487,7 @@ namespace AIOverhaul
             IsInitialized = true;
             var selectedNames = selected.Select(id => game.GetKingdom(id)?.Name ?? id.ToString());
             AIOverhaulPlugin.LogInfo($"Selected nemesis team: {string.Join(", ", selectedNames)}", LogCategory.Nemesis);
+            PersistToCampaign(game);
         }
 
         /// <summary>
@@ -559,8 +560,53 @@ namespace AIOverhaul
             if (game == null || game.kingdoms == null) return;
             if (IsInitialized) return; // Already initialized this session
 
+            // Try campaignData first — this is reliable on MP reload because campaignData is deserialized before gameplay starts
+            if (game.campaign?.campaignData != null)
+            {
+                Value cdVal = game.campaign.campaignData.GetVar(CampaignVarNames.NemesisTeamIds);
+                if (cdVal.is_string)
+                {
+                    string idsStr = cdVal.String();
+                    if (!string.IsNullOrEmpty(idsStr))
+                    {
+                        var restored = new List<string>();
+                        foreach (string token in idsStr.Split(','))
+                        {
+                            if (int.TryParse(token.Trim(), out int id))
+                            {
+                                Logic.Kingdom k = game.GetKingdom(id);
+                                if (k != null && !k.IsDefeated())
+                                {
+                                    NemesisKingdomIds.Add(id);
+                                    if (!AIOverhaulPlugin.EnhancedKingdomIds.Contains(id))
+                                        AIOverhaulPlugin.EnhancedKingdomIds.Add(id);
+                                    // Re-apply kingdom var for client sync
+                                    k.SetVar(CampaignVarNames.NemesisTeam, new Value(1));
+                                    restored.Add(k.Name);
+                                }
+                            }
+                        }
+
+                        if (NemesisKingdomIds.Count >= GameBalance.NemesisMinTeamSize)
+                        {
+                            HumanTeamKingdomIds.Clear();
+                            var humanKingdoms = DetectCoopPlayers(game);
+                            foreach (var hk in humanKingdoms)
+                                HumanTeamKingdomIds.Add(hk.id);
+
+                            IsInitialized = true;
+                            AIOverhaulPlugin.LogInfo($"Restored nemesis team from campaignData: {string.Join(", ", restored)}", LogCategory.Nemesis);
+                            return;
+                        }
+                        LogVerbose($"campaignData had {NemesisKingdomIds.Count} IDs but below min size, falling through to kingdom vars");
+                        NemesisKingdomIds.Clear();
+                    }
+                }
+            }
+
+            // Fallback: scan kingdom vars (works for single-player saves or legacy saves without campaignData)
             int scanned = 0;
-            var restored = new List<string>();
+            var restoredFromVars = new List<string>();
             foreach (var k in game.kingdoms)
             {
                 if (k == null || k.IsDefeated()) continue;
@@ -572,21 +618,23 @@ namespace AIOverhaul
                     NemesisKingdomIds.Add(k.id);
                     if (!AIOverhaulPlugin.EnhancedKingdomIds.Contains(k.id))
                         AIOverhaulPlugin.EnhancedKingdomIds.Add(k.id);
-                    restored.Add(k.Name);
+                    restoredFromVars.Add(k.Name);
                 }
             }
-            LogVerbose($"RestoreFromVars: scanned {scanned} kingdoms, found {restored.Count} nemesis members");
+            LogVerbose($"RestoreFromVars: scanned {scanned} kingdoms, found {restoredFromVars.Count} nemesis members");
 
             // Rebuild human team
             HumanTeamKingdomIds.Clear();
-            var humanKingdoms = DetectCoopPlayers(game);
-            foreach (var hk in humanKingdoms)
+            var humanKingdomsFallback = DetectCoopPlayers(game);
+            foreach (var hk in humanKingdomsFallback)
                 HumanTeamKingdomIds.Add(hk.id);
 
             if (NemesisKingdomIds.Count >= GameBalance.NemesisMinTeamSize)
             {
                 IsInitialized = true;
-                AIOverhaulPlugin.LogInfo($"Restored nemesis team from save: {string.Join(", ", restored)}", LogCategory.Nemesis);
+                AIOverhaulPlugin.LogInfo($"Restored nemesis team from save: {string.Join(", ", restoredFromVars)}", LogCategory.Nemesis);
+                // Backfill campaignData so future reloads use the fast path
+                PersistToCampaign(game);
             }
         }
 
@@ -646,6 +694,21 @@ namespace AIOverhaul
             NemesisKingdomIds.Clear();
             HumanTeamKingdomIds.Clear();
             IsInitialized = false;
+        }
+
+        static void PersistToCampaign(Game game)
+        {
+            if (game?.campaign?.campaignData == null || NemesisKingdomIds.Count == 0) return;
+            string ids = string.Join(",", NemesisKingdomIds);
+            game.campaign.campaignData.Set(CampaignVarNames.NemesisTeamIds, ids);
+            LogVerbose($"Persisted nemesis team to campaignData: {ids}");
+        }
+
+        public static void ClearCampaignVars(Game game)
+        {
+            if (game?.campaign?.campaignData == null) return;
+            game.campaign.campaignData.Set(CampaignVarNames.NemesisTeamIds, Value.Unknown);
+            LogVerbose("Cleared nemesis team from campaignData");
         }
     }
 }

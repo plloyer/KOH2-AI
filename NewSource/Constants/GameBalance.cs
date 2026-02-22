@@ -52,6 +52,7 @@ namespace AIOverhaul
         // Vanilla default is 0 for all offers. These override specific spammy offer types.
         public const float DemandSupportInWarCooldown = 3600f;    // 1 hour game-time
         public const float DemandAttackKingdomCooldown = 3600f;   // 1 hour game-time
+        public const float SignNonAggressionCooldown = 3600f;    // 1 hour game-time
 
         // Diplomacy Thresholds
         public const int MaxWarsCount = 2;
@@ -102,6 +103,7 @@ namespace AIOverhaul
         public const float OutOfTerritoryMercenaryPriceMultiplier = 2.0f;
 
         // Build Queue
+        public const int MaxProvincesForBuildQueue = 6; // Skip build queue for kingdoms larger than this
         public const float BuildQueueStallTimeoutSec = 900f; // 15 game-minutes in seconds
 
         // Speed Control

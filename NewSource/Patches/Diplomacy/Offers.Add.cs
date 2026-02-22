@@ -13,6 +13,18 @@ namespace AIOverhaul.Patches.Diplomacy
             var receiver = offer.to as Logic.Kingdom;   // Kingdom being claimed from (loses territory)
             var claimant = offer.from as Logic.Kingdom;  // Kingdom making the claim (gains territory)
 
+            // Auto-refuse offers the player has toggled off in the settings menu
+            if (receiver != null && receiver.is_player && !AIOverhaulPlugin.SpectatorMode)
+            {
+                string offerType = offer.GetType().Name;
+                if (SettingsMenu.IsAutoRefused(offerType))
+                {
+                    AIOverhaulPlugin.LogInfo($"Auto-refused {offerType} from {claimant?.Name ?? "unknown"}", LogCategory.Diplomacy, receiver);
+                    offer.Decline();
+                    return false;
+                }
+            }
+
             // Block inheritance claims between nemesis teammates (regardless of Enhanced status)
             if (receiver != null && claimant != null && offer is PrincessClaimInheritanceOffer
                 && NemesisTeamManager.AreNemesisTeammates(receiver, claimant))
